@@ -1,0 +1,16 @@
+\section{Trabajo futuro}
+
+% TODO: ampliar cada linea en prosa.
+
+\begin{itemize}
+\item Incorporacion del peso real mediante celda de carga HX711 sobre ESP32.
+La arquitectura ya contempla esa componente del vector de caracteristicas,
+desactivada mientras no existan mediciones de masa.
+\item Ajuste fino del extractor sobre imagenes del dominio propio, para cerrar
+la brecha observada entre dataset y camara.
+\item Banda transportadora fisica, con disparo por fotocelda en lugar del
+disparador de estabilidad por software.
+\item Comparacion contra una maquina de vectores de soporte con nucleo, para
+medir cuanto aporta la no linealidad situada en el clasificador y no en la
+representacion.
+\end{itemize}

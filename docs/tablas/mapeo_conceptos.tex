@@ -1,0 +1,26 @@
+\begin{table}[htbp]
+\caption{Conceptos de algebra lineal y su punto de aplicacion en el sistema}
+\label{tab:mapeo-conceptos}
+\begin{tabular}{ll}
+\toprule
+Concepto & Donde se aplica \\
+\midrule
+Matrices y tensores & Imagen como $I \in \mathbb{R}^{H \times W \times 3}$ \\
+Producto matriz-vector & Conversion RGB a YCbCr y RGB a gris \\
+Autovalores y autovectores & Matriz de inercia $2\times2$, ejes principales \\
+Matriz de covarianza & Estandarizacion y analisis de componentes principales \\
+Descomposicion en valores singulares & Eigen-objetos, reduccion de 4096 a $k$ \\
+Relacion entre $A^{T}A$ y $AA^{T}$ & Truco de Turk-Pentland para $m \ll n$ \\
+Espacios y subespacios vectoriales & Espacio de caracteristicas, subespacio propio \\
+Proyeccion ortogonal & Representacion en el subespacio de eigen-objetos \\
+Minimos cuadrados & Entrenamiento del clasificador \\
+Pseudoinversa de Moore-Penrose & Solucion cerrada $W = X^{+}Y$ \\
+Rango e independencia lineal & Deteccion de caracteristicas redundantes \\
+Numero de condicion & Diagnostico de $X^{T}X$ mal condicionada \\
+Regularizacion de Tikhonov & Estabilizacion mediante $+\lambda I$ \\
+Norma euclidiana & Baseline k-NN, distancia en el espacio propio \\
+Hiperplanos separadores & Frontera de decision del clasificador lineal \\
+\bottomrule
+\end{tabular}
+\note{Elaboracion propia.}
+\end{table}

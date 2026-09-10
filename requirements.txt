@@ -1,0 +1,19 @@
+# SCOAL v2.2 — dependencias
+# Motor matematico: NumPy puro. sklearn SOLO en tests. torch SOLO como extractor congelado.
+
+numpy>=1.26
+opencv-python>=4.9
+matplotlib>=3.8
+requests>=2.31
+tqdm>=4.66
+
+# Via C: extractor congelado MobileNetV3-Small (unico uso de torch en el proyecto)
+torch>=2.2
+torchvision>=0.17
+
+# Interfaz
+PySide6>=6.6
+
+# Solo verificacion numerica (tests/test_vs_sklearn.py)
+scikit-learn>=1.4
+pytest>=8.0

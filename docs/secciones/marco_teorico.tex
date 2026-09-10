@@ -1,0 +1,93 @@
+\section{Marco teorico}
+
+% TODO: desarrollar cada subseccion. Las formulas ya estan planteadas y
+% coinciden con las docstrings del codigo fuente; el texto debe explicarlas.
+
+\subsection{La imagen como objeto algebraico}
+
+Una imagen digital en color es un tensor $I \in \mathbb{R}^{H \times W \times 3}$.
+% TODO: desarrollar.
+
+\subsection{Transformaciones lineales de color}
+
+La conversion de RGB a YCbCr, en la recomendacion ITU-R BT.601, es una
+transformacion afin cuya parte lineal es una matriz de $3 \times 3$:
+
+\begin{equation}
+\begin{bmatrix} Y \\ C_b \\ C_r \end{bmatrix}
+=
+\begin{bmatrix}
+ 0.2990 &  0.5870 &  0.1140 \\
+-0.1687 & -0.3313 &  0.5000 \\
+ 0.5000 & -0.4187 & -0.0813
+\end{bmatrix}
+\begin{bmatrix} R \\ G \\ B \end{bmatrix}
++
+\begin{bmatrix} 0 \\ 128 \\ 128 \end{bmatrix}.
+\end{equation}
+
+La conversion de RGB a HSV, en cambio, \emph{no} es lineal: el tono y la
+saturacion se definen a partir de $\max(R,G,B)$, $\min(R,G,B)$ y cocientes
+entre esas cantidades, operaciones que no admiten representacion matricial.
+Esa es la razon por la que la segmentacion de este trabajo opera en YCbCr.
+% TODO: ampliar.
+
+\subsection{Momentos y matriz de inercia}
+
+Con los momentos centrales de segundo orden de la mascara binaria se construye
+
+\begin{equation}
+M = \frac{1}{\mu_{00}}
+\begin{bmatrix} \mu_{20} & \mu_{11} \\ \mu_{11} & \mu_{02} \end{bmatrix},
+\end{equation}
+
+matriz simetrica y semidefinida positiva cuyos autovectores son las direcciones
+principales del objeto y cuyos autovalores miden la dispersion a lo largo de
+esas direcciones.
+% TODO: desarrollar.
+
+\subsection{Descomposicion en valores singulares y eigen-objetos}
+
+Sea $A \in \mathbb{R}^{m \times d}$ la matriz de imagenes centradas. Su
+descomposicion en valores singulares $A = U \Sigma V^{T}$ entrega en las
+columnas de $V$ los autovectores de la matriz de covarianza
+$C = A^{T}A/(m-1)$. Cuando $m \ll d$ se aplica la identidad de
+\textcite{turk1991}: si $A A^{T} u = \mu\, u$, entonces
+
+\begin{equation}
+A^{T}A \,(A^{T}u) = \mu \,(A^{T}u),
+\end{equation}
+
+de modo que $v = A^{T}u / \lVert A^{T}u \rVert$ es autovector de la matriz
+grande sin necesidad de construirla.
+% TODO: desarrollar.
+
+\subsection{Minimos cuadrados regularizados}
+
+El clasificador resuelve
+
+\begin{equation}
+\min_{W} \; \lVert XW - Y \rVert_{F}^{2} + \lambda \lVert W \rVert_{F}^{2},
+\qquad
+W = (X^{T}X + \lambda I)^{-1} X^{T} Y ,
+\end{equation}
+
+que con $\lambda = 0$ coincide con $W = X^{+}Y$, donde $X^{+}$ es la
+pseudoinversa de Moore-Penrose \parencite{boyd2018}.
+% TODO: desarrollar, incluir la interpretacion geometrica de la proyeccion
+% sobre el espacio columna de X y la frontera de decision como hiperplano.
+
+\subsection{Numero de condicion y regularizacion}
+
+\begin{equation}
+\operatorname{cond}_2(X^{T}X + \lambda I)
+= \frac{\sigma_{\max} + \lambda}{\sigma_{\min} + \lambda}
+\end{equation}
+
+decrece monotonamente con $\lambda$: la regularizacion desplaza todo el
+espectro y estabiliza la solucion a costa de sesgo.
+% TODO: desarrollar.
+
+\subsection{Mapeo de conceptos}
+
+\input{tablas/mapeo_conceptos}

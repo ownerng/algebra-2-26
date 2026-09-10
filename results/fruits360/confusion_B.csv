@@ -1,0 +1,11 @@
+real,lima,limon,mandarina,manzana_golden,manzana_granny_smith,manzana_red_delicious,naranja,papa_roja,tomate_cherry,zucchini
+lima,56,3,0,9,4,0,1,0,2,0
+limon,5,64,0,5,0,0,0,1,0,0
+mandarina,0,4,60,10,0,1,0,0,0,0
+manzana_golden,4,1,5,51,12,0,1,0,1,0
+manzana_granny_smith,0,1,2,0,72,0,0,0,0,0
+manzana_red_delicious,0,0,4,0,0,70,0,0,1,0
+naranja,0,0,0,0,1,0,74,0,0,0
+papa_roja,0,0,0,0,0,0,3,71,1,0
+tomate_cherry,0,0,0,0,0,2,1,0,72,0
+zucchini,0,0,0,0,0,0,6,5,0,64

@@ -1,0 +1,80 @@
+\section{Resultados}
+
+% Las cifras de este capitulo se inyectan desde los CSV del estudio de
+% ablacion, mediante las tablas generadas en docs/tablas/. No escribir valores
+% numericos a mano: regenerar con
+%     python -m src.experiments.ablation
+% y volver a compilar.
+
+\subsection{Comparacion entre representaciones}
+
+\input{tablas/resultados_via}
+
+% TODO: describir la tabla en prosa.
+
+\begin{figure}[htbp]
+\caption{Exactitud por representacion bajo validacion cruzada}
+\figurascoal{ablacion_via.png}{0.6\textwidth}
+\note{Media y desviacion estandar sobre cinco pliegues estratificados.
+Elaboracion propia.}
+\end{figure}
+
+\subsection{Efecto del numero de componentes}
+
+\begin{figure}[htbp]
+\caption{Exactitud y varianza explicada en funcion de $k$}
+\figurascoal{ablacion_k.png}{\textwidth}
+\note{Vias B y C. La linea discontinua marca el noventa por ciento de
+varianza explicada acumulada. Elaboracion propia.}
+\end{figure}
+
+% TODO: comentar el punto de saturacion.
+
+\subsection{Efecto de la regularizacion}
+
+\begin{figure}[htbp]
+\caption{Exactitud y numero de condicion en funcion de $\lambda$}
+\figurascoal{ablacion_lambda.png}{\textwidth}
+\note{El panel derecho muestra $\operatorname{cond}_2(X^{T}X+\lambda I)$ en
+escala logaritmica. Elaboracion propia.}
+\end{figure}
+
+% TODO: comentar el optimo y la caida del numero de condicion.
+
+\subsection{Comparacion contra los baselines}
+
+\input{tablas/baselines}
+
+% TODO: comentar la brecha entre la via C y la cabeza original de MobileNetV3.
+
+\subsection{Analisis cualitativo}
+
+\begin{figure}[htbp]
+\caption{Primeros dieciseis eigen-objetos}
+\figurascoal{eigenobjetos.png}{0.6\textwidth}
+\note{Cada panel indica la fraccion de varianza explicada. Elaboracion propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Proyeccion sobre las dos primeras componentes principales}
+\figurascoal{scatter_pca.png}{0.6\textwidth}
+\note{Color por clase. Elaboracion propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Matriz de confusion de la via A}
+\figurascoal{confusion_A.png}{0.55\textwidth}
+\note{Filas normalizadas por clase real. Elaboracion propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Matriz de confusion de la via B}
+\figurascoal{confusion_B.png}{0.55\textwidth}
+\note{Filas normalizadas por clase real. Elaboracion propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Matriz de confusion de la via C}
+\figurascoal{confusion_C.png}{0.55\textwidth}
+\note{Filas normalizadas por clase real. Elaboracion propia.}
+\end{figure}

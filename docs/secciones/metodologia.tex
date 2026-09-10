@@ -1,0 +1,36 @@
+\section{Metodologia}
+
+% TODO: redactar en pasado y en tercera persona, siguiendo el orden del
+% pipeline implementado.
+
+\subsection{Datos}
+
+% TODO: COIL-100 \parencite{nene1996} y Fruits-360 \parencite{muresan2018}.
+% Justificar el subconjunto de diez clases con solapamiento deliberado y el
+% balanceo a trescientas imagenes por clase.
+
+\subsection{Segmentacion y normalizacion}
+
+% TODO: umbral sobre la distancia al color de fondo en YCbCr, operaciones
+% morfologicas, contorno de area maxima, recorte cuadrado con fondo neutro.
+
+\subsection{Representaciones evaluadas}
+
+% TODO: via A (dieciseis descriptores geometricos y cromaticos), via B
+% (eigen-objetos sobre imagenes de 64x64), via C (embeddings de
+% MobileNetV3-Small congelado \parencite{howard2019} reducidos por PCA propia).
+
+\subsection{Clasificador}
+
+% TODO: minimos cuadrados multiclase con regularizacion de Tikhonov;
+% estandarizacion ajustada unicamente con el conjunto de entrenamiento.
+
+\subsection{Protocolo experimental}
+
+% TODO: particion estratificada con semilla fija, validacion cruzada de cinco
+% pliegues, tres barridos de ablacion y baselines de comparacion.
+
+\subsection{Implementacion}
+
+% TODO: NumPy como unico motor; sklearn empleado solo como referencia de
+% verificacion numerica; torch empleado solo como extractor congelado.

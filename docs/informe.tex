@@ -1,0 +1,59 @@
+\documentclass[stu,12pt,floatsintext]{apa7}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-noquoting]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{csquotes}
+\usepackage{url}
+
+\usepackage[style=apa,backend=biber]{biblatex}
+\DeclareLanguageMapping{spanish}{spanish-apa}
+\addbibresource{referencias.bib}
+
+\graphicspath{{figuras/}}
+
+% Las figuras las genera src/experiments/ablation.py desde los CSV. Mientras
+% no existan, el documento debe seguir compilando: en su lugar se dibuja un
+% marcador con el nombre del archivo que falta.
+\newcommand{\figurascoal}[2]{%
+  \IfFileExists{figuras/#1}%
+    {\includegraphics[width=#2]{#1}}%
+    {\fbox{\parbox[c][3cm][c]{#2}{\centering\ttfamily
+       figura pendiente\\\detokenize{#1}}}}%
+}
+
+% --- Metadatos de portada (clase apa7, opcion stu) ---
+\title{Clasificacion de objetos mediante algebra lineal:
+       estudio comparativo de tres representaciones de caracteristicas
+       bajo un clasificador de minimos cuadrados}
+\shorttitle{Clasificacion de objetos mediante algebra lineal}
+\author{Jhonnatan}
+\affiliation{Facultad de Ingenieria, Universidad Cooperativa de Colombia}
+\course{Algebra Lineal}
+% TODO: reemplazar por el nombre completo del docente.
+\professor{Nombre del docente}
+% TODO: reemplazar por la fecha de entrega.
+\duedate{Fecha de entrega}
+
+\begin{document}
+
+\maketitle                              % portada APA 7 (estudiante)
+\input{secciones/contraportada}
+
+\input{secciones/resumen}
+\input{secciones/abstract}
+\input{secciones/introduccion}
+\input{secciones/objetivos}
+\input{secciones/marco_teorico}
+\input{secciones/metodologia}
+\input{secciones/resultados}
+\input{secciones/discusion}
+\input{secciones/conclusiones}
+\input{secciones/trabajo_futuro}
+
+\printbibliography[title={Referencias}]
+
+\end{document}

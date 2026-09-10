@@ -1,0 +1,28 @@
+\section{Objetivos}
+
+\subsection{Objetivo general}
+
+Desarrollar un sistema de clasificacion de objetos por tamano, color, forma e
+identidad, implementado mediante operaciones de algebra lineal, que permita
+evaluar comparativamente el aporte de tres representaciones de caracteristicas
+distintas bajo un mismo clasificador de minimos cuadrados regularizado.
+
+\subsection{Objetivos especificos}
+
+\begin{enumerate}
+\item Implementar tres extractores de caracteristicas ---descriptores
+geometricos y cromaticos, proyeccion sobre eigen-objetos mediante
+descomposicion en valores singulares, y representaciones de una red
+convolucional preentrenada--- empleando unicamente operaciones matriciales
+programadas sobre NumPy.
+
+\item Construir un clasificador multiclase de minimos cuadrados con
+regularizacion de Tikhonov, verificando su equivalencia numerica con una
+implementacion de referencia y caracterizando el efecto del parametro de
+regularizacion sobre el numero de condicion de la matriz normal.
+
+\item Evaluar el desempeno comparativo de las tres representaciones mediante
+un estudio de ablacion con validacion cruzada, cuantificando la contribucion
+de la representacion frente a la del clasificador en la exactitud final del
+sistema.
+\end{enumerate}

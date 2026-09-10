@@ -1,0 +1,28 @@
+# Entorno
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Datos y artefactos pesados: se regeneran con los comandos del README
+data/raw/
+data/cache/
+results/*.pkl
+
+# Salida de LaTeX
+docs/*.aux
+docs/*.log
+docs/*.bbl
+docs/*.bcf
+docs/*.blg
+docs/*.out
+docs/*.run.xml
+docs/*.toc
+docs/*.fff
+docs/*.ttt
+docs/*.lof
+docs/*.lot
+
+# Sistema
+Thumbs.db
+.DS_Store

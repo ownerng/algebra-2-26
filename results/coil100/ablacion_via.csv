@@ -1,0 +1,3 @@
+via,nombre,accuracy_media,accuracy_std,macro_f1_media,folds
+A,Fisicas,0.82919,0.018161,0.822385,5
+B,Eigen,0.925667,0.004591,0.919011,5
