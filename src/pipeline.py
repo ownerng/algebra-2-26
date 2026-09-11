@@ -25,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import config  # noqa: E402
 from src.features import eigen, physical  # noqa: E402
-from src.model import lstsq  # noqa: E402
+from src.model import lstsq, reject  # noqa: E402
 from src.model.pca import PCA, Standardizer  # noqa: E402
 from src.vision.crop import crop_to_mask, to_gray_vector  # noqa: E402
 from src.vision.segment import segment  # noqa: E402
@@ -109,14 +109,18 @@ def fit_representation(via: str, raw: np.ndarray, train_idx: np.ndarray,
     return modelo
 
 
+def project_representation(modelo: dict, raw: np.ndarray) -> np.ndarray:
+    """Reduccion de dimension de una via, sin estandarizar ni sesgo."""
+    if modelo["via"] == "A":
+        return np.asarray(raw, dtype=np.float64)
+    if modelo["via"] == "B":
+        return eigen.project(raw, modelo["eigen"])
+    return modelo["pca"].transform(raw)
+
+
 def apply_representation(modelo: dict, raw: np.ndarray) -> np.ndarray:
     """Aplica una representacion ya ajustada. Devuelve la matriz de diseno."""
-    if modelo["via"] == "A":
-        proyectado = raw
-    elif modelo["via"] == "B":
-        proyectado = eigen.project(raw, modelo["eigen"])
-    else:
-        proyectado = modelo["pca"].transform(raw)
+    proyectado = project_representation(modelo, raw)
     return lstsq.add_bias(modelo["scaler"].transform(proyectado))
 
 
@@ -130,6 +134,7 @@ def train_via(via: str, raw: np.ndarray, y: np.ndarray, train_idx: np.ndarray,
     Y = lstsq.one_hot(y[train_idx], n_clases)
     modelo["W"] = lstsq.fit_least_squares(X, Y, lam)
     modelo["lam"] = lam
+    fit_rejection(modelo, raw[train_idx])
     return modelo
 
 
@@ -138,6 +143,57 @@ def predict_via(modelo: dict, raw: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     X = apply_representation(modelo, raw)
     S = lstsq.scores(X, modelo["W"])
     return np.argmax(S, axis=1), lstsq.confidence(S)
+
+
+# --------------------------------------------------------------------------
+# Rechazo fuera de dominio
+# --------------------------------------------------------------------------
+
+def distancia_dominio(modelo: dict, raw: np.ndarray) -> np.ndarray:
+    """Cuanto se aleja cada muestra del dominio que la via aprendio, (m,).
+
+    Vias B y C: residuo relativo de reconstruccion sobre el subespacio de
+    componentes principales, que es donde vive el dataset. Via A: norma del
+    vector estandarizado, porque no reduce dimension y no hay subespacio del
+    que salirse. Ver src/model/reject.py.
+    """
+    via = modelo["via"]
+    if via == "A":
+        return reject.norma_estandarizada(
+            modelo["scaler"].transform(project_representation(modelo, raw)))
+
+    Z = project_representation(modelo, raw)
+    if via == "B":
+        rec = eigen.reconstruct(Z, modelo["eigen"])
+        media = modelo["eigen"]["mean"]
+    else:
+        rec = modelo["pca"].inverse_transform(Z)
+        media = modelo["pca"].mean_
+    raw2d = np.atleast_2d(np.asarray(raw, dtype=np.float64))
+    return reject.distancia_al_subespacio(raw2d, rec, media)
+
+
+def fit_rejection(modelo: dict, raw_train: np.ndarray) -> dict:
+    """Fija los dos umbrales de rechazo de una via desde su entrenamiento.
+
+    Ninguno se elige a mano. El de novedad es el percentil alto de la distancia
+    al dominio; el de confianza, el percentil bajo de la confianza ganadora.
+    Fijar este ultimo a ojo no funciona: con k clases la confianza de minimos
+    cuadrados sobre un acierto ronda unas pocas decimas y cambia con k, con la
+    via y con lambda.
+    """
+    modelo["umbral_novedad"] = reject.umbral(distancia_dominio(modelo, raw_train))
+
+    _, conf = predict_via(modelo, raw_train)
+    modelo["umbral_confianza"] = reject.umbral(
+        conf.max(axis=1), 100.0 - config.REJECT_PERCENTILE)
+    return modelo
+
+
+def novedad_via(modelo: dict, raw: np.ndarray) -> np.ndarray:
+    """Novedad normalizada al umbral de la via: 1.0 es la frontera, (m,)."""
+    return reject.novedad(distancia_dominio(modelo, raw),
+                          modelo.get("umbral_novedad", float("inf")))
 
 
 # --------------------------------------------------------------------------
@@ -205,9 +261,18 @@ class Scoal:
         """Clasifica una medicion ya hecha por `medir`, por las tres vias.
 
         Recibe el resultado de `medir` (que es lo que produce el hilo de
-        camara) y devuelve {'A': (clase, confianza), ...}. Separar medir de
-        clasificar permite dibujar el overlay en vivo a velocidad de camara y
-        clasificar solo cuando el disparador de estabilidad lo pide.
+        camara) y devuelve, por via:
+
+            {'A': {'clase':, 'confianza':, 'novedad':, 'conocido':}, ...}
+
+        `conocido` es False cuando la muestra cae fuera del dominio entrenado;
+        en ese caso `clase` sigue siendo la que el argmax eligio, porque para
+        el informe interesa ver que habria dicho el modelo sin el rechazo, pero
+        la interfaz debe mostrar "desconocido".
+
+        Separar medir de clasificar permite dibujar el overlay en vivo a
+        velocidad de camara y clasificar solo cuando el disparador de
+        estabilidad lo pide.
         """
         if not medicion.get("ok"):
             return {}
@@ -225,7 +290,16 @@ class Scoal:
             if via not in crudo:
                 continue
             idx, conf = predict_via(modelo, crudo[via])
-            predicciones[via] = (self.clases[int(idx[0])], float(conf[0, idx[0]]))
+            confianza = float(conf[0, idx[0]])
+            nov = float(novedad_via(modelo, crudo[via])[0])
+            conocido = bool(reject.es_conocido(
+                [nov], [confianza], modelo.get("umbral_confianza", 0.0))[0])
+            predicciones[via] = {
+                "clase": self.clases[int(idx[0])],
+                "confianza": confianza,
+                "novedad": nov,
+                "conocido": conocido or not config.REJECT_ENABLED,
+            }
         return predicciones
 
     def predict_image(self, image_bgr: np.ndarray,
@@ -283,6 +357,17 @@ def demo() -> None:
     # Sin objeto en la escena no debe haber prediccion.
     vacio = Scoal(datos["clases"]).predict_image(np.full((64, 64, 3), 128, np.uint8))
     assert vacio["ok"] is False and not vacio["predicciones"]
+
+    # Rechazo: lo que se parece al entrenamiento se acepta, lo ajeno no.
+    modelo_b = train_via("B", raw["B"], datos["y"], idx, k=10, lam=1e-2,
+                         n_clases=2)
+    assert np.isfinite(modelo_b["umbral_novedad"])
+    nov_dentro = novedad_via(modelo_b, raw["B"])
+    assert (nov_dentro <= 1.0).mean() >= 0.95, "rechaza demasiado entrenamiento"
+
+    ajeno = np.stack([to_gray_vector(
+        rng.integers(0, 255, (128, 128, 3), dtype=np.uint8)) for _ in range(5)])
+    assert (novedad_via(modelo_b, ajeno) > 1.0).all(), "ruido debe ser novedoso"
 
     print("pipeline demo ok")
 

@@ -4,10 +4,13 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Datos y artefactos pesados: se regeneran con los comandos del README
+# Datos pesados: se regeneran con  python -m src.setup
 data/raw/
 data/cache/
-results/*.pkl
+
+# El modelo entrenado SI se versiona (1.7 MB): es lo que permite que una copia
+# recien clonada clasifique sin bajar el ~1 GB de datasets ni entrenar.
+# results/scoal_model.pkl  <- versionado a proposito
 
 # Salida de LaTeX
 docs/*.aux

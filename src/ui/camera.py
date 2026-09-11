@@ -59,9 +59,22 @@ class CameraThread(QThread):
                     break
 
                 medicion = medir(frame)
-                self.frameReady.emit(frame, medicion)
+                disparo = self._disparador.update(frame, medicion["ok"])
 
-                if self._disparador.update(frame, medicion["ok"]):
+                # El estado del disparador viaja dentro de la medicion para que
+                # la ventana pueda mostrarlo en cada frame: sin esta lectura el
+                # modo camara parece congelado cuando en realidad esta
+                # esperando que la escena se quede quieta.
+                texto, quietos = self._disparador.progreso(medicion["ok"])
+                medicion["estabilidad"] = {
+                    "texto": texto,
+                    "quietos": quietos,
+                    "frames": self._disparador.frames,
+                    "diferencia": self._disparador.diferencia,
+                }
+
+                self.frameReady.emit(frame, medicion)
+                if disparo:
                     self.triggered.emit(medicion)
         finally:
             captura.release()

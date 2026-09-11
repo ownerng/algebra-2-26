@@ -12,13 +12,21 @@ from PySide6.QtCore import (QEasingCurve, QPointF, QPropertyAnimation,
                             QRectF, QSequentialAnimationGroup, Qt)
 from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import (QGraphicsObject, QGraphicsScene, QGraphicsView,
-                               QHBoxLayout, QVBoxLayout, QWidget)
+                               QGridLayout, QVBoxLayout, QWidget)
 
 from src.ui import theme
 from src.ui.widgets import ValueRow
 
 ALTO_VISTA = 76
 RADIO_OBJETO = 14
+
+# Contenedor de descarte: las muestras que el rechazo marca como fuera de
+# dominio tienen que ir a algun lado, y ese conteo es un dato del experimento
+# (cuanto de lo que ve la camara no se parece al dataset).
+RECHAZO = "desconocido"
+
+# Ancho minimo por contenedor al repartirlos en filas.
+ANCHO_CONTENEDOR = 150
 
 
 class ObjetoEnBanda(QGraphicsObject):
@@ -48,8 +56,10 @@ class Belt(QWidget):
 
     def __init__(self, clases: list[str], parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self._conteo = {c: 0 for c in clases}
+        self._orden = list(clases) + [RECHAZO]
+        self._conteo = {c: 0 for c in self._orden}
         self._animaciones: list[QSequentialAnimationGroup] = []
+        self._columnas = 0
 
         raiz = QVBoxLayout(self)
         raiz.setContentsMargins(0, 0, 0, 0)
@@ -68,15 +78,33 @@ class Belt(QWidget):
         self._vista.setRenderHint(QPainter.Antialiasing)
         raiz.addWidget(self._vista)
 
-        contenedores = QHBoxLayout()
-        contenedores.setSpacing(theme.SPACE * 2)
+        # Los contenedores van en una rejilla que se repliega: con 10 clases y
+        # una pantalla ancha queda una sola fila, con 20 clases o en un
+        # portatil de 13 pulgadas se reparte en varias en vez de aplastarse.
+        self._rejilla = QGridLayout()
+        self._rejilla.setHorizontalSpacing(theme.SPACE * 2)
+        self._rejilla.setVerticalSpacing(theme.SPACE // 2)
         self._filas: dict[str, ValueRow] = {}
-        for clase in clases:
-            fila = ValueRow(clase.replace("_", " "), "0")
-            self._filas[clase] = fila
-            contenedores.addWidget(fila)
-        contenedores.addStretch(1)
-        raiz.addLayout(contenedores)
+        for clase in self._orden:
+            self._filas[clase] = ValueRow(clase.replace("_", " "), "0")
+        raiz.addLayout(self._rejilla)
+        self._reacomodar(1)
+
+    def _reacomodar(self, columnas: int) -> None:
+        """Reparte los contenedores en `columnas` columnas."""
+        if columnas == self._columnas:
+            return
+        self._columnas = columnas
+
+        while self._rejilla.count():
+            item = self._rejilla.takeAt(0)
+            if item.widget() is not None:
+                item.widget().setParent(None)
+
+        for i, clase in enumerate(self._orden):
+            self._rejilla.addWidget(self._filas[clase], i // columnas, i % columnas)
+        for c in range(columnas):
+            self._rejilla.setColumnStretch(c, 1)
 
     def resizeEvent(self, evento) -> None:
         """La banda ocupa siempre el ancho de la vista, sin barras de scroll."""
@@ -85,16 +113,24 @@ class Belt(QWidget):
         self._escena.setSceneRect(0, 0, ancho, ALTO_VISTA)
         self._linea.setLine(0, ALTO_VISTA / 2 + RADIO_OBJETO,
                             ancho, ALTO_VISTA / 2 + RADIO_OBJETO)
+        self._reacomodar(max(1, min(len(self._orden),
+                                    self.width() // ANCHO_CONTENEDOR)))
 
     # -- animacion ------------------------------------------------------
-    def despachar(self, clase: str, via: str = "C") -> None:
+    def despachar(self, clase: str, via: str = "C", conocido: bool = True) -> None:
         """Lanza un objeto por la banda y lo suma a su contenedor.
 
         El color es el de la via que produjo la clasificacion mostrada, para
-        que se vea de que representacion salio la decision.
+        que se vea de que representacion salio la decision. Una muestra
+        rechazada viaja en rojo y cae en el contenedor de descarte, igual que
+        en una banda real: el objeto no desaparece, se aparta.
         """
+        if not conocido:
+            clase = RECHAZO
+
         ancho = max(self._vista.viewport().width(), 320)
-        objeto = ObjetoEnBanda(theme.VIA_COLORS.get(via, theme.ACCENT))
+        color = theme.ERR if not conocido else theme.VIA_COLORS.get(via, theme.ACCENT)
+        objeto = ObjetoEnBanda(color)
         objeto.setPos(QPointF(RADIO_OBJETO * 2, ALTO_VISTA / 2 - 8))
         self._escena.addItem(objeto)
 

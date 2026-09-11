@@ -1,3 +1,4 @@
 via,nombre,accuracy_media,accuracy_std,macro_f1_media,folds
 A,Fisicas,0.841333,0.014659,0.840997,5
 B,Eigen,0.899667,0.011324,0.898621,5
+C,CNN,0.997667,0.002494,0.997666,5

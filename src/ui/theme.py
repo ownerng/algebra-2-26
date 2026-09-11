@@ -118,7 +118,9 @@ QComboBox {
     border: 1px solid %(border)s;
     border-radius: %(radius)dpx;
     padding: %(pad)dpx %(pad)dpx;
-    min-width: 140px;
+    /* Minimo corto a proposito: con 140px la barra superior no entraba en un
+       portatil de 13 pulgadas y empujaba los botones fuera de la ventana. */
+    min-width: 96px;
     font-size: 11px;
 }
 QComboBox:hover { border-color: %(accent)s; }

@@ -112,6 +112,22 @@ K_DEFAULT = 50          # componentes PCA por defecto (vias B y C)
 KNN_K = 5               # baseline k-NN
 
 # --------------------------------------------------------------------------
+# Rechazo fuera de dominio (la clase "desconocido")
+# --------------------------------------------------------------------------
+#
+# El conjunto de clases es cerrado y argmax(x W) siempre devuelve una: sin
+# estos umbrales la aplicacion clasifica un celular o una cara como fruta.
+# Ver la justificacion completa en src/model/reject.py.
+
+REJECT_ENABLED = True
+
+# Percentil del propio entrenamiento que fija los dos umbrales. Con 99 se
+# rechaza el 1% mas novedoso y el 1% menos confiado del train, asi que la tasa
+# de falso rechazo esperada sobre datos del dominio es ~2%. No hay ningun
+# numero magico: los dos umbrales se leen de los datos al entrenar.
+REJECT_PERCENTILE = 99.0
+
+# --------------------------------------------------------------------------
 # Ablacion
 # --------------------------------------------------------------------------
 

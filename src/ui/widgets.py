@@ -13,7 +13,8 @@ from __future__ import annotations
 import cv2
 import numpy as np
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap
+from PySide6.QtGui import (QColor, QFontMetrics, QImage, QPainter, QPen,
+                           QPixmap)
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QSizePolicy,
                                QVBoxLayout, QWidget)
 
@@ -82,6 +83,38 @@ class ValueRow(QWidget):
         self._valor.style().polish(self._valor)
 
 
+class EtiquetaElidida(QLabel):
+    """QLabel que recorta con puntos suspensivos en vez de desbordar el panel.
+
+    Hace falta porque los nombres de clase son largos ("manzana_granny_smith")
+    y el panel derecho ya no tiene ancho fijo: sin esto, o el texto empuja el
+    panel, o se corta a la mitad sin aviso.
+    """
+
+    def __init__(self, texto: str = "", parent: QWidget | None = None):
+        super().__init__(parent)
+        self._completo = texto
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.setMinimumWidth(48)
+        self.setText(texto)
+
+    def setText(self, texto: str) -> None:
+        self._completo = texto
+        self._repintar()
+
+    def text(self) -> str:
+        return self._completo
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self._repintar()
+
+    def _repintar(self) -> None:
+        metrica = QFontMetrics(self.font())
+        QLabel.setText(self, metrica.elidedText(self._completo, Qt.ElideRight,
+                                                max(self.width(), 48)))
+
+
 class PredictionRow(QWidget):
     """Prediccion de una via: marca de color, nombre, clase y confianza.
 
@@ -107,27 +140,51 @@ class PredictionRow(QWidget):
 
         self._nombre = QLabel(nombre.upper())
         self._nombre.setObjectName("SectionLabel")
-        self._nombre.setFixedWidth(72)
+        self._nombre.setMinimumWidth(56)
 
-        self._clase = QLabel("--")
+        self._clase = EtiquetaElidida("--")
         self._clase.setObjectName("Value")
 
         self._confianza = QLabel("--")
         self._confianza.setObjectName("ValueMuted")
         self._confianza.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self._confianza.setFixedWidth(48)
+        self._confianza.setFixedWidth(40)
 
-        for w in (self._marca, self._via, self._nombre, self._clase):
+        for w in (self._marca, self._via, self._nombre):
             fila.addWidget(w)
-        fila.addStretch(1)
+        fila.addWidget(self._clase, 1)
         fila.addWidget(self._confianza)
 
-    def set_prediction(self, clase: str | None, confianza: float | None) -> None:
+    def set_prediction(self, clase: str | None, confianza: float | None,
+                       conocido: bool = True, novedad: float | None = None) -> None:
+        """Muestra la prediccion de la via.
+
+        Con `conocido=False` la muestra cayo fuera del dominio entrenado: se
+        anuncia DESCONOCIDO y la clase que el argmax habria elegido queda como
+        pista entre parentesis, en tono apagado. Ocultarla seria peor: en la
+        sustentacion interesa ver exactamente que estaba a punto de decir el
+        modelo y por que se rechazo.
+        """
         if clase is None:
             self._clase.setText("--")
+            self._clase.setStyleSheet("")
+            self._clase.setToolTip("")
             self._confianza.setText("--")
             return
-        self._clase.setText(clase)
+
+        if conocido:
+            self._clase.setText(clase)
+            self._clase.setStyleSheet("color: %s;" % theme.TEXT_HI)
+            self._clase.setToolTip("")
+        else:
+            self._clase.setText("DESCONOCIDO  (%s)" % clase)
+            self._clase.setStyleSheet("color: %s;" % theme.ERR)
+            self._clase.setToolTip(
+                "Fuera del dominio entrenado.\n"
+                "El modelo habria dicho '%s' con confianza %.2f." % (clase, confianza)
+                + ("\nNovedad: %.2f veces el umbral." % novedad
+                   if novedad is not None else ""))
+
         self._confianza.setText("%.2f" % confianza)
 
     def set_disponible(self, disponible: bool) -> None:
@@ -145,10 +202,15 @@ class FeedView(QLabel):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
-        self.setMinimumSize(640, 480)
+        # Minimo pequeno a proposito: con 640x480 la ventana no cabia en un
+        # portatil de 13 pulgadas con escalado del sistema. El feed se escala
+        # al tamano disponible en set_frame, no necesita reservarlo.
+        self.setMinimumSize(280, 210)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.setText("SIN SENAL")
         self.setObjectName("Status")
+
+    _original: QPixmap | None = None
 
     def set_frame(self, frame_bgr: np.ndarray, resultado: dict | None = None) -> None:
         alto, ancho = frame_bgr.shape[:2]
@@ -159,8 +221,26 @@ class FeedView(QLabel):
         if resultado and resultado.get("ok"):
             self._dibujar_overlay(pixmap, resultado)
 
-        self.setPixmap(pixmap.scaled(self.size(), Qt.KeepAspectRatio,
-                                     Qt.SmoothTransformation))
+        # Se guarda el original, no solo el escalado: al redimensionar la
+        # ventana hay que reescalar desde la resolucion completa, y con una
+        # imagen fija (sin camara) no llega otro frame que lo corrija.
+        self._original = pixmap
+        self._escalar()
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self._escalar()
+
+    def _escalar(self) -> None:
+        if self._original is None or self._original.isNull():
+            return
+        self.setPixmap(self._original.scaled(self.size(), Qt.KeepAspectRatio,
+                                             Qt.SmoothTransformation))
+
+    def setText(self, texto: str) -> None:
+        """Mostrar texto descarta la imagen: si no, reaparece al redimensionar."""
+        self._original = None
+        super().setText(texto)
 
     def _dibujar_overlay(self, pixmap: QPixmap, resultado: dict) -> None:
         contorno = resultado["contour"]
@@ -196,3 +276,56 @@ class FeedView(QLabel):
             pintor.drawLine(int(cx - dx), int(cy - dy), int(cx + dx), int(cy + dy))
 
         pintor.end()
+
+
+class CaptureStatus(QWidget):
+    """Estado del disparador de estabilidad, visible en cada frame.
+
+    La clasificacion no ocurre en cada frame: ocurre cuando la escena lleva N
+    frames quieta y hay un objeto segmentado. Sin este indicador el modo camara
+    parece roto, porque el usuario ve el feed moverse y las predicciones nunca
+    cambian. Aqui se lee, literalmente, por que todavia no dispara.
+    """
+
+    ESTADOS = {
+        "sin objeto":           (theme.TEXT_LO,  "no hay contorno valido en la escena"),
+        "escena en movimiento": (theme.TEXT_MID, "la escena aun se mueve"),
+        "estabilizando":        (theme.ACCENT,   "quieta, contando frames"),
+        "clasificado":          (theme.VIA_A,    "ya clasificado; mover la escena para repetir"),
+        "camara apagada":       (theme.TEXT_LO,  "encender la camara o usar una imagen del dataset"),
+    }
+
+    def __init__(self, parent: QWidget | None = None):
+        super().__init__(parent)
+        fila = QHBoxLayout(self)
+        fila.setContentsMargins(0, 0, 0, 0)
+        fila.setSpacing(theme.SPACE)
+
+        self._punto = QLabel()
+        self._punto.setFixedSize(8, 8)
+
+        self._texto = QLabel("camara apagada")
+        self._texto.setObjectName("Status")
+
+        self._conteo = QLabel("")
+        self._conteo.setObjectName("ValueMuted")
+        self._conteo.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+        fila.addWidget(self._punto)
+        fila.addWidget(self._texto)
+        fila.addStretch(1)
+        fila.addWidget(self._conteo)
+        self.set_estado("camara apagada")
+
+    def set_estado(self, texto: str, quietos: int = 0, frames: int = 0,
+                   diferencia: float | None = None) -> None:
+        color, ayuda = self.ESTADOS.get(texto, (theme.TEXT_MID, ""))
+        self._punto.setStyleSheet(
+            "background: %s; border-radius: 4px;" % color)
+        self._texto.setText(texto)
+        self._texto.setStyleSheet("color: %s;" % color)
+        self._conteo.setText("%d/%d" % (quietos, frames) if frames else "")
+
+        if diferencia is not None and diferencia != float("inf"):
+            ayuda = "%s\nmovimiento medio entre frames: %.2f" % (ayuda, diferencia)
+        self.setToolTip(ayuda)

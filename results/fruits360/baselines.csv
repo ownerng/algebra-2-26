@@ -4,3 +4,6 @@ knn_k5,A,0.926667,memorizacion sobre la misma representacion
 minimos_cuadrados,A,0.821333,clasificador propio
 knn_k5,B,0.976,memorizacion sobre la misma representacion
 minimos_cuadrados,B,0.872,clasificador propio
+knn_k5,C,0.997333,memorizacion sobre la misma representacion
+minimos_cuadrados,C,0.997333,clasificador propio
+mobilenetv3_cabeza_original,C,0.612,techo del modelo preentrenado sin reemplazar la cabeza

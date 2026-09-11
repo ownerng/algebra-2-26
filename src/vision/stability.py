@@ -42,6 +42,31 @@ class StabilityTrigger:
 
     _ultima_diff = float("inf")
 
+    @property
+    def quietos(self) -> int:
+        """Frames quietos acumulados. La interfaz lo muestra como 3/5.
+
+        Sin esto el disparador es invisible: el usuario ve el feed, no pasa
+        nada, y no tiene forma de saber si la escena todavia se mueve, si no
+        hay objeto o si ya disparo.
+        """
+        return self._quietos
+
+    @property
+    def armado(self) -> bool:
+        """False mientras no se mueva la escena tras un disparo."""
+        return not self._ya_disparo
+
+    def progreso(self, hay_objeto: bool) -> tuple[str, int]:
+        """Estado legible del disparador: (texto, frames quietos)."""
+        if not hay_objeto:
+            return "sin objeto", 0
+        if not self.armado:
+            return "clasificado", self.frames
+        if self._quietos == 0:
+            return "escena en movimiento", 0
+        return "estabilizando", min(self._quietos, self.frames)
+
     def update(self, frame_bgr: np.ndarray, hay_objeto: bool) -> bool:
         """Alimenta un frame. Devuelve True solo en el frame del disparo."""
         gris = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY).astype(np.float32)
