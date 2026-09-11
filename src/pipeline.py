@@ -15,6 +15,7 @@ Separacion deliberada en dos etapas:
 
 from __future__ import annotations
 
+import logging
 import pickle
 import sys
 from pathlib import Path
@@ -29,6 +30,8 @@ from src.model import lstsq, reject  # noqa: E402
 from src.model.pca import PCA, Standardizer  # noqa: E402
 from src.vision.crop import crop_to_mask, to_gray_vector  # noqa: E402
 from src.vision.segment import segment  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 
 # --------------------------------------------------------------------------
@@ -72,10 +75,13 @@ def compute_raw(dataset: str, datos: dict, vias=config.VIAS,
             cache["C_logits"] = cnn.imagenet_logits(crops)
             cambio = True
         except RuntimeError as exc:
-            print("via C no disponible: %s" % exc)
+            log.warning("via C no disponible: %s", exc)
 
     if cambio:
         np.savez_compressed(destino, **cache)
+    log.info("representaciones de %s %s: %s", dataset,
+             "calculadas y guardadas" if cambio else "leidas del cache",
+             {k: v.shape for k, v in cache.items()})
     return cache
 
 
@@ -135,6 +141,9 @@ def train_via(via: str, raw: np.ndarray, y: np.ndarray, train_idx: np.ndarray,
     modelo["W"] = lstsq.fit_least_squares(X, Y, lam)
     modelo["lam"] = lam
     fit_rejection(modelo, raw[train_idx])
+    log.info("via %s entrenada: %d muestras, k=%d, lambda=%g, umbral novedad %.4f, "
+             "umbral confianza %.4f", via, len(train_idx), k, lam,
+             modelo["umbral_novedad"], modelo["umbral_confianza"])
     return modelo
 
 
@@ -300,6 +309,12 @@ class Scoal:
                 "novedad": nov,
                 "conocido": conocido or not config.REJECT_ENABLED,
             }
+        log.info("clasificacion (area %.0f px2): %s",
+                 medicion["mediciones"].get("area", float("nan")),
+                 "; ".join("via %s=%s conf %.2f novedad %.2f %s"
+                           % (v, p["clase"], p["confianza"], p["novedad"],
+                              "conocido" if p["conocido"] else "DESCONOCIDO")
+                           for v, p in predicciones.items()))
         return predicciones
 
     def predict_image(self, image_bgr: np.ndarray,
@@ -314,12 +329,17 @@ class Scoal:
         ruta.parent.mkdir(parents=True, exist_ok=True)
         with open(ruta, "wb") as fh:
             pickle.dump(self, fh)
+        log.info("modelo guardado en %s: %d clases, vias %s", ruta,
+                 len(self.clases), ", ".join(sorted(self.vias)))
         return ruta
 
     @staticmethod
     def load(ruta: Path = MODEL_PATH) -> "Scoal":
         with open(ruta, "rb") as fh:
-            return pickle.load(fh)
+            modelo = pickle.load(fh)
+        log.info("modelo leido de %s: %d clases, vias %s", ruta,
+                 len(modelo.clases), ", ".join(sorted(modelo.vias)))
+        return modelo
 
 
 def demo() -> None:

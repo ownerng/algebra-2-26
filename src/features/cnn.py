@@ -17,6 +17,7 @@ lo mide del modelo cargado y lo expone en EMBED_DIM.
 
 from __future__ import annotations
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -25,6 +26,8 @@ import cv2
 import numpy as np
 
 import config
+
+log = logging.getLogger(__name__)
 
 # Los pesos preentrenados se cachean dentro del proyecto, no en el perfil del
 # usuario, para que el proyecto sea autocontenido.
@@ -61,12 +64,17 @@ def load_model():
     from torchvision.models import MobileNet_V3_Small_Weights, mobilenet_v3_small
 
     if WEIGHTS_LOCAL.exists():
+        log.info("cargando pesos de MobileNetV3 puestos a mano: %s", WEIGHTS_LOCAL)
         modelo = mobilenet_v3_small(weights=None)
         modelo.load_state_dict(torch.load(WEIGHTS_LOCAL, map_location="cpu"))
     else:
+        log.info("cargando pesos de MobileNetV3 con torchvision (TORCH_HOME=%s); "
+                 "si no estan en disco se descargan de %s",
+                 os.environ.get("TORCH_HOME"), WEIGHTS_URL)
         try:
             modelo = mobilenet_v3_small(weights=MobileNet_V3_Small_Weights.IMAGENET1K_V1)
         except Exception as exc:
+            log.exception("no se pudieron obtener los pesos de MobileNetV3")
             raise RuntimeError(
                 "No se pudieron descargar los pesos preentrenados (%s).\n"
                 "Descarga manualmente %s y guardalo como %s"
@@ -79,7 +87,18 @@ def load_model():
 
     _DIM = modelo.classifier[-1].in_features     # 1024 en MobileNetV3-Small
     _MODELO = modelo
+    log.info("MobileNetV3-Small listo y congelado, embedding de %d", _DIM)
     return modelo
+
+
+def pesos_disponibles() -> Path | None:
+    """Donde estan los pesos en disco, o None si torchvision tendria que bajarlos."""
+    en_cache = (Path(os.environ["TORCH_HOME"]) / "hub" / "checkpoints"
+                / WEIGHTS_URL.rsplit("/", 1)[1])
+    for ruta in (WEIGHTS_LOCAL, en_cache):
+        if ruta.exists():
+            return ruta
+    return None
 
 
 def embed_dim() -> int:

@@ -26,12 +26,13 @@ Tres decisiones de interfaz que este archivo sostiene:
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 
 import cv2
 import numpy as np
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, Signal, qInstallMessageHandler
 from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QHBoxLayout,
                                QLabel, QMainWindow, QPushButton, QSizePolicy,
                                QVBoxLayout, QWidget)
@@ -45,9 +46,12 @@ from src.pipeline import MODEL_PATH, Scoal, medir  # noqa: E402
 from src.ui import theme  # noqa: E402
 from src.ui.analysis import AnalysisWindow  # noqa: E402
 from src.ui.belt import Belt  # noqa: E402
-from src.ui.camera import CameraThread  # noqa: E402
+from src.ui.camera import CameraThread, indice_camara  # noqa: E402
 from src.ui.widgets import (CaptureStatus, FeedView, Panel,  # noqa: E402
                             PredictionRow, ValueRow, separador)
+
+# Nombre fijo: ejecutado con  python -m  este modulo se llama __main__.
+log = logging.getLogger("scoal.ui")
 
 # Mediciones mostradas en el panel derecho: (etiqueta, clave, formato).
 MEDICIONES = (
@@ -82,9 +86,13 @@ class SetupWorker(QThread):
 
     def run(self) -> None:
         try:
+            log.info("PREPARAR DATOS: inicio con %s", self.dataset)
             modelo = setup.preparar(self.dataset, self.progreso.emit)
+            log.info("PREPARAR DATOS: terminado con %s (%s)", self.dataset,
+                     "modelo nuevo" if modelo is not None else "se conserva el modelo en disco")
             self.listo.emit(modelo)
         except Exception as exc:                     # la UI no debe morir
+            log.exception("PREPARAR DATOS fallo con %s", self.dataset)
             self.fallo.emit(str(exc))
 
 
@@ -101,6 +109,7 @@ class TrainWorker(QThread):
 
     def run(self) -> None:
         try:
+            log.info("ENTRENAR: inicio con %s", self.dataset)
             self.progreso.emit("cargando %s" % self.dataset)
             datos = load_dataset(self.dataset)
 
@@ -110,6 +119,7 @@ class TrainWorker(QThread):
             modelo.fit(datos, self.dataset)
 
             if not modelo.vias:
+                log.error("ENTRENAR: ninguna via pudo entrenarse con %s", self.dataset)
                 self.fallo.emit("ninguna via pudo entrenarse")
                 return
 
@@ -117,6 +127,7 @@ class TrainWorker(QThread):
             self.progreso.emit("entrenado: vias %s" % ", ".join(sorted(modelo.vias)))
             self.listo.emit(modelo)
         except Exception as exc:
+            log.exception("ENTRENAR fallo con %s", self.dataset)
             self.fallo.emit(str(exc))
 
 
@@ -186,6 +197,7 @@ class MainWindow(QMainWindow):
         for via in config.VIAS:
             self.combo_via.addItem("via %s - %s" % (via, config.VIA_NOMBRES[via]), via)
         self.combo_via.setCurrentIndex(len(config.VIAS) - 1)
+        self.combo_via.currentTextChanged.connect(self._cambio_via)
 
         self.boton_camara = QPushButton("CAMARA")
         self.boton_camara.setObjectName("Toggle")
@@ -338,6 +350,7 @@ class MainWindow(QMainWindow):
         """Muestra u oculta el panel de arranque segun lo que haya en disco."""
         dataset = self.combo_dataset.currentText()
         est = setup.estado(dataset)
+        log.info("estado de preparacion de %s: %s", dataset, est)
 
         self.panel_prep.setVisible(not est["listo"])
         self.boton_entrenar.setEnabled(est["cache"])
@@ -350,15 +363,25 @@ class MainWindow(QMainWindow):
             "modelo": "el modelo entrenado",
         }
         faltantes = "\n".join("  - falta %s" % detalle[f] for f in est["faltan"])
+        comando = "python -m src.setup --dataset %s" % dataset
+        if est["modelo"]:
+            # Con el modelo versionado la app ya clasifica: datos y cache solo
+            # hacen falta para ENTRENAR. Decir "no puede clasificar" confundia.
+            self.texto_prep.setText(
+                "El modelo ya esta entrenado: CAMARA y CAPTURAR funcionan.\n"
+                "Esto solo hace falta para REENTRENAR con %s:\n%s\n\n"
+                "Pulsa PREPARAR DATOS, o desde la terminal:  %s"
+                % (dataset, faltantes, comando))
+            return
         self.texto_prep.setText(
             "Esta copia todavia no puede clasificar:\n%s\n\n"
-            "Pulsa PREPARAR DATOS, o desde la terminal:  "
-            "python -m src.setup --dataset %s" % (faltantes, dataset))
+            "Pulsa PREPARAR DATOS, o desde la terminal:  %s" % (faltantes, comando))
         self.estado.setText(setup.resumen(dataset))
 
     def _preparar(self) -> None:
         if self.preparador is not None and self.preparador.isRunning():
             return
+        log.info("boton PREPARAR DATOS (dataset %s)", self.combo_dataset.currentText())
         self.boton_preparar.setEnabled(False)
         self.boton_preparar.setText("PREPARANDO...")
 
@@ -381,7 +404,17 @@ class MainWindow(QMainWindow):
         self.boton_preparar.setText("PREPARAR DATOS")
         self._revisar_preparacion()
 
-    def _cambio_dataset(self, _texto: str) -> None:
+    def _cambio_via(self, texto: str) -> None:
+        log.info("via de la banda: %s", texto)
+        if self.combo_via.currentData() != "C":
+            # Medido sobre COIL-100 (README): el criterio de novedad de A deja
+            # pasar el 98% de objetos que no son fruta y el de B el 53%.
+            self.estado.setText(
+                "aviso: la %s casi no rechaza objetos que no son fruta; la banda "
+                "puede llenarse de clases al azar. Para la camara usa via C" % texto)
+
+    def _cambio_dataset(self, texto: str) -> None:
+        log.info("dataset seleccionado: %s", texto)
         self._revisar_preparacion()
 
     # -- modelo ---------------------------------------------------------
@@ -392,17 +425,20 @@ class MainWindow(QMainWindow):
 
     def _cargar_modelo_guardado(self) -> None:
         if not MODEL_PATH.exists():
+            log.warning("no hay modelo entrenado en %s", MODEL_PATH)
             self.estado.setText("sin modelo entrenado")
             return
         try:
             self.modelo = Scoal.load(MODEL_PATH)
             self._modelo_listo(self.modelo, "modelo cargado de disco")
         except Exception as exc:
+            log.exception("no se pudo leer el modelo %s", MODEL_PATH)
             self.estado.setText("modelo ilegible: %s" % exc)
 
     def _entrenar(self) -> None:
         if self.entrenador is not None and self.entrenador.isRunning():
             return
+        log.info("boton ENTRENAR (dataset %s)", self.combo_dataset.currentText())
         self.boton_entrenar.setEnabled(False)
         self.entrenador = TrainWorker(self.combo_dataset.currentText(), self)
         self.entrenador.progreso.connect(self.estado.setText)
@@ -421,6 +457,7 @@ class MainWindow(QMainWindow):
                                             ", ".join(sorted(modelo.vias)))
         if faltan:
             texto += "  (sin %s)" % ", ".join(faltan)
+        log.info(texto)
         self.estado.setText(texto)
         self.estado.setStyleSheet("")
 
@@ -438,19 +475,22 @@ class MainWindow(QMainWindow):
         nueva.show()
 
     def _trabajo_fallo(self, mensaje: str) -> None:
+        log.error("error mostrado al usuario: %s", mensaje)
         self.estado.setText("error: %s" % mensaje)
         self.estado.setStyleSheet("color: %s;" % theme.ERR)
 
     # -- camara ---------------------------------------------------------
     def _alternar_camara(self, encendida: bool) -> None:
         if encendida:
-            self.camara = CameraThread(0, self)
+            log.info("boton CAMARA: encender")
+            self.camara = CameraThread(indice_camara(), self)
             self.camara.frameReady.connect(self._nuevo_frame)
             self.camara.triggered.connect(self._clasificar)
             self.camara.failed.connect(self._camara_fallo)
             self.camara.start()
             self.estado.setText("camara activa: deja el objeto quieto para clasificar")
         elif self.camara is not None:
+            log.info("boton CAMARA: apagar")
             self.camara.stop()
             self.camara = None
             self.captura.set_estado("camara apagada")
@@ -473,10 +513,14 @@ class MainWindow(QMainWindow):
 
     def _capturar_ahora(self) -> None:
         """Clasifica el frame actual saltandose el disparador de estabilidad."""
+        log.info("boton CAPTURAR")
         if self._ultima_medicion is None:
+            log.warning("CAPTURAR sin frame")
             self.estado.setText("no hay frame que capturar")
             return
         if not self._ultima_medicion.get("ok"):
+            log.warning("CAPTURAR sin objeto segmentado (%s)",
+                        self._ultima_medicion.get("estabilidad", {}).get("texto", "sin camara"))
             self.estado.setText("no hay objeto segmentado en el frame actual")
             return
         self._clasificar(self._ultima_medicion)
@@ -504,6 +548,7 @@ class MainWindow(QMainWindow):
     def _clasificar(self, medicion: dict) -> None:
         """Clasificar por las tres vias y despachar en la banda."""
         if self.modelo is None:
+            log.warning("clasificar sin modelo cargado")
             self.estado.setText("no hay modelo cargado: pulsa ENTRENAR")
             return
         if not medicion.get("ok"):
@@ -530,12 +575,21 @@ class MainWindow(QMainWindow):
         self.fila_novedad.set_value("%.2f" % elegida["novedad"],
                                     activo=not elegida["conocido"])
         self.banda.despachar(elegida["clase"], via_banda, elegida["conocido"])
+        log.info("banda (via %s) -> %s", via_banda,
+                 elegida["clase"] if elegida["conocido"] else "desconocido")
 
         if not elegida["conocido"]:
-            self.estado.setText(
-                "rechazado: fuera del dominio entrenado "
-                "(novedad %.2f, confianza %.2f)"
-                % (elegida["novedad"], elegida["confianza"]))
+            # Decir que clase adivino y por que se descarto: "rechazado" a secas
+            # se leia como un fallo cuando es el criterio de rechazo trabajando.
+            if elegida["novedad"] > 1.0:
+                motivo = ("la imagen no se parece a las fotos de entrenamiento "
+                          "(novedad %.2f, limite 1.00)" % elegida["novedad"])
+            else:
+                motivo = ("duda entre clases (confianza %.2f, minimo %.2f)"
+                          % (elegida["confianza"],
+                             self.modelo.vias[via_banda].get("umbral_confianza", 0.0)))
+            self.estado.setText("DESCONOCIDO: via %s cree que es %s, pero %s"
+                                % (via_banda, elegida["clase"], motivo))
         else:
             self.estado.setText("clasificado por via %s: %s"
                                 % (via_banda, elegida["clase"]))
@@ -560,9 +614,11 @@ class MainWindow(QMainWindow):
         self.captura.set_estado("camara apagada")
 
     def _abrir_analisis(self) -> None:
+        log.info("boton ANALISIS")
         AnalysisWindow(self).show()
 
     def closeEvent(self, evento) -> None:
+        log.info("cerrando SCOAL")
         if self.camara is not None:
             self.camara.stop()
         for hilo in (self.entrenador, self.preparador):
@@ -572,6 +628,10 @@ class MainWindow(QMainWindow):
 
 
 def main() -> None:
+    log.info("SCOAL iniciada: Python %s en %s, logs en %s",
+             sys.version.split()[0], sys.platform, config.LOG_PATH)
+    # Los avisos internos de Qt (multimedia, fuentes, plugins) tambien al log.
+    qInstallMessageHandler(lambda _modo, _ctx, texto: logging.getLogger("qt").info(texto))
     app = QApplication(sys.argv)
     app.setStyleSheet(theme.qss())
     ventana = MainWindow()

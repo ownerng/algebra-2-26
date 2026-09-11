@@ -20,6 +20,7 @@ incluido en el repositorio, que es el caso por defecto.
 
 from __future__ import annotations
 
+import logging
 import sys
 from pathlib import Path
 from typing import Callable
@@ -31,6 +32,15 @@ from src.data import download, loader  # noqa: E402
 from src.pipeline import MODEL_PATH, Scoal  # noqa: E402
 
 Progreso = Callable[[str], None]
+
+# Nombre fijo: ejecutado con  python -m src.setup  este modulo se llama __main__.
+log = logging.getLogger("src.setup")
+
+
+def _paso(progreso: Progreso, mensaje: str) -> None:
+    """Cada paso queda en logs.txt y le llega a quien sigue el progreso."""
+    log.info(mensaje)
+    progreso(mensaje)
 
 
 # --------------------------------------------------------------------------
@@ -73,10 +83,10 @@ def resumen(dataset: str = config.DEFAULT_DATASET) -> str:
 def descargar(dataset: str, progreso: Progreso = print) -> None:
     """Descarga el dataset si todavia no hay imagenes suyas en disco."""
     if loader.rutas_por_clase(dataset):
-        progreso("datos de %s ya presentes" % dataset)
+        _paso(progreso, "datos de %s ya presentes" % dataset)
         return
 
-    progreso("descargando %s (puede tardar varios minutos)" % dataset)
+    _paso(progreso, "descargando %s (puede tardar varios minutos)" % dataset)
     if dataset == "fruits360":
         download.descargar_fruits360()
     elif dataset == "coil100":
@@ -94,25 +104,25 @@ def construir_cache(dataset: str, progreso: Progreso = print) -> Path:
     """Segmenta y cachea el dataset si el .npz todavia no existe."""
     destino = loader.cache_path(dataset)
     if destino.exists():
-        progreso("cache de %s ya construido" % dataset)
+        _paso(progreso, "cache de %s ya construido" % dataset)
         return destino
 
-    progreso("construyendo cache de %s (segmentando imagenes)" % dataset)
+    _paso(progreso, "construyendo cache de %s (segmentando imagenes)" % dataset)
     return loader.build_cache(dataset)
 
 
 def entrenar(dataset: str, progreso: Progreso = print) -> Scoal:
     """Entrena las tres vias y guarda el modelo que usa la aplicacion."""
-    progreso("cargando %s" % dataset)
+    _paso(progreso, "cargando %s" % dataset)
     datos = loader.load_dataset(dataset)
 
-    progreso("entrenando sobre %d imagenes" % len(datos["y"]))
+    _paso(progreso, "entrenando sobre %d imagenes" % len(datos["y"]))
     modelo = Scoal(datos["clases"]).fit(datos, dataset)
     if not modelo.vias:
         raise RuntimeError("ninguna via pudo entrenarse")
 
     modelo.save(MODEL_PATH)
-    progreso("modelo guardado: vias %s" % ", ".join(sorted(modelo.vias)))
+    _paso(progreso, "modelo guardado: vias %s" % ", ".join(sorted(modelo.vias)))
     return modelo
 
 
@@ -128,7 +138,7 @@ def preparar(dataset: str = config.DEFAULT_DATASET,
     construir_cache(dataset, progreso)
 
     if MODEL_PATH.exists() and not forzar_entrenamiento:
-        progreso("modelo ya entrenado en %s" % MODEL_PATH)
+        _paso(progreso, "modelo ya entrenado en %s" % MODEL_PATH)
         return None
 
     return entrenar(dataset, progreso)

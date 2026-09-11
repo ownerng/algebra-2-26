@@ -18,6 +18,7 @@ representaciones no arrastra diferencias de preprocesado.
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -31,6 +32,8 @@ import config  # noqa: E402
 from src.data import download  # noqa: E402
 from src.vision.crop import crop_to_mask  # noqa: E402
 from src.vision.segment import segment  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 
 def cache_path(dataset: str) -> Path:
@@ -91,6 +94,8 @@ def build_cache(dataset: str, por_clase: int = config.IMAGES_PER_CLASS) -> Path:
             % (dataset, config.RAW_DIR, dataset)
         )
 
+    log.info("construyendo cache de %s (hasta %d por clase): imagenes en disco %s",
+             dataset, por_clase, {c: len(r) for c, r in sorted(rutas.items())})
     rng = config.set_seed(config.SEED)
     clases = sorted(rutas)
     crops, masks, etiquetas = [], [], []
@@ -127,14 +132,15 @@ def build_cache(dataset: str, por_clase: int = config.IMAGES_PER_CLASS) -> Path:
         y=np.asarray(etiquetas, np.int64),
         clases=np.asarray(clases),
     )
-    print("%s: %d imagenes, %d clases, %d descartadas -> %s"
-          % (dataset, len(crops), len(clases), descartadas, destino))
+    log.info("cache de %s: %d imagenes, %d clases, %d descartadas (ilegibles o sin "
+             "contorno) -> %s", dataset, len(crops), len(clases), descartadas, destino)
     return destino
 
 
 def load_dataset(dataset: str = config.DEFAULT_DATASET, rebuild: bool = False) -> dict:
     """Carga el cache, construyendolo si hace falta."""
     destino = cache_path(dataset)
+    log.info("cargando dataset %s desde %s (rebuild=%s)", dataset, destino, rebuild)
     if rebuild or not destino.exists():
         build_cache(dataset)
     datos = np.load(destino, allow_pickle=False)

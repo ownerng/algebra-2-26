@@ -9,12 +9,18 @@ Un solo comando:
 
 Se descarga el zip completo (el indice central de un zip vive al final del
 archivo, no se puede extraer en streaming) pero se extraen unicamente las
-clases seleccionadas en config.py. Una descarga interrumpida se reanuda.
+clases seleccionadas en config.py.
+
+La descarga se escribe en `<zip>.part` y solo pasa a llamarse `<zip>` cuando
+termino y es un zip valido. Antes se escribia directo en el nombre final: un
+corte a mitad (cerrar la aplicacion, perder la red) dejaba un zip truncado que
+la corrida siguiente daba por bueno y fallaba con "File is not a zip file".
 """
 
 from __future__ import annotations
 
 import argparse
+import logging
 import shutil
 import sys
 import zipfile
@@ -26,6 +32,8 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import config  # noqa: E402
+
+log = logging.getLogger(__name__)
 
 # Espejos en orden de preferencia. El primero que responda gana.
 COIL100_URLS = (
@@ -55,18 +63,24 @@ def _download(urls: tuple[str, ...], destino: Path) -> Path:
         try:
             ya = destino.stat().st_size if destino.exists() else 0
             headers = {"Range": "bytes=%d-" % ya} if ya else {}
+            log.info("descargando %s -> %s (ya en disco: %d bytes)", url, destino, ya)
             resp = requests.get(url, stream=True, timeout=60, headers=headers)
+            log.info("respuesta HTTP %d, content-length %s", resp.status_code,
+                     resp.headers.get("content-length", "desconocido"))
 
             if resp.status_code == 416:          # el archivo ya esta completo
                 resp.close()
                 return destino
             resp.raise_for_status()
 
-            total = int(resp.headers.get("content-length", 0)) + ya
+            # 206: el servidor retoma donde quedo. 200: ignoro el Range (GitHub
+            # lo hace) y manda todo desde cero, asi que se reescribe.
             modo = "ab" if resp.status_code == 206 else "wb"
             if modo == "wb":
                 ya = 0
+            total = int(resp.headers.get("content-length", 0)) + ya
 
+            escritos = ya
             with open(destino, modo) as fh, tqdm(
                 total=total or None, initial=ya, unit="B", unit_scale=True,
                 desc=destino.name,
@@ -74,16 +88,52 @@ def _download(urls: tuple[str, ...], destino: Path) -> Path:
                 for bloque in resp.iter_content(chunk_size=1 << 20):
                     fh.write(bloque)
                     barra.update(len(bloque))
+                    # Una linea cada 50 MB: sin esto una descarga lenta y una
+                    # colgada se ven igual en el log.
+                    if (escritos + len(bloque)) >> 26 != escritos >> 26:
+                        log.info("  %s: %d MB", destino.name, (escritos + len(bloque)) >> 20)
+                    escritos += len(bloque)
+            log.info("descarga terminada: %d bytes en %s", escritos, destino)
             return destino
 
         except Exception as exc:                 # espejo caido: siguiente
             ultimo_error = exc
-            print("  fallo %s: %s" % (url, exc))
+            log.warning("fallo %s: %s", url, exc)
 
     raise RuntimeError(
         "Ninguna URL respondio. Ultimo error: %s\n"
         "Descarga manual y deja el zip en %s" % (ultimo_error, destino)
     )
+
+
+def zip_valido(ruta: Path) -> bool:
+    """Un zip cortado conserva la cabecera PK del inicio pero pierde el indice
+    central del final; is_zipfile busca justamente ese indice."""
+    return ruta.exists() and zipfile.is_zipfile(ruta)
+
+
+def asegurar_zip(urls: tuple[str, ...], destino: Path) -> Path:
+    """Deja en `destino` un zip completo: reusa uno valido o lo (re)descarga."""
+    if zip_valido(destino):
+        log.info("zip ya descargado y valido: %s (%d bytes)",
+                 destino, destino.stat().st_size)
+        return destino
+    if destino.exists():
+        log.warning("zip corrupto o incompleto (%d bytes), se borra y se "
+                    "descarga de nuevo: %s", destino.stat().st_size, destino)
+        destino.unlink()
+
+    parcial = destino.with_name(destino.name + ".part")
+    _download(urls, parcial)
+    if not zipfile.is_zipfile(parcial):
+        tamano = parcial.stat().st_size
+        parcial.unlink()
+        raise RuntimeError(
+            "la descarga de %s no produjo un zip valido (%d bytes); "
+            "vuelve a intentar" % (destino.name, tamano))
+    parcial.replace(destino)
+    log.info("zip completo y valido: %s (%d bytes)", destino, destino.stat().st_size)
+    return destino
 
 
 def _extraer(zip_path: Path, destino: Path, quiero) -> int:
@@ -98,6 +148,8 @@ def _extraer(zip_path: Path, destino: Path, quiero) -> int:
 
     with zipfile.ZipFile(zip_path) as zf:
         miembros = [m for m in zf.namelist() if not m.endswith("/") and quiero(m)]
+        log.info("extrayendo %d archivos seleccionados de %s -> %s",
+                 len(miembros), zip_path.name, destino)
         for miembro in tqdm(miembros, desc="extraer %s" % destino.name, unit="img"):
             partes = Path(miembro).parts[1:]
             if not partes:
@@ -130,11 +182,9 @@ def _es_objeto_coil(nombre: str) -> bool:
 
 
 def descargar_coil100() -> Path:
-    zip_path = config.RAW_DIR / "coil-100.zip"
-    if not zip_path.exists():
-        _download(COIL100_URLS, zip_path)
+    zip_path = asegurar_zip(COIL100_URLS, config.RAW_DIR / "coil-100.zip")
     n = _extraer(zip_path, COIL_DIR, _es_objeto_coil)
-    print("COIL-100: %d imagenes nuevas en %s" % (n, COIL_DIR))
+    log.info("COIL-100: %d imagenes nuevas en %s", n, COIL_DIR)
     return COIL_DIR
 
 
@@ -160,9 +210,7 @@ def clase_de_ruta(nombre: str) -> str | None:
 
 
 def descargar_fruits360() -> Path:
-    zip_path = config.RAW_DIR / "fruits-360.zip"
-    if not zip_path.exists():
-        _download(FRUITS360_URLS, zip_path)
+    zip_path = asegurar_zip(FRUITS360_URLS, config.RAW_DIR / "fruits-360.zip")
 
     def quiero(nombre: str) -> bool:
         if not nombre.lower().endswith((".jpg", ".jpeg", ".png")):
@@ -170,12 +218,12 @@ def descargar_fruits360() -> Path:
         return clase_de_ruta(nombre) is not None
 
     n = _extraer(zip_path, FRUITS_DIR, quiero)
-    print("Fruits-360: %d imagenes nuevas en %s" % (n, FRUITS_DIR))
+    log.info("Fruits-360: %d imagenes nuevas en %s", n, FRUITS_DIR)
 
     faltan = [c for c in config.FRUITS_CLASSES if not carpetas_de(c)]
     if faltan:
-        print("  AVISO, clases sin carpeta (revisar alias en config.py): "
-              + ", ".join(faltan))
+        log.warning("clases sin carpeta (revisar alias en config.py): %s",
+                    ", ".join(faltan))
     return FRUITS_DIR
 
 
