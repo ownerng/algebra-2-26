@@ -27,6 +27,21 @@ pip install -r requirements.txt
 python -m src.ui.main_window     # la aplicación
 ```
 
+**Si algo no funciona, primero el doctor.** Revisa Python, cada paquete
+(instalado, versión mínima y que realmente importe), el modelo, los pesos de
+la CNN, los datasets y sus zips, y la cámara (incluido si DroidCam entrega
+imagen vacía). Cada problema viene con el comando o paso para resolverlo:
+
+```bash
+python -m src.doctor             # todo
+python -m src.doctor --sin-camara
+```
+
+**Logs.** Todo lo que hace la aplicación queda en `logs.txt`, en la raíz del
+proyecto: cada botón, descarga, cache, entrenamiento, cambio de estado de la
+cámara, cada clasificación con sus tres vías y cada error con su traceback.
+Rota a 5 MB (se conservan 3 copias) y no se versiona.
+
 **El modelo entrenado viene en el repositorio** (`results/scoal_model.pkl`,
 1.7 MB), así que la aplicación clasifica desde el primer arranque sin descargar
 nada. Requiere Python 3.11 o superior.
@@ -108,6 +123,36 @@ vía C. Y aun así, la segmentación asume un objeto sobre fondo aproximadamente
 uniforme (estima el color de fondo con la mediana del marco de la imagen), así
 que una escena con pared, muebles y sombras produce contornos sin sentido. Una
 hoja blanca detrás del objeto cambia el resultado por completo.
+
+### Cámara real: por qué la vía C dice DESCONOCIDO
+
+Medido con DroidCam apuntando a una foto de manzana roja en pantalla: la vía C
+**acierta la clase** (`manzana_red_delicious`, 12 de 12) pero su novedad queda
+entre 1.48 y 1.60, por encima del límite 1.00, y la muestra se rechaza. La
+barra de estado lo dice así: *"DESCONOCIDO: vía C cree que es …, pero la imagen
+no se parece a las fotos de entrenamiento"*.
+
+No se arregla subiendo el límite. Novedad de la vía C sobre 500 imágenes de
+Fruits-360 y 400 de COIL-100 (solo el criterio de novedad):
+
+| Límite | Fruits-360 rechazadas | COIL-100 rechazados |
+|---|---|---|
+| 1.00 (actual) | 1 % | 100 % |
+| 1.25 | 0 % | 98.5 % |
+| 1.50 | 0 % | 86.5 % |
+| 1.75 | 0 % | 26 % |
+| 2.00 | 0 % | 0 % |
+
+Una fruta vista por la cámara queda a la misma distancia del subespacio que un
+objeto ajeno. El dominio aprendido son fotos de estudio (fruta girando sobre
+blanco, luz controlada); la cámara cambia luz, sombras, enfoque y compresión.
+Es un **desplazamiento de dominio**, no un fallo del clasificador: aceptar esa
+manzana obligaría a aceptar 3 de cada 4 objetos que no son fruta. El arreglo de
+fondo sería entrenar también con capturas de la propia cámara.
+
+Con el mismo criterio, la vía A deja pasar el 98 % de los objetos de COIL-100 y
+la vía B el 53 %: por eso con la banda en A o B caen objetos cualquiera en los
+contenedores, y la aplicación lo advierte al elegirlas.
 
 ## De cero al informe
 

@@ -7,7 +7,11 @@ Ningun modulo define constantes propias: todo se importa desde aqui.
 
 from __future__ import annotations
 
+import logging
+import logging.handlers
 import random
+import sys
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -49,6 +53,64 @@ TABLES_DIR = DOCS_DIR / "tablas"    # .tex generados DESDE los CSV
 
 for _d in (RAW_DIR, CACHE_DIR, RESULTS_DIR, FIGURES_DIR, TABLES_DIR):
     _d.mkdir(parents=True, exist_ok=True)
+
+# --------------------------------------------------------------------------
+# Logs
+# --------------------------------------------------------------------------
+#
+# Todo punto de entrada (app, setup, doctor, tests) importa config, asi que es
+# el unico lugar donde se configuran. Cada modulo solo hace
+# logging.getLogger(__name__) y escribe; aqui se decide a donde va.
+
+LOG_PATH = ROOT / "logs.txt"
+
+
+def _configurar_logs() -> None:
+    raiz = logging.getLogger()
+    if any(getattr(h, "scoal", False) for h in raiz.handlers):
+        return                                  # config importado dos veces
+    if "pytest" in sys.modules:
+        # Los tests fabrican zips rotos y fallos a proposito: en logs.txt se
+        # leerian como incidentes reales. pytest ya captura los logs aparte.
+        return
+
+    # Rotacion a 5 MB x 3 copias: la trazabilidad no puede llenar el disco.
+    archivo = logging.handlers.RotatingFileHandler(
+        LOG_PATH, maxBytes=5_000_000, backupCount=3, encoding="utf-8")
+    archivo.setFormatter(logging.Formatter(
+        "%(asctime)s %(levelname)-7s [%(threadName)s] %(name)s: %(message)s"))
+    archivo.scoal = True
+    raiz.addHandler(archivo)
+
+    # En la terminal solo avisos y errores: el progreso normal ya lo imprime
+    # cada comando y duplicarlo ensucia la salida.
+    if sys.stderr is not None:
+        consola = logging.StreamHandler()
+        consola.setLevel(logging.WARNING)
+        consola.setFormatter(logging.Formatter("%(levelname)s %(name)s: %(message)s"))
+        raiz.addHandler(consola)
+
+    raiz.setLevel(logging.INFO)
+    for ruidoso in ("matplotlib", "PIL", "urllib3"):
+        logging.getLogger(ruidoso).setLevel(logging.WARNING)
+
+    # Lo que nadie atrapa tambien queda escrito, con su traceback.
+    def no_atrapada(tipo, valor, tb):
+        logging.getLogger("scoal").critical("excepcion no atrapada",
+                                            exc_info=(tipo, valor, tb))
+        sys.__excepthook__(tipo, valor, tb)
+
+    def no_atrapada_en_hilo(args):
+        logging.getLogger("scoal").critical(
+            "excepcion no atrapada en el hilo %s",
+            args.thread.name if args.thread else "?",
+            exc_info=(args.exc_type, args.exc_value, args.exc_traceback))
+
+    sys.excepthook = no_atrapada
+    threading.excepthook = no_atrapada_en_hilo
+
+
+_configurar_logs()
 
 # --------------------------------------------------------------------------
 # Datasets
