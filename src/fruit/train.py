@@ -179,12 +179,12 @@ def evaluar_carpeta_real(red, disp, clases: list[str], carpeta: Path, lado: int,
     if not carpeta.is_dir():
         log.warning("--real %s no es una carpeta", carpeta)
         return None
-    indice = {c: i for i, c in enumerate(clases)}
+    indice = {data.clave(c): i for i, c in enumerate(clases)}
     rutas, etiquetas, ignoradas = [], [], set()
     for ruta, nombre in zip(*data.indexar(carpeta)):
-        if nombre in indice:
+        if data.clave(nombre) in indice:
             rutas.append(ruta)
-            etiquetas.append(indice[nombre])
+            etiquetas.append(indice[data.clave(nombre)])
         else:
             ignoradas.add(nombre)
     if not rutas:
@@ -210,12 +210,13 @@ def entrenar(args) -> dict:
     torch.manual_seed(config.SEED)
 
     raiz = data.buscar_raiz(args.data)
-    clases = data.clases_de(raiz / "Training")
-    indice = {c: i for i, c in enumerate(clases)}
-    log.info("Fruits-360 en %s: %d variedades", raiz, len(clases))
+    clases, indice = data.mapa_clases(raiz / "Training", agrupar=not args.sin_agrupar,
+                                      solo_frutas=not args.con_verduras)
+    log.info("Fruits-360 en %s: %d clases", raiz, len(clases))
 
     r_tr, n_tr = data.indexar(raiz / "Training")
-    y_tr = [indice[n] for n in n_tr]
+    r_tr = [r for r, n in zip(r_tr, n_tr) if n in indice]
+    y_tr = [indice[n] for n in n_tr if n in indice]
     test_dir = raiz / "Test"
     r_te, n_te = data.indexar(test_dir) if test_dir.is_dir() else ([], [])
     y_te = [indice[n] for n in n_te if n in indice]
@@ -364,6 +365,10 @@ def main() -> None:
     ap.add_argument("--data", default=None, help="carpeta con Training/ y Test/")
     ap.add_argument("--real", default=None, help="carpeta <variedad>/*.jpg con TUS fotos")
     ap.add_argument("--fondos", default=None, help="carpeta con fotos de fondos reales")
+    ap.add_argument("--sin-agrupar", action="store_true",
+                    help="una clase por carpeta (Apple Golden 1/2/3 separadas)")
+    ap.add_argument("--con-verduras", action="store_true",
+                    help="incluye verduras, frutos secos y hongos (por defecto: solo frutas)")
     ap.add_argument("--epocas", type=int, default=10)
     ap.add_argument("--calentamiento", type=int, default=1, help="epocas solo-cabeza")
     ap.add_argument("--batch", type=int, default=64)

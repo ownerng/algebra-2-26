@@ -69,6 +69,52 @@ def clases_de(directorio: Path) -> list[str]:
     return nombres
 
 
+# Lo que NO es fruta aunque Fruits-360 lo traiga (verduras, frutos secos,
+# hongos, raices). Coincidencia por prefijo en minuscula sobre la variedad.
+# Tomate y aguacate se conservan: se venden y se piensan como fruta.
+NO_FRUTA = (
+    "almond", "bean pod", "beetroot", "cabbage", "carrot", "cauliflower",
+    "celery", "chestnut", "corn", "cucumber", "eggplant", "garlic", "ginger",
+    "hazelnut", "kohlrabi", "mushroom", "nut", "onion", "peanut", "pepper",
+    "pistachio", "potato", "walnut", "zucchini", "caju seed",
+)
+
+
+def clave(nombre: str) -> str:
+    """'Apple Golden 3' -> 'apple golden': quita el indice de foto/sesion.
+
+    Fruits-360 numera las fotos de una misma variedad (Golden 1, 2, 3...). Son
+    la misma clase para una persona, y separarlas obliga a la red a adivinar un
+    numero de sesion que no existe en el mundo real.
+    """
+    palabras = nombre.replace("_", " ").split()
+    while len(palabras) > 1 and (palabras[-1].isdigit() or
+                                 (palabras[-1][:-1].isdigit() and len(palabras[-1]) <= 3)):
+        palabras.pop()
+    return " ".join(palabras).lower()
+
+
+def mapa_clases(directorio: Path, agrupar: bool = True, solo_frutas: bool = True
+                ) -> tuple[list[str], dict[str, int]]:
+    """(clases, indice) donde indice lleva carpeta -> clase Y clave -> clase."""
+    carpetas = clases_de(directorio)
+    if solo_frutas:
+        carpetas = [c for c in carpetas
+                    if not clave(c).startswith(NO_FRUTA)]
+    grupos: dict[str, list[str]] = {}
+    for c in carpetas:
+        grupos.setdefault(clave(c) if agrupar else c, []).append(c)
+    clases = sorted(grupos)
+    indice: dict[str, int] = {}
+    for i, g in enumerate(clases):
+        indice[g] = i
+        indice[clave(g)] = i
+        for c in grupos[g]:
+            indice[c] = i
+    # nombre legible para el informe
+    return [c.title() if agrupar else c for c in clases], indice
+
+
 def cargar_bgr(ruta: Path) -> np.ndarray:
     img = cv2.imread(str(ruta), cv2.IMREAD_COLOR)
     if img is None:

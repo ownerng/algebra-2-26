@@ -28,7 +28,36 @@ log = logging.getLogger(__name__)
 
 os.environ.setdefault("TORCH_HOME", str(config.RAW_DIR / "torch"))
 
-ARQUITECTURAS = ("efficientnet_v2_s", "convnext_tiny", "resnet50", "mobilenet_v3_large")
+ARQUITECTURAS = ("efficientnet_v2_s", "convnext_tiny", "resnet50", "mobilenet_v3_large",
+                 "timm_efficientnet_b0", "timm_efficientnet_b2",
+                 "timm_mobilenetv3_large_100")
+
+# Pesos de timm publicados como releases de GitHub (no pasan por huggingface.co
+# ni download.pytorch.org, que muchas redes bloquean). Ruta: GitHub Releases.
+_GH = "https://github.com/huggingface/pytorch-image-models/releases/download/"
+PESOS_TIMM = {
+    "timm_efficientnet_b0": ("efficientnet_b0", _GH + "v0.1-weights/efficientnet_b0_ra-3dd342df.pth"),
+    "timm_efficientnet_b2": ("efficientnet_b2", _GH + "v0.1-weights/efficientnet_b2_ra-bcdf34b7.pth"),
+    "timm_mobilenetv3_large_100": ("mobilenetv3_large_100",
+                                   _GH + "v0.1-weights/mobilenetv3_large_100_ra-f55367f5.pth"),
+}
+
+
+def _construir_timm(arch: str, n_clases: int, preentrenado: bool, dropout: float):
+    import timm
+    import torch
+    nombre, url = PESOS_TIMM[arch]
+    red = timm.create_model(nombre, pretrained=False, num_classes=1000)
+    if preentrenado:
+        local = pesos_locales(arch)
+        if not local.exists():
+            local.parent.mkdir(parents=True, exist_ok=True)
+            log.info("bajando pesos de %s: %s", arch, url)
+            torch.hub.download_url_to_file(url, str(local), progress=False)
+        red.load_state_dict(torch.load(local, map_location="cpu"))
+    red.reset_classifier(n_clases)
+    red.drop_rate = dropout
+    return red
 
 
 def pesos_locales(arch: str) -> Path:
@@ -44,6 +73,9 @@ def construir(arch: str, n_clases: int, preentrenado: bool = True, dropout: floa
     if arch not in ARQUITECTURAS:
         raise ValueError("arquitectura desconocida %r; opciones: %s"
                          % (arch, ", ".join(ARQUITECTURAS)))
+
+    if arch in PESOS_TIMM:
+        return _construir_timm(arch, n_clases, preentrenado, dropout)
 
     constructor = getattr(models, arch)
     local = pesos_locales(arch)
@@ -81,6 +113,8 @@ def construir(arch: str, n_clases: int, preentrenado: bool = True, dropout: floa
 
 def parametros_cabeza(red, arch: str):
     """Parametros de la capa nueva (los que se entrenan con lr alto al inicio)."""
+    if arch in PESOS_TIMM:
+        return list(red.get_classifier().parameters())
     cabeza = red.fc if arch == "resnet50" else red.classifier
     return list(cabeza.parameters())
 
