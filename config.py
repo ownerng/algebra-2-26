@@ -216,8 +216,8 @@ VIA_FRUTA_NOMBRE = "Fruta afinada"
 
 FRUIT_DIR = RESULTS_DIR / "fruit"                    # modelo + metricas de la via D
 FRUIT_MODEL_PATH = FRUIT_DIR / "fruit_model.pt"
-FRUIT_ARCH = "efficientnet_v2_s"   # | convnext_tiny | mobilenet_v3_large | resnet50
-FRUIT_IMG = 224                    # lado de entrada de la red
+FRUIT_ARCH = "timm_efficientnet_b0"   # | timm_efficientnet_b2 | efficientnet_v2_s | convnext_tiny ...
+FRUIT_IMG = 128                    # Fruits-360 son 100x100: subir a 224 no agrega informacion
 FRUIT_TTA = True                   # promediar vistas (original, espejos) al inferir
 
 # Lo que muestra la aplicacion: las tres vias del estudio mas la D.

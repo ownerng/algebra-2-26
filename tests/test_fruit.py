@@ -119,7 +119,7 @@ def test_entrenamiento_guardado_y_carga_extremo_a_extremo(tmp_path):
         arch="mobilenet_v3_large", data=str(tmp_path / "fruits"), real=None,
         fondos=None, epocas=3, calentamiento=1, batch=8, lr=1e-3, lado=64,
         workers=0, por_clase=0, salida=str(salida), rapido=False,
-        sin_preentrenar=True)
+        sin_preentrenar=True, sin_agrupar=False, con_verduras=False)
     metricas = train.entrenar(args)
 
     assert salida.exists()
@@ -136,3 +136,12 @@ def test_entrenamiento_guardado_y_carga_extremo_a_extremo(tmp_path):
     assert not any(p.requires_grad for p in fn.red.parameters())
     r2 = fn.predecir(_fruta_sobre_blanco((30, 30, 210)))
     assert r2["confianza"] == pytest.approx(r["confianza"])
+
+
+def test_cuadrar_no_deforma_y_es_cuadrada():
+    from src.pipeline import cuadrar
+    img = np.random.randint(0, 255, (48, 64, 3), np.uint8)
+    out = cuadrar(img)
+    assert out.shape == (64, 64, 3)
+    assert np.array_equal(out[8:56], img)          # el contenido queda intacto
+    assert cuadrar(out) is out

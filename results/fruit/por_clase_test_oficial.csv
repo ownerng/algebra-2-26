@@ -1,0 +1,103 @@
+clase,soporte,recall,f1
+Apple,83,1.0000,0.9940
+Apple Braeburn,83,1.0000,0.9940
+Apple Crimson Snow,83,1.0000,1.0000
+Apple Golden,83,0.9639,0.9091
+Apple Granny Smith,83,0.9880,0.9480
+Apple Pink Lady,83,1.0000,1.0000
+Apple Red,83,0.9880,0.9820
+Apple Red Delicious,83,1.0000,1.0000
+Apple Red Yellow,83,1.0000,1.0000
+Apricot,83,1.0000,1.0000
+Avocado,83,1.0000,1.0000
+Avocado Black,83,1.0000,1.0000
+Avocado Green,83,1.0000,1.0000
+Banana,83,1.0000,1.0000
+Banana Lady Finger,83,1.0000,1.0000
+Banana Red,83,1.0000,1.0000
+Blackberry,83,1.0000,1.0000
+Blueberry,83,1.0000,1.0000
+Cactus Fruit,83,1.0000,1.0000
+Cactus Fruit Green,83,1.0000,1.0000
+Cactus Fruit Red,83,1.0000,1.0000
+Cantaloupe,83,1.0000,1.0000
+Carambola,83,1.0000,1.0000
+Cherimoya,83,1.0000,1.0000
+Cherry,83,0.9880,0.9939
+Cherry Rainier,83,1.0000,0.9940
+Cherry Sour,83,1.0000,1.0000
+Cherry Wax,83,1.0000,1.0000
+Cherry Wax Black,83,1.0000,1.0000
+Cherry Wax Red,83,1.0000,1.0000
+Cherry Wax Yellow,83,1.0000,1.0000
+Clementine,83,1.0000,1.0000
+Cocos,83,1.0000,1.0000
+Dates,83,1.0000,1.0000
+Fig,83,1.0000,1.0000
+Gooseberry,83,1.0000,1.0000
+Granadilla,83,1.0000,1.0000
+Grape,83,1.0000,1.0000
+Grape Blue,83,1.0000,1.0000
+Grape Pink,83,1.0000,1.0000
+Grape White,83,1.0000,1.0000
+Grapefruit Pink,83,1.0000,1.0000
+Grapefruit White,83,1.0000,1.0000
+Guava,83,1.0000,1.0000
+Huckleberry,83,1.0000,1.0000
+Kaki,83,1.0000,1.0000
+Kiwi,83,1.0000,1.0000
+Kumquats,83,1.0000,1.0000
+Lemon,83,1.0000,1.0000
+Lemon Meyer,83,1.0000,1.0000
+Limes,83,1.0000,1.0000
+Lychee,83,1.0000,1.0000
+Mandarine,83,1.0000,1.0000
+Mango,83,1.0000,1.0000
+Mango Red,83,1.0000,1.0000
+Mangostan,83,1.0000,1.0000
+Maracuja,83,1.0000,1.0000
+Melon Piel De Sapo,83,1.0000,1.0000
+Mulberry,83,1.0000,1.0000
+Nectarine,83,1.0000,1.0000
+Nectarine Flat,83,1.0000,1.0000
+Orange,83,1.0000,1.0000
+Orange Peeled,83,1.0000,1.0000
+Papaya,83,1.0000,1.0000
+Passion Fruit,83,1.0000,1.0000
+Peach,83,0.9518,0.9753
+Peach Flat,83,1.0000,0.9940
+Pear,83,0.9518,0.9753
+Pear Abate,83,1.0000,1.0000
+Pear Forelle,83,1.0000,0.9940
+Pear Kaiser,83,1.0000,1.0000
+Pear Monster,83,1.0000,1.0000
+Pear Red,83,0.9880,0.9880
+Pear Stone,83,1.0000,1.0000
+Pear Williams,83,1.0000,1.0000
+Pepino,83,0.8072,0.8933
+Physalis,83,1.0000,1.0000
+Physalis With Husk,83,1.0000,0.9940
+Pineapple,83,1.0000,1.0000
+Pineapple Mini,83,1.0000,1.0000
+Pitahaya Red,83,0.9880,0.9939
+Plum,83,1.0000,0.9940
+Pomegranate,83,0.9759,0.9759
+Pomelo Sweetie,83,1.0000,1.0000
+Quince,83,1.0000,1.0000
+Rambutan,83,1.0000,1.0000
+Raspberry,83,1.0000,0.9940
+Redcurrant,83,1.0000,1.0000
+Salak,83,1.0000,0.9940
+Strawberry,83,1.0000,1.0000
+Strawberry Wedge,83,1.0000,1.0000
+Tamarillo,83,1.0000,1.0000
+Tangelo,83,1.0000,1.0000
+Tomato,83,1.0000,1.0000
+Tomato Cherry Maroon,83,1.0000,1.0000
+Tomato Cherry Orange,83,1.0000,1.0000
+Tomato Cherry Red,83,1.0000,1.0000
+Tomato Cherry Yellow,83,1.0000,1.0000
+Tomato Heart,83,0.9880,0.9939
+Tomato Maroon,83,1.0000,1.0000
+Tomato Yellow,83,1.0000,1.0000
+Watermelon,83,1.0000,1.0000

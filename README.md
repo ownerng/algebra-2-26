@@ -159,9 +159,12 @@ contenedores, y la aplicación lo advierte al elegirlas.
 Las vías A–C son el **estudio de álgebra lineal** (extractor congelado, solo
 10 frutas, clasificador de mínimos cuadrados propio) y se quedan intactas. La
 **vía D** es el clasificador pensado para que la detección de fruta sea lo mejor
-posible: una CNN preentrenada en ImageNet (por defecto EfficientNetV2-S)
-**afinada de punta a punta** sobre todas las variedades de Fruits-360 (~130),
-no sobre 10. Vive en `src/fruit/` y aparece en la aplicación como cuarta fila,
+posible: una CNN preentrenada en ImageNet (por defecto EfficientNet-B0)
+**afinada de punta a punta** sobre 102 clases de fruta de Fruits-360, no sobre
+10. Las variantes numeradas (`Apple Golden 1/2/3`) se fusionan en una clase y
+las verduras, frutos secos y hongos se excluyen (`--con-verduras` / `--sin-agrupar`
+lo cambian). **El modelo entrenado viene en el repo** (`results/fruit/fruit_model.pt`,
+8.5 MB), así que la vía D funciona desde el primer arranque. Vive en `src/fruit/` y aparece en la aplicación como cuarta fila,
 seleccionada por defecto cuando existe el modelo.
 
 ```bash
@@ -171,8 +174,11 @@ python -m src.fruit.train --real mis_fotos/            # además, evalúa en TUS
 python -m src.doctor                                   # confirma que la vía D carga
 ```
 
-Se recomienda GPU (en Colab/Kaggle basta una T4; ~10 épocas en minutos). En CPU
-usa `--arch mobilenet_v3_large`. `--rapido` hace una prueba de humo.
+El modelo incluido se entrenó **en CPU (4 núcleos, ~1.5 h)** con
+`python -m src.fruit.train --arch timm_efficientnet_b0 --lado 128 --por-clase 250 --epocas 10`.
+Con GPU conviene probar `--arch timm_efficientnet_b2`, todas las imágenes
+(`--por-clase 0`) y más épocas. `--rapido` hace una prueba de humo. Los pesos
+preentrenados de timm se bajan de GitHub Releases (no de huggingface.co).
 
 **Qué la hace robusta a la cámara** (el problema real, no la arquitectura):
 
@@ -195,8 +201,31 @@ debe coincidir con el de Fruits-360, p. ej. `Banana`, `Apple Golden 1`).
 Si el resultado real es bajo, súmalas al entrenamiento copiándolas a
 `Training/` (mismo formato): es la mejora de mayor efecto que existe.
 
-El checkpoint (`results/fruit/fruit_model.pt`, fp16) no se versiona por
-defecto (ver `.gitignore`).
+### Resultados medidos (modelo incluido, 102 clases)
+
+| Evaluación | top-1 | rechazo |
+|---|---|---|
+| Test oficial de Fruits-360 (8 466 imágenes) | 0.9959 | 1.6 % |
+| Mismo test con fondos aleatorios y cámara degradada | 0.9880 | 3.4 % |
+| Por la aplicación completa, fotograma 4:3, imagen limpia | 0.988 | 3.5 % |
+| Por la aplicación completa, fondo aleatorio + cámara degradada | 0.953 | 8.0 % |
+
+Sobre lo que **no** se rechaza la exactitud es 0.9999 (test oficial) y 0.997
+(dominio roto). Peores clases: `Pepino` (recall 0.78), `Apple Granny Smith` y
+`Apple Golden`, que se confunden entre sí. ECE 0.0025: la confianza está bien
+calibrada.
+
+**Lo que estas cifras no son:** ninguna usa fotos de una cámara real. Los
+"fondos aleatorios y cámara degradada" son sintéticos y salen del mismo
+generador que los aumentos de entrenamiento; son una prueba de robustez, no una
+medida del mundo real. La cifra definitiva de la tesis es la de `--real`.
+
+**Hallazgo de diseño:** la segmentación por croma de la app (vías A–C) falla con
+fondos cargados. Por eso la vía D clasifica **dos entradas** —el recorte
+segmentado y el fotograma completo cuadrado— y se queda con la de mayor
+confianza: con fondo aleatorio, recorte 91.2 %, fotograma 97.4 %, mejor de los
+dos 97.6 %. El promedio de 4 vistas (TTA) suma ~2 puntos con dominio roto y
+resta ~0.5 con imagen limpia.
 
 ## De cero al informe
 
