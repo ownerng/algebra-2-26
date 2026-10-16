@@ -22,6 +22,7 @@ ACCENT = "#E8734A"      # UNICO acento de interfaz
 VIA_A = "#5FB37A"       # verde  - features fisicas
 VIA_B = "#D9A441"       # ambar  - eigen-objetos
 VIA_C = "#5B9DD9"       # azul   - embeddings CNN
+VIA_D = "#B58CE0"       # violeta - CNN afinada (clasificador de fruta)
 ERR = "#D9534F"
 
 FONT_UI = "Inter, DejaVu Sans, sans-serif"
@@ -32,7 +33,7 @@ RADIUS = 4              # maximo absoluto
 # Los tres colores de via son codificacion de datos, no decoracion: son la
 # unica excepcion a la regla de un solo acento y se usan igual en la interfaz,
 # en las graficas y en las leyendas.
-VIA_COLORS = {"A": VIA_A, "B": VIA_B, "C": VIA_C}
+VIA_COLORS = {"A": VIA_A, "B": VIA_B, "C": VIA_C, "D": VIA_D}
 
 
 def qss() -> str:

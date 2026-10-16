@@ -154,6 +154,50 @@ Con el mismo criterio, la vía A deja pasar el 98 % de los objetos de COIL-100 y
 la vía B el 53 %: por eso con la banda en A o B caen objetos cualquiera en los
 contenedores, y la aplicación lo advierte al elegirlas.
 
+## Vía D: el clasificador de fruta de producción
+
+Las vías A–C son el **estudio de álgebra lineal** (extractor congelado, solo
+10 frutas, clasificador de mínimos cuadrados propio) y se quedan intactas. La
+**vía D** es el clasificador pensado para que la detección de fruta sea lo mejor
+posible: una CNN preentrenada en ImageNet (por defecto EfficientNetV2-S)
+**afinada de punta a punta** sobre todas las variedades de Fruits-360 (~130),
+no sobre 10. Vive en `src/fruit/` y aparece en la aplicación como cuarta fila,
+seleccionada por defecto cuando existe el modelo.
+
+```bash
+python -m src.data.download --dataset fruits360_full   # todas las variedades
+python -m src.fruit.train                              # afinado + calibración + métricas
+python -m src.fruit.train --real mis_fotos/            # además, evalúa en TUS fotos
+python -m src.doctor                                   # confirma que la vía D carga
+```
+
+Se recomienda GPU (en Colab/Kaggle basta una T4; ~10 épocas en minutos). En CPU
+usa `--arch mobilenet_v3_large`. `--rapido` hace una prueba de humo.
+
+**Qué la hace robusta a la cámara** (el problema real, no la arquitectura):
+
+| Pieza | Para qué |
+|---|---|
+| Fondo blanco → fondo aleatorio (liso, degradado, ruido, rayas, mesa o fotos tuyas con `--fondos`) | Fruits-360 es fruta sobre blanco; una webcam no |
+| Luz, balance de blancos, desenfoque, ruido de sensor, JPEG | Imita una cámara barata |
+| Rotación libre y espejos | Una fruta no tiene arriba |
+| Calentamiento de la cabeza, LR diferenciada, coseno, suavizado de etiquetas | Afinado estable sin destruir lo preentrenado |
+| Calibración por temperatura + TTA (4 vistas) | La confianza significa algo |
+| Rechazo por confianza calibrada y entropía, umbrales leídos de validación | `DESCONOCIDO` en vez de inventar una fruta |
+
+**Tres evaluaciones que NO se mezclan** (`results/fruit/metricas.json`):
+test oficial de Fruits-360 (cerca de 100 %: Training y Test son fotogramas de
+la misma sesión de cada fruta, así que **sobreestima**), test con dominio roto
+(fondos y degradación deterministas) y **fotos reales propias** — esa última
+es la cifra que debe ir en el informe. Para tenerla, toma ~20–30 fotos por
+fruta con tu cámara en `mis_fotos/<Variedad>/*.jpg` (el nombre de la carpeta
+debe coincidir con el de Fruits-360, p. ej. `Banana`, `Apple Golden 1`).
+Si el resultado real es bajo, súmalas al entrenamiento copiándolas a
+`Training/` (mismo formato): es la mejora de mayor efecto que existe.
+
+El checkpoint (`results/fruit/fruit_model.pt`, fp16) no se versiona por
+defecto (ver `.gitignore`).
+
 ## De cero al informe
 
 ```bash
@@ -261,6 +305,7 @@ src/setup.py               preparación de cero en un comando
 src/data/                  descarga y cache
 src/vision/                segmentación, recorte, disparador de estabilidad
 src/features/              vía A (físicas), vía B (eigen), vía C (CNN)
+src/fruit/                 vía D: CNN afinada (datos, aumentos, train, inferencia)
 src/model/                 mínimos cuadrados, PCA, k-NN, métricas, rechazo
 src/experiments/           barridos de ablación, figuras y tablas
 src/ui/                    aplicación PySide6

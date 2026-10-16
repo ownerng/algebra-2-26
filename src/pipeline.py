@@ -243,8 +243,49 @@ def medir(image_bgr: np.ndarray, peso_g: float | None = None) -> dict:
             "vector_a": vector_a, "mediciones": medidas}
 
 
+_FRUTA_NET = None
+
+
+def fruta_net():
+    """Via D (CNN afinada), cargada una vez; None si no hay modelo entrenado.
+
+    El checkpoint no vive dentro del pickle de Scoal: pesa decenas de MB y se
+    reentrena por separado con `python -m src.fruit.train`.
+    """
+    global _FRUTA_NET
+    if _FRUTA_NET is None:
+        from src.fruit.infer import FrutaNet
+        if not FrutaNet.disponible():
+            return None
+        try:
+            _FRUTA_NET = FrutaNet.cargar()
+        except Exception:
+            log.exception("no se pudo cargar la via D (%s)", config.FRUIT_MODEL_PATH)
+            return None
+    return _FRUTA_NET
+
+
+def _prediccion_fruta(net, recorte_bgr: np.ndarray) -> dict:
+    """Formato comun de las vias. `novedad` > 1 <=> la via D rechaza.
+
+    novedad = max(confianza_min / confianza, entropia / entropia_max): ambos
+    cocientes cruzan 1 exactamente en su umbral, asi que la interfaz puede
+    tratar la via D igual que las demas.
+    """
+    r = net.predecir(recorte_bgr)
+    nov = max(net.umbrales["confianza_min"] / max(r["confianza"], 1e-9),
+              r["entropia"] / max(net.umbrales["entropia_max"], 1e-9))
+    return {"clase": r["clase"], "confianza": r["confianza"],
+            "novedad": float(nov), "conocido": r["conocido"], "top": r["top"]}
+
+
 class Scoal:
     """Modelo entrenado de las tres vias, listo para inferencia en vivo."""
+
+    def vias_disponibles(self) -> list[str]:
+        """Vias A-C entrenadas mas la D si hay checkpoint en disco."""
+        extra = [config.VIA_FRUTA] if fruta_net() is not None else []
+        return sorted(self.vias) + extra
 
     def __init__(self, clases: list[str]) -> None:
         self.clases = list(clases)
@@ -292,7 +333,11 @@ class Scoal:
         }
         if "C" in self.vias:
             from src.features import cnn
-            crudo["C"] = cnn.extract_embeddings(medicion["crop"][None, ...])
+            try:
+                crudo["C"] = cnn.extract_embeddings(medicion["crop"][None, ...])
+            except RuntimeError as exc:
+                # Sin pesos de MobileNetV3 la via C no corre, pero A, B y D si.
+                log.warning("via C omitida en esta clasificacion: %s", exc)
 
         predicciones = {}
         for via, modelo in self.vias.items():
@@ -309,6 +354,12 @@ class Scoal:
                 "novedad": nov,
                 "conocido": conocido or not config.REJECT_ENABLED,
             }
+        net = fruta_net()
+        if net is not None:
+            d = _prediccion_fruta(net, medicion["crop"])
+            d["conocido"] = d["conocido"] or not config.REJECT_ENABLED
+            predicciones[config.VIA_FRUTA] = d
+
         log.info("clasificacion (area %.0f px2): %s",
                  medicion["mediciones"].get("area", float("nan")),
                  "; ".join("via %s=%s conf %.2f novedad %.2f %s"

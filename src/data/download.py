@@ -48,6 +48,7 @@ FRUITS360_URLS = (
 
 COIL_DIR = config.RAW_DIR / "coil100"
 FRUITS_DIR = config.RAW_DIR / "fruits360"
+FRUITS_FULL_DIR = config.RAW_DIR / "fruits360_full"   # TODAS las variedades (via D)
 
 
 # --------------------------------------------------------------------------
@@ -227,6 +228,24 @@ def descargar_fruits360() -> Path:
     return FRUITS_DIR
 
 
+def descargar_fruits360_completo() -> Path:
+    """Extrae TODAS las variedades (Training/ y Test/) para entrenar la via D.
+
+    Reutiliza el mismo zip que `descargar_fruits360`: no se baja dos veces.
+    """
+    zip_path = asegurar_zip(FRUITS360_URLS, config.RAW_DIR / "fruits-360.zip")
+
+    def quiero(nombre: str) -> bool:
+        partes = Path(nombre).parts
+        return (nombre.lower().endswith((".jpg", ".jpeg", ".png"))
+                and len(partes) >= 4
+                and partes[-3] in ("Training", "Test"))
+
+    n = _extraer(zip_path, FRUITS_FULL_DIR, quiero)
+    log.info("Fruits-360 completo: %d imagenes nuevas en %s", n, FRUITS_FULL_DIR)
+    return FRUITS_FULL_DIR
+
+
 def carpetas_de(canonica: str) -> list[Path]:
     """Carpetas ya extraidas que corresponden a una clase canonica."""
     if not FRUITS_DIR.exists():
@@ -251,7 +270,7 @@ def verificar() -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Descarga los datasets de SCOAL.")
-    ap.add_argument("--dataset", choices=("both", "coil100", "fruits360"),
+    ap.add_argument("--dataset", choices=("both", "coil100", "fruits360", "fruits360_full"),
                     default="both")
     ap.add_argument("--check", action="store_true",
                     help="solo reportar lo ya descargado")
@@ -261,6 +280,9 @@ def main() -> None:
         verificar()
         return
 
+    if args.dataset == "fruits360_full":
+        descargar_fruits360_completo()
+        return
     if args.dataset in ("both", "fruits360"):
         descargar_fruits360()
     if args.dataset in ("both", "coil100"):

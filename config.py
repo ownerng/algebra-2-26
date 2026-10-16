@@ -199,3 +199,27 @@ CV_FOLDS = 5
 
 VIAS = ("A", "B", "C")
 VIA_NOMBRES = {"A": "Fisicas", "B": "Eigen", "C": "CNN"}
+
+# --------------------------------------------------------------------------
+# Via D: CNN preentrenada AFINADA (fine-tuning) sobre todo Fruits-360
+# --------------------------------------------------------------------------
+#
+# A diferencia de las vias A-C (estudio de algebra lineal con el extractor
+# congelado), la via D es el clasificador de produccion de frutas: una red
+# preentrenada en ImageNet y reentrenada de punta a punta sobre las ~130
+# variedades de Fruits-360. Ver src/fruit/. Queda FUERA de config.VIAS a
+# proposito: los barridos de ablacion y las figuras del informe siguen siendo
+# los mismos.
+
+VIA_FRUTA = "D"
+VIA_FRUTA_NOMBRE = "Fruta afinada"
+
+FRUIT_DIR = RESULTS_DIR / "fruit"                    # modelo + metricas de la via D
+FRUIT_MODEL_PATH = FRUIT_DIR / "fruit_model.pt"
+FRUIT_ARCH = "efficientnet_v2_s"   # | convnext_tiny | mobilenet_v3_large | resnet50
+FRUIT_IMG = 224                    # lado de entrada de la red
+FRUIT_TTA = True                   # promediar vistas (original, espejos) al inferir
+
+# Lo que muestra la aplicacion: las tres vias del estudio mas la D.
+VIAS_APP = VIAS + (VIA_FRUTA,)
+VIA_NOMBRES_APP = {**VIA_NOMBRES, VIA_FRUTA: VIA_FRUTA_NOMBRE}

@@ -13,6 +13,10 @@ data/cache/
 # recien clonada clasifique sin bajar el ~1 GB de datasets ni entrenar.
 # results/scoal_model.pkl  <- versionado a proposito
 
+# Via D: el checkpoint pesa 10-90 MB segun la arquitectura (fp16). Si lo quieres
+# versionar usa Git LFS o quita esta linea; las metricas (json/csv) si se versionan.
+results/fruit/*.pt
+
 # Salida de LaTeX
 docs/*.aux
 docs/*.log

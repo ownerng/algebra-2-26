@@ -207,6 +207,28 @@ def chequear_cnn() -> None:
              % (pesos, z.shape[1]))
 
 
+def chequear_fruta() -> None:
+    """Via D: AVISO si no hay checkpoint (el resto de la app funciona sin ella)."""
+    import config
+    from src.fruit.infer import FrutaNet
+
+    if not FrutaNet.disponible():
+        reportar(AVISO, "via D (CNN afinada de fruta)",
+                 "no existe %s: python -m src.data.download --dataset fruits360_full "
+                 "y luego python -m src.fruit.train" % config.FRUIT_MODEL_PATH)
+        return
+    try:
+        fn = FrutaNet.cargar()
+    except Exception as exc:
+        reportar(FALTA, "via D (CNN afinada de fruta)",
+                 "%s no se puede leer: %s" % (config.FRUIT_MODEL_PATH.name, exc))
+        return
+    m = fn.metricas.get("test_oficial", {})
+    reportar(OK, "via D (CNN afinada de fruta)", "%s, %d variedades%s" % (
+        fn.arch, len(fn.clases),
+        ", top-1 test oficial %.4f" % m["top1"] if "top1" in m else ""))
+
+
 def chequear_datos() -> None:
     """Datasets y cache solo hacen falta para reentrenar: son AVISO, no FALTA."""
     import config
@@ -314,7 +336,8 @@ def main() -> None:
         import config  # noqa: F401  (hay numpy: config configura logs.txt)
 
         log = logging.getLogger("scoal.doctor")
-        chequeos = [chequear_logs, chequear_modelo, chequear_cnn, chequear_datos]
+        chequeos = [chequear_logs, chequear_modelo, chequear_cnn, chequear_fruta,
+                    chequear_datos]
         if not args.sin_camara:
             chequeos.append(chequear_camara)
         for chequeo in chequeos:

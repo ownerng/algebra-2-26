@@ -194,9 +194,9 @@ class MainWindow(QMainWindow):
         self.combo_dataset.currentTextChanged.connect(self._cambio_dataset)
 
         self.combo_via = QComboBox()
-        for via in config.VIAS:
-            self.combo_via.addItem("via %s - %s" % (via, config.VIA_NOMBRES[via]), via)
-        self.combo_via.setCurrentIndex(len(config.VIAS) - 1)
+        for via in config.VIAS_APP:
+            self.combo_via.addItem("via %s - %s" % (via, config.VIA_NOMBRES_APP[via]), via)
+        self.combo_via.setCurrentIndex(len(config.VIAS_APP) - 1)   # la D, la mejor
         self.combo_via.currentTextChanged.connect(self._cambio_via)
 
         self.boton_camara = QPushButton("CAMARA")
@@ -304,10 +304,10 @@ class MainWindow(QMainWindow):
     def _panel_predicciones(self) -> Panel:
         panel = Panel("Predicciones")
         self.filas_prediccion: dict[str, PredictionRow] = {}
-        for i, via in enumerate(config.VIAS):
+        for i, via in enumerate(config.VIAS_APP):
             if i:
                 panel.add(separador())
-            fila = PredictionRow(via, config.VIA_NOMBRES[via])
+            fila = PredictionRow(via, config.VIA_NOMBRES_APP[via])
             fila.set_disponible(False)
             self.filas_prediccion[via] = fila
             panel.add(fila)
@@ -406,12 +406,12 @@ class MainWindow(QMainWindow):
 
     def _cambio_via(self, texto: str) -> None:
         log.info("via de la banda: %s", texto)
-        if self.combo_via.currentData() != "C":
+        if self.combo_via.currentData() not in ("C", "D"):
             # Medido sobre COIL-100 (README): el criterio de novedad de A deja
             # pasar el 98% de objetos que no son fruta y el de B el 53%.
             self.estado.setText(
                 "aviso: la %s casi no rechaza objetos que no son fruta; la banda "
-                "puede llenarse de clases al azar. Para la camara usa via C" % texto)
+                "puede llenarse de clases al azar. Para la camara usa via D (o C)" % texto)
 
     def _cambio_dataset(self, texto: str) -> None:
         log.info("dataset seleccionado: %s", texto)
@@ -450,11 +450,12 @@ class MainWindow(QMainWindow):
 
     def _modelo_listo(self, modelo: Scoal, mensaje: str) -> None:
         self.modelo = modelo
+        disponibles = modelo.vias_disponibles()
         for via, fila in self.filas_prediccion.items():
-            fila.set_disponible(via in modelo.vias)
-        faltan = [v for v in config.VIAS if v not in modelo.vias]
+            fila.set_disponible(via in disponibles)
+        faltan = [v for v in config.VIAS_APP if v not in disponibles]
         texto = "%s: %d clases, vias %s" % (mensaje, len(modelo.clases),
-                                            ", ".join(sorted(modelo.vias)))
+                                            ", ".join(disponibles))
         if faltan:
             texto += "  (sin %s)" % ", ".join(faltan)
         log.info(texto)
@@ -587,7 +588,7 @@ class MainWindow(QMainWindow):
             else:
                 motivo = ("duda entre clases (confianza %.2f, minimo %.2f)"
                           % (elegida["confianza"],
-                             self.modelo.vias[via_banda].get("umbral_confianza", 0.0)))
+                             self.modelo.vias.get(via_banda, {}).get("umbral_confianza", 0.0)))
             self.estado.setText("DESCONOCIDO: via %s cree que es %s, pero %s"
                                 % (via_banda, elegida["clase"], motivo))
         else:
