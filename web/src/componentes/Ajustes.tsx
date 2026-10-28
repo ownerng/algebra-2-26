@@ -1,5 +1,6 @@
 // Ajustes (panel lateral): cámara, sensor de distancia, forma 3D y exportar.
 
+import { useState } from 'react';
 import { camara, DROIDCAM, useCamara } from '../lib/camara.ts';
 import { escaneo } from '../lib/escaneo.ts';
 import { aObj, construirMalla } from '../lib/malla.ts';
@@ -28,6 +29,8 @@ function Numero({ id, etiqueta, ayuda, unidad, valor, min, max, paso, alCambiar 
 
 export function Ajustes() {
   const c = useCamara(150);
+  const [clave, setClave] = useState('');
+  const [avisoClave, setAvisoClave] = useState('');
   const sensor = escaneo.tipoFuente === 'serial';
   const vivo = escaneo.vivo && performance.now() - escaneo.vivo.t < 1500 && escaneo.vivo.r > 0 ? escaneo.vivo.r : null;
 
@@ -62,6 +65,24 @@ export function Ajustes() {
           : <button type="button" className="tecla chica" onClick={() => void escaneo.conectar('serial')}>Conectar el sensor (ESP32)</button>}
         <Numero id="dist" etiqueta="Distancia sin sensor" ayuda="se usa si el sensor no está conectado" unidad="mm" min={50} max={3000} paso={10}
           valor={c.distanciaManual} alCambiar={(v) => camara.cambiar({ distanciaManual: v })} />
+      </section>
+
+      <section>
+        <h3>Modelo completo con IA (TRELLIS 2)</h3>
+        <p className="ayuda">
+          TRELLIS 2 (Microsoft, pesos abiertos, licencia MIT) arma el objeto completo a partir de la foto. Corre en fal.ai
+          (unos 0,30 USD por modelo). El tamaño real lo sigue poniendo el sensor.
+        </p>
+        <p className="control-ayuda">
+          {c.ia.clave === null ? 'El puente no está corriendo.' : c.ia.clave ? 'Clave de fal.ai guardada ✓' : 'Falta la clave de fal.ai.'}
+        </p>
+        <label className="campo-fila" htmlFor="clave-fal">
+          <span className="campo-nombre">Clave de fal.ai<small>fal.ai → Dashboard → API Keys</small></span>
+          <input id="clave-fal" className="texto" type="password" autoComplete="off" placeholder="xxxxxxxx-xxxx-…:…" value={clave} onChange={(ev) => setClave(ev.target.value)} />
+        </label>
+        <button type="button" className="tecla chica" disabled={!clave.trim()} onClick={async () => { setAvisoClave(await camara.guardarClaveIA(clave.trim()) || 'Guardada'); setClave(''); }}>Guardar clave</button>
+        {avisoClave && <p className="ayuda">{avisoClave}</p>}
+        <label className="casilla-check"><input type="checkbox" checked={c.ia.usar} onChange={(ev) => camara.cambiarIA(ev.target.checked)} /> Generar el modelo completo en cada foto</label>
       </section>
 
       <section>

@@ -24,3 +24,7 @@ docs/graficas/*.aux
 docs/graficas/*.log
 web/node_modules/
 web/dist/
+
+# Claves (fal.ai)
+.env
+web/.env

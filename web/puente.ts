@@ -9,6 +9,7 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { open, type FileHandle } from 'node:fs/promises';
 import type { ServerWebSocket } from 'bun';
+import { ia3dHttp } from './ia3d.ts';
 
 const PUERTO_WS = Number(process.env.PUERTO_WS ?? 3001);
 
@@ -161,6 +162,7 @@ Bun.serve({
   fetch(req, server) {
     const url = new URL(req.url);
     if (url.pathname.startsWith('/droidcam/')) return camaraHttp(url);
+    if (url.pathname.startsWith('/ia3d/')) return ia3dHttp(req, url);
     if (server.upgrade(req)) return;
     return new Response(`Puente del escáner: ${estado}\n`);
   },

@@ -11,7 +11,7 @@ export function Escaner() {
   const c = useCamara(100);
   const video = useRef<HTMLVideoElement>(null);
 
-  useEffect(() => { void camara.listar(); }, []);
+  useEffect(() => { void camara.listar(); void camara.revisarIA(); }, []);
   useEffect(() => {
     if (video.current && c.stream && video.current.srcObject !== c.stream) {
       video.current.srcObject = c.stream;
@@ -33,8 +33,15 @@ export function Escaner() {
               {m.zDelSensor
                 ? <>Tamaño real: el sensor midió el objeto a {coma(m.Z)} mm.</>
                 : <>Tamaño aproximado: sin sensor se supone que el objeto está a {coma(m.Z)} mm (cámbialo en Ajustes).</>}
-              {' '}{m.conIA ? 'La profundidad la estimó una red neuronal (Depth Anything V2).' : 'El volumen es una estimación a partir de la silueta.'}
+              {' '}{c.ia.glb ? 'Forma completa: TRELLIS 2 (IA de pesos abiertos).' : m.conIA ? 'La profundidad la estimó una red neuronal (Depth Anything V2).' : 'El volumen es una estimación a partir de la silueta.'}
             </p>
+            {c.ia.estado && c.ia.estado !== 'listo' && (
+              <p className={c.ia.estado === 'error' ? 'aviso-cerca' : 'control-ayuda ia-estado'}>
+                {c.ia.estado === 'error'
+                  ? `TRELLIS 2 no pudo generar el modelo: ${c.ia.mensaje}. Se muestra el relieve de la foto.`
+                  : `Generando el modelo completo con TRELLIS 2… ${c.ia.estado === 'en cola' ? `(en cola${c.ia.mensaje ? ', ' + c.ia.mensaje : ''})` : ''} ${c.ia.segundos ? c.ia.segundos + ' s' : ''}`}
+              </p>
+            )}
             <button type="button" className="tecla grande ambar" onClick={() => camara.cambiar({ vista: 'camara' })}>📷 Tomar otra foto</button>
           </div>
         </div>

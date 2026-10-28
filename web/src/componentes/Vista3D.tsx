@@ -4,6 +4,7 @@
 
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { matrizVista, type Vec3 } from '../lib/algebra3d.ts';
 import { escaneo } from '../lib/escaneo.ts';
 import { camara, type ModeloCamara } from '../lib/camara.ts';
@@ -69,6 +70,8 @@ export function Vista3D() {
     escena.add(luz, contra);
 
     let actual: ModeloCamara | null = null;
+    let glbActual: ArrayBuffer | null = null;
+    let cargandoGlb: ArrayBuffer | null = null;
     let obj: { grupo: THREE.Group; tam: number; zMin: number } | null = null;
     let rejilla: THREE.GridHelper | null = null;
     const quitar = () => {
@@ -77,7 +80,7 @@ export function Vista3D() {
         obj.grupo.traverse((o) => {
           if (o instanceof THREE.Mesh) {
             o.geometry.dispose();
-            for (const mat of o.material as THREE.MeshStandardMaterial[]) { mat.map?.dispose(); mat.dispose(); }
+            for (const mat of [o.material].flat() as THREE.MeshStandardMaterial[]) { mat.map?.dispose(); mat.dispose(); }
           }
         });
       }
@@ -120,6 +123,7 @@ export function Vista3D() {
       const dt = Math.min(0.1, (t - t0) / 1000); t0 = t;
       if (camara.modelo !== actual) {
         quitar();
+        glbActual = null; cargandoGlb = null;
         actual = camara.modelo;
         if (actual) {
           obj = objeto3D(actual);
@@ -132,6 +136,36 @@ export function Vista3D() {
           escena.add(rejilla);
           if (escala.current) escala.current.textContent = `cuadros de ${celda >= 10 ? `${celda / 10} cm` : `${celda} mm`}`;
         }
+      }
+      // Modelo completo de TRELLIS 2: reemplaza al relieve, escalado al tamaño real
+      if (actual && camara.ia.glb && camara.ia.glb !== glbActual && camara.ia.glb !== cargandoGlb) {
+        const datos = camara.ia.glb, m = actual;
+        cargandoGlb = datos;
+        new GLTFLoader().parse(datos.slice(0), '', (gltf) => {
+          if (camara.modelo !== m || camara.ia.glb !== datos) return;
+          const grupo = new THREE.Group();
+          const escenaGlb = gltf.scene;
+          let caja = new THREE.Box3().setFromObject(escenaGlb);
+          const t = caja.getSize(new THREE.Vector3());
+          // El ancho y el alto de la foto (en mm, con el sensor y K) fijan la escala
+          const s = (m.caja.anchoMm / Math.max(1e-6, t.x) + m.caja.altoMm / Math.max(1e-6, t.y)) / 2;
+          escenaGlb.scale.setScalar(s);
+          caja = new THREE.Box3().setFromObject(escenaGlb);
+          const centro = caja.getCenter(new THREE.Vector3());
+          escenaGlb.position.sub(new THREE.Vector3(centro.x, centro.y, caja.min.z));
+          grupo.add(escenaGlb);
+          quitar();
+          const tam = Math.max(t.x, t.y, t.z) * s;
+          obj = { grupo, tam, zMin: 0 };
+          escena.add(grupo);
+          const celda = tam > 250 ? 50 : tam > 60 ? 10 : 5;
+          const n = Math.ceil((tam * 1.6) / celda);
+          rejilla = new THREE.GridHelper(n * celda, n, 0x6b4d1f, 0x3a2c18);
+          rejilla.rotation.x = Math.PI / 2;
+          rejilla.position.z = -0.5;
+          escena.add(rejilla);
+          glbActual = datos;
+        }, (e) => console.warn('No se pudo leer el modelo de TRELLIS 2', e));
       }
       if (!obj) { render.clear(); return; }
       if (escaneo.vista.girar && !arrastre) escaneo.vista.theta += 12 * dt;

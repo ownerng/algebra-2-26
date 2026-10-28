@@ -56,6 +56,84 @@ class Camara extends EventTarget {
   vista: 'camara' | '3d' = 'camara';
   version = 0;
 
+  // Modelo 3D completo con TRELLIS 2 (fal.ai), a través del puente
+  ia = {
+    clave: null as boolean | null,   // ¿el puente tiene la clave de fal.ai?
+    usar: true,
+    estado: '' as '' | 'enviando' | 'en cola' | 'generando' | 'listo' | 'error',
+    mensaje: '',
+    glb: null as ArrayBuffer | null,
+    segundos: 0,
+  };
+  private tareaIA = 0;
+
+  async revisarIA() {
+    try {
+      const r = await fetch(`${PUENTE_HTTP}/ia3d/listo`);
+      this.ia.clave = !!((await r.json()) as { clave: boolean }).clave;
+    } catch { this.ia.clave = null; }
+    this.avisar();
+  }
+
+  async guardarClaveIA(clave: string): Promise<string> {
+    try {
+      const r = await fetch(`${PUENTE_HTTP}/ia3d/clave`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clave }) });
+      const d = (await r.json()) as { error?: string };
+      await this.revisarIA();
+      return d.error ?? '';
+    } catch { return 'el puente no está corriendo (inicia ./iniciar-web.sh)'; }
+  }
+
+  cambiarIA(usar: boolean) { this.ia.usar = usar; this.avisar(); }
+
+  // Recorta el objeto (con margen) y lo manda a TRELLIS 2; al terminar deja el .glb en ia.glb
+  private async generarIA(foto: ImageData, m: ModeloCamara) {
+    const tarea = ++this.tareaIA;
+    const vigente = () => tarea === this.tareaIA;
+    const poner = (estado: Camara['ia']['estado'], mensaje = '') => { if (vigente()) { this.ia.estado = estado; this.ia.mensaje = mensaje; this.avisar(); } };
+    this.ia.glb = null;
+    const t0 = performance.now();
+    try {
+      poner('enviando');
+      const lado = Math.max(m.caja.u1 - m.caja.u0, m.caja.v1 - m.caja.v0) * 1.3 + 16;
+      const cu = (m.caja.u0 + m.caja.u1) / 2, cv = (m.caja.v0 + m.caja.v1) / 2;
+      const fuente = document.createElement('canvas');
+      fuente.width = foto.width; fuente.height = foto.height;
+      fuente.getContext('2d')!.putImageData(foto, 0, 0);
+      const c = document.createElement('canvas');
+      c.width = c.height = 768;
+      const g = c.getContext('2d')!;
+      g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+      g.imageSmoothingQuality = 'high';
+      g.drawImage(fuente, cu - lado / 2, cv - lado / 2, lado, lado, 0, 0, c.width, c.height);
+      const imagen = c.toDataURL('image/jpeg', 0.92);
+      const r = await fetch(`${PUENTE_HTTP}/ia3d/crear`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ imagen }) });
+      const d = (await r.json()) as { id?: string; error?: string };
+      if (!d.id) throw new Error(d.error ?? 'sin respuesta');
+      for (;;) {
+        await new Promise((res) => setTimeout(res, 2000));
+        if (!vigente()) return;
+        this.ia.segundos = Math.round((performance.now() - t0) / 1000);
+        const e = (await (await fetch(`${PUENTE_HTTP}/ia3d/estado?id=${d.id}`)).json()) as { estado?: string; posicion?: number; glb?: string; error?: string };
+        if (e.error) throw new Error(e.error);
+        if (e.estado === 'IN_QUEUE') poner('en cola', e.posicion ? `puesto ${e.posicion} en la fila` : '');
+        else if (e.estado === 'IN_PROGRESS') poner('generando');
+        else if (e.estado === 'COMPLETED' && e.glb) {
+          const b = await fetch(`${PUENTE_HTTP}/ia3d/modelo?url=${encodeURIComponent(e.glb)}`);
+          if (!b.ok) throw new Error('no se pudo bajar el modelo');
+          const glb = await b.arrayBuffer();
+          if (!vigente()) return;
+          this.ia.glb = glb;
+          poner('listo');
+          return;
+        }
+        if (performance.now() - t0 > 6 * 60_000) throw new Error('tardó más de 6 minutos');
+      }
+    } catch (e) {
+      poner('error', (e as Error).message);
+    }
+  }
+
   private avisar() { this.version++; this.dispatchEvent(new Event('cambio')); }
 
   get usaDroidcam() { return this.deviceId === DROIDCAM; }
@@ -144,6 +222,9 @@ class Camara extends EventTarget {
       if (this.modelo) {
         this.vista = '3d';
         Object.assign(escaneo.vista, { theta: -25, phi: 55, zoom: 1 });
+        this.tareaIA++;
+        this.ia.glb = null; this.ia.estado = ''; this.ia.mensaje = '';
+        if (this.ia.usar && this.ia.clave) void this.generarIA(foto, this.modelo);
       }
     } catch (e) {
       this.error = 'No se pudo tomar la foto: ' + (e as Error).message;
