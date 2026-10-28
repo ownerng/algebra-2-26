@@ -8,10 +8,10 @@ ejes, mientras que la fusión usaría matrices homogéneas de $4\times4$.
 
 El segundo paso es estimar la pose automáticamente en lugar de medirla con
 cinta. El algoritmo ICP (\textit{Iterative Closest Point}) busca la rotación y
-la traslación que mejor superponen dos escaneos \parencite{besl1992}; en cada
+la traslación que mejor superponen dos escaneos \citep{besl1992}; en cada
 iteración, la rotación óptima se obtiene en forma cerrada con la
 descomposición en valores singulares de la matriz de covarianza cruzada de los
-puntos \parencite{arun1987}. Esto llevaría el proyecto hacia los mínimos
+puntos \citep{arun1987}. Esto llevaría el proyecto hacia los mínimos
 cuadrados y la SVD, y reduciría el error de orientación, que fue la principal
 fuente de error.
 

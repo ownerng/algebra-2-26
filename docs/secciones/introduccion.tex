@@ -6,7 +6,7 @@ de las formas más usadas de obtener esa información es el LIDAR
 (\textit{Light Detection and Ranging}): un haz láser recorre el entorno y, para
 cada dirección, el sensor mide la distancia al primer obstáculo. El resultado
 es una nube de puntos que describe la geometría de paredes, muebles y objetos
-\parencite{siegwart2011}.
+\citep{siegwart2011}.
 
 El sensor, sin embargo, no entrega puntos del mapa. Entrega pares
 $(r,\theta)$: una distancia y un ángulo medidos desde su propia posición y con
@@ -15,14 +15,14 @@ coordenadas cartesianas y, cuando el sensor cambia de lugar, expresar todas las
 mediciones en un mismo sistema de referencia. Este es un problema de
 transformaciones lineales y de cambio de base, y es el núcleo de técnicas como
 el registro de escaneos y la localización y mapeo simultáneos, conocida como
-SLAM \parencite{lu1997,durrantwhyte2006}.
+SLAM \citep{lu1997,durrantwhyte2006}.
 
 Los escáneres comerciales cuestan desde varios cientos de miles de pesos, lo
 que dificulta usarlos para enseñar estos conceptos. Este trabajo construye una
 versión mínima del mismo principio con componentes que suman menos de cien mil
 pesos colombianos: un sensor láser de tiempo de vuelo VL53L0X
-\parencite{st2018}, un servomotor SG90 que lo hace girar entre $0^\circ$ y
-$180^\circ$ y un microcontrolador ESP32 \parencite{espressif2023} que envía las
+\citep{st2018}, un servomotor SG90 que lo hace girar entre $0^\circ$ y
+$180^\circ$ y un microcontrolador ESP32 \citep{espressif2023} que envía las
 lecturas a un computador.
 
 El aporte del proyecto es hacer visible el álgebra lineal que hay detrás del

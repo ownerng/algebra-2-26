@@ -14,8 +14,8 @@ test:           ## Pruebas de la matemática
 graficas: datos ## Compila las figuras de docs/graficas/*.tex a PDF
 	cd docs && for f in graficas/*.tex; do pdflatex -output-directory graficas $$f; done
 
-informe: graficas  ## Compila docs/informe.pdf (requiere TeX Live con apa7 y biber)
-	cd docs && pdflatex informe.tex && biber informe && pdflatex informe.tex && pdflatex informe.tex
+informe: graficas  ## Compila docs/informe.pdf (requiere TeX Live con apa7 y apacite)
+	cd docs && pdflatex informe.tex && bibtex informe && pdflatex informe.tex && pdflatex informe.tex
 
 limpiar:
 	cd docs && rm -f *.aux *.log *.bbl *.bcf *.blg *.out *.run.xml graficas/*.aux graficas/*.log

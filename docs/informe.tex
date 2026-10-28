@@ -9,9 +9,10 @@
 \usepackage{csquotes}
 \usepackage{url}
 
-\usepackage[style=apa,backend=biber]{biblatex}
-\DeclareLanguageMapping{spanish}{spanish-apa}
-\addbibresource{referencias.bib}
+% apacite (BibTeX) en lugar de biblatex-apa (biber): el resultado sigue APA y
+% compila bastante más rápido, lo que importa con el límite de 10 s de Overleaf.
+\usepackage[natbibapa]{apacite}
+\bibliographystyle{apacite}
 
 % Las gráficas se compilan aparte desde graficas/*.tex (make graficas) para que
 % el informe compile rápido; aquí solo se insertan los PDF resultantes.
@@ -62,6 +63,6 @@
 \input{secciones/conclusiones}
 \input{secciones/trabajo_futuro}
 
-\printbibliography[title={Referencias}]
+\bibliography{referencias}
 
 \end{document}

@@ -10,7 +10,7 @@ r = \frac{c\,\Delta t}{2},
 \end{equation}
 donde $c$ es la velocidad de la luz. El fabricante especifica un alcance de
 hasta unos 2 m en condiciones favorables y un cono de emisión de
-aproximadamente $25^\circ$ \parencite{st2018}. En la práctica, con objetos
+aproximadamente $25^\circ$ \citep{st2018}. En la práctica, con objetos
 comunes de interior, el alcance útil es cercano a 1,2 m.
 
 \subsection{Vectores y coordenadas polares}
@@ -33,7 +33,7 @@ Una transformación $T:\mathbb{R}^2\to\mathbb{R}^2$ es lineal si conserva sumas
 y productos por escalar. Toda transformación lineal del plano queda definida
 por las imágenes de los vectores de la base canónica
 $\vect{e}_1=(1,0)$ y $\vect{e}_2=(0,1)$, y esas imágenes son las columnas de su
-matriz \parencite{lay2016}. Al girar el plano un ángulo $\theta$ en sentido
+matriz \citep{lay2016}. Al girar el plano un ángulo $\theta$ en sentido
 antihorario, $\vect{e}_1$ se transforma en $(\cos\theta,\sin\theta)$ y
 $\vect{e}_2$ en $(-\sin\theta,\cos\theta)$. Por lo tanto, la matriz de rotación
 es
@@ -60,7 +60,7 @@ ortogonal y cumple
 \begin{equation}
 R^{T}R = I, \qquad R^{-1}=R^{T}, \qquad \det R = \cos^2\theta + \sin^2\theta = 1
 \end{equation}
-\parencite{strang2016}. De la primera igualdad se deduce que la rotación
+\citep{strang2016}. De la primera igualdad se deduce que la rotación
 conserva la longitud de cualquier vector:
 \begin{equation}
 \|R\vect{v}\|^2 = (R\vect{v})^{T}(R\vect{v}) = \vect{v}^{T}R^{T}R\,\vect{v}
@@ -91,7 +91,7 @@ origen, así que no puede escribirse como una matriz de $2\times2$. Las
 coordenadas homogéneas resuelven el problema agregando una tercera componente
 igual a 1: el punto $(x,y)$ se representa como $(x,y,1)$. En ese espacio, la
 transformación~\eqref{eq:afin} sí es un producto matricial
-\parencite{hartley2004}:
+\citep{hartley2004}:
 \begin{equation}
 \begin{bmatrix} x_G\\ y_G\\ 1 \end{bmatrix}
 =
@@ -131,7 +131,7 @@ primera posición.
 Este es el mismo principio que usan los métodos de registro de escaneos en
 robótica móvil. La diferencia es que esos métodos estiman $\alpha$ y $\vect{t}$
 automáticamente, buscando la transformación que mejor superpone los dos
-escaneos por mínimos cuadrados \parencite{besl1992,lu1997}, mientras que en
+escaneos por mínimos cuadrados \citep{besl1992,lu1997}, mientras que en
 este prototipo se miden a mano. La Tabla~\ref{tab:mapeo-conceptos} resume dónde
 aparece cada concepto en el sistema.
 
