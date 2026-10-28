@@ -1,169 +1,122 @@
 \section{Resultados}
 
-\subsection{Escaneo y conversión de coordenadas}
+\subsection{Reconstrucción de objetos en simulación}
 
-La Figura~\ref{fig:escaneo-local} muestra un barrido completo desde la primera
-posición, ya convertido a coordenadas cartesianas con la
-ecuación~\eqref{eq:lectura}. De 91 ángulos medidos, \cifPuntosUno{} devolvieron
-eco; los demás apuntaban a zonas sin objetos dentro del alcance del sensor. Las
-lecturas consecutivas sobre un mismo objeto quedan alineadas, de modo que las
-patas de la mesa y de la silla, la papelera y las paredes se reconocen a
-simple vista.
-
-\begin{figure}[htbp]
-\caption{Escaneo desde la posición 1 en su sistema local}
-\label{fig:escaneo-local}
-\centering
-\includegraphics[width=0.85\linewidth]{escaneo_local.pdf}
-\figurenote{El triángulo marca el eje del servo. Datos del entorno simulado.
-Elaboración propia.}
-\end{figure}
-
-\subsection{Fusión de dos posiciones}
-
-La segunda posición se ubicó en $d_x=250$ mm, $d_y=1100$ mm, con
-$\alpha=180^\circ$, es decir, al otro lado de la habitación y mirando en
-sentido contrario. Desde allí se obtuvieron \cifPuntosDos{} puntos. La
-Figura~\ref{fig:fusion} compara la fusión con la pose correcta y con una pose
-mal medida. Con la pose correcta, los dos escaneos encajan: las patas de la
-mesa, vistas desde lados opuestos, coinciden, y la pared derecha aparece
-completa. Con $8^\circ$ de error en $\alpha$ y 80 mm en $d_x$, el segundo
-escaneo queda girado y desplazado, y los objetos aparecen duplicados.
+La Figura~\ref{fig:sim3d} muestra las superficies reconstruidas de la taza y
+de la caja con una cuadrícula de \simNX{}$\times$\simNY{} casillas de
+\simPaso{} mm, ya corregido el plano de la mesa. En ambos casos aparece el
+objeto en el lugar correcto y con la altura correcta en su parte superior:
+la taza, de 95 mm de alto, se midió con \simTazaMax{} mm, y la caja, de 45 mm,
+con \simCajaMax{} mm (Tabla~\ref{tab:sim3d}). Los bordes, en cambio, aparecen
+como rampas suaves en lugar de paredes verticales. Por eso el error medio de
+la altura en todas las casillas es mayor para los objetos con paredes altas:
+\simTazaCon{} mm para la taza, \simCajaCon{} mm para la caja y
+\simLibrosCon{} mm para los libros.
 
 \begin{figure}[htbp]
-\caption{Mapa fusionado con la pose correcta y con una pose errónea}
-\label{fig:fusion}
+\caption{Superficies reconstruidas en simulación}
+\label{fig:sim3d}
 \centering
-\includegraphics[width=\linewidth]{fusion.pdf}
-\figurenote{En cian, los puntos de la posición 1; en magenta, los de la
-posición 2 llevados al sistema global con la ecuación~\eqref{eq:homogenea}.
-Los triángulos marcan las dos posiciones del aparato. Elaboración propia.}
+\includegraphics[width=\linewidth]{sim3d.pdf}
+\figurenote{Altura $h$ de cada casilla después de restar el plano de la mesa.
+Cuadrícula de \simNX{}$\times$\simNY{} casillas de \simPaso{} mm, caja a
+\simH{} mm de la mesa. Elaboración propia.}
 \end{figure}
 
-\subsection{Sensibilidad al error de orientación}
+\input{tablas/sim3d}
 
-La Figura~\ref{fig:error-alpha} muestra el error medio de registro de los
-puntos de la segunda posición cuando el ángulo $\alpha$ se mide con un error
-$\delta$, sin ruido del sensor. El error crece de forma prácticamente lineal:
-cada grado de error desplaza los puntos unos 14 mm en promedio, y con
-$20^\circ$ el error medio llega a \cifErrorVeinte{} mm. La curva medida
-coincide con la predicción teórica $2|\sin(\delta/2)|$ multiplicada por la
-distancia media de los puntos al aparato, que fue de \cifNormaMedia{} mm; la
-mayor diferencia entre ambas fue de \cifDifTeoria{} mm, atribuible al redondeo
-numérico.
+\subsection{Corrección del plano de la mesa}
 
-\begin{figure}[htbp]
-\caption{Error medio de registro según el error en el ángulo $\alpha$}
-\label{fig:error-alpha}
-\centering
-\includegraphics[width=0.85\linewidth]{error_alpha.pdf}
-\figurenote{Puntos de la posición 2 sin ruido del sensor, para aislar el
-efecto de la orientación. Elaboración propia.}
-\end{figure}
+La Tabla~\ref{tab:mesa} muestra el escaneo de la mesa vacía e inclinada, en el
+que la altura correcta es 0 mm en todas las casillas. Sin corrección, la
+inclinación aparece como un error de altura de \simMesaSin{} mm en promedio.
+Al restar el plano ajustado por mínimos cuadrados, el error baja a
+\simMesaCon{} mm, del orden del ruido de las lecturas. Las pendientes halladas
+($a = \simPlanoA{}$ y $b = \simPlanoB{}$ en el escaneo de la taza) coinciden con
+la inclinación simulada de la mesa, lo que confirma que las ecuaciones
+normales recuperan el plano a partir de las casillas del borde.
 
-La Tabla~\ref{tab:resultados-sim} reúne los resultados del entorno simulado.
-El ruido del sensor produjo un error medio de \cifRuidoMedio{} mm, un orden de
-magnitud menor que el causado por $5^\circ$ de error en la orientación
-(\cifErrorCinco{} mm).
+\subsection{Verificación de las matrices}
 
-\input{tablas/resultados_sim}
-
-\subsection{Verificación de las propiedades de las matrices}
-
-La Tabla~\ref{tab:propiedades} muestra que las matrices implementadas cumplen
-las propiedades teóricas hasta la precisión de la aritmética de doble
-precisión, cuyo épsilon es cercano a $2{,}2\times10^{-16}$. El determinante de
-$R(\theta)$ es 1, $R^{T}R$ es la identidad, la norma se conserva y $T^{-1}T$ es
-la identidad. Las siete pruebas automáticas de las funciones de álgebra lineal
-se ejecutaron sin fallos.
-
-\input{tablas/propiedades}
+La Tabla~\ref{tab:verif3d} confirma que la implementación cumple las
+propiedades teóricas: el producto $T\,F\,E$ coincide exactamente con $A$, la
+matriz de vista $V$ tiene determinante 1 y es ortogonal hasta el redondeo de la
+aritmética de doble precisión, y el ajuste por mínimos cuadrados recupera un
+plano conocido. Las doce pruebas automáticas del proyecto se ejecutaron sin
+fallos.
 
 \subsection{Interfaz web}
 
-La Figura~\ref{fig:interfaz} muestra la interfaz durante una simulación en la
-que ya se escaneó desde las dos posiciones: la guía marca los cuatro pasos
-como completos, los puntos ámbar son los de la posición 1, los celestes los de
-la posición 2 y las líneas punteadas, la habitación real del simulador. El
-cálculo está congelado en una lectura tomada desde la posición 2, marcada en el
-radar con un círculo.
-
-La Figura~\ref{fig:cuaderno} muestra el cuaderno completo para esa lectura.
-Con $\theta=12^\circ$, $r=1173$ mm y $d=15$ mm se tiene $r+d=1188$ mm. El
-producto por $R(12^\circ)$ da el punto local $(1162{,}0;\;247{,}0)$ mm, cuya
-norma vuelve a ser $1188$ mm, como predice la ecuación~\eqref{eq:norma}. El
-producto por $T$, con $\alpha=180^\circ$, $d_x=250$ mm y $d_y=1100$ mm, lleva el
-punto al mapa global en $(-912{,}0;\;853{,}0)$ mm. Cada fila de las matrices y
-la coordenada que produce tienen el mismo color, para seguir el producto fila
-por columna. La Figura~\ref{fig:interfaz-3d} muestra la vista 3D del mismo
-mapa.
+La Figura~\ref{fig:interfaz} muestra la interfaz después de un escaneo
+automático de la taza en simulación. La guía marca los pasos completados; la
+figura 3D se puede girar con el mouse; abajo, la cuadrícula muestra la altura
+medida en cada casilla y las casillas del borde usadas para el plano de la
+mesa (Figura~\ref{fig:cuadricula}).
 
 \begin{figure}[htbp]
-\caption{Interfaz web: guía de pasos, radar, prototipo, mandos y cuaderno}
+\caption{Interfaz web del escáner 3D}
 \label{fig:interfaz}
 \centering
-\includegraphics[width=\linewidth]{interfaz_2d.jpg}
-\figurenote{Las flechas roja y verde en cada posición son las columnas de
-$R(\alpha)$, es decir, los ejes locales vistos en la base global. Captura del
-modo de simulación. Elaboración propia.}
+\includegraphics[width=\linewidth]{interfaz_general.jpg}
+\figurenote{Escaneo automático de la taza en el modo de simulación. Elaboración propia.}
 \end{figure}
 
 \begin{figure}[htbp]
-\caption{Cuaderno de la interfaz: cálculo desglosado de una lectura}
+\caption{Panel de la cuadrícula}
+\label{fig:cuadricula}
+\centering
+\includegraphics[width=0.55\linewidth]{interfaz_cuadricula.png}
+\figurenote{El número de cada casilla es la altura medida en mm; el borde
+celeste marca las casillas usadas para el plano de la mesa. Elaboración propia.}
+\end{figure}
+
+La Figura~\ref{fig:cuaderno} muestra el cuaderno con el cálculo congelado en la
+casilla $(5,4)$, en el borde de la taza. Con $r = 53{,}3$ mm y $H = 151$ mm,
+el producto por $A$ da $z = -53{,}3 + 151 = 97{,}7$ mm. El plano de la mesa,
+ajustado con 32 casillas del borde, vale $2{,}75$ mm en ese punto, de modo que
+la altura del objeto es $h = 97{,}7 - 2{,}75 = 94{,}9$ mm. El cuaderno también
+muestra la matriz de vista con los ángulos del momento, la proyección del
+punto en la pantalla y el producto vectorial
+$(20;\,0;\,-4{,}5)\times(0;\,20;\,-3{,}9) = (89{,}8;\,78{,}3;\,400{,}0)$, que da
+la normal del triángulo y, con el producto punto, su brillo.
+
+\begin{figure}[htbp]
+\caption{Cuaderno de la interfaz: cálculo desglosado de una medición}
 \label{fig:cuaderno}
 \centering
 \includegraphics[width=0.48\linewidth]{interfaz_cuaderno.png}
-\figurenote{Lectura congelada desde la posición 2, en modo de simulación.
-Elaboración propia.}
+\figurenote{Casilla $(5,4)$ del escaneo simulado de la taza. Elaboración propia.}
 \end{figure}
+
+\subsection{Mediciones con el sensor real}
+
+El firmware se cargó en el ESP32 con el sensor conectado. Al principio, una
+de cada dos lecturas en el modo de alta precisión llegaba marcada como
+inválida; con el filtro por código de estado y los reintentos, las lecturas
+inválidas desaparecieron. Para medir la repetibilidad se tomaron \repN{}
+mediciones promediadas seguidas con la caja quieta. Su media fue de
+\repMedia{} mm, con valores entre \repMin{} y \repMax{} mm y una desviación
+estándar de \repDesv{} mm entre mediciones. Dentro de cada medición, la
+desviación de las diez lecturas fue en promedio de \repInterna{} mm. La interfaz
+recibió estas mediciones por el puente USB y las convirtió en puntos con la
+matriz $A$, igual que en la simulación.
+
+\ifnum\realHayEscaneo=1
+\subsection{Escaneo de un objeto real}
+
+Con el prototipo se escaneó un objeto real (\realNombre) en una cuadrícula de
+\realNX{}$\times$\realNY{} casillas de \realPaso{} mm, con la caja a \realH{} mm
+de la mesa. Se obtuvieron \realPuntos{} puntos. La Figura~\ref{fig:real3d}
+muestra la superficie reconstruida; la casilla más alta quedó a
+\realAltoMax{} mm de la mesa, y el plano ajustado con las casillas del borde
+tuvo pendientes $a = \realPlanoA{}$ y $b = \realPlanoB{}$.
 
 \begin{figure}[htbp]
-\caption{Vista 3D del mapa}
-\label{fig:interfaz-3d}
+\caption{Superficie reconstruida de un objeto real}
+\label{fig:real3d}
 \centering
-\includegraphics[width=\linewidth]{interfaz_3d.jpg}
-\figurenote{Cada punto del plano se levanta como una pared para facilitar la
-lectura. La altura es solo visual. Captura del modo de simulación. Elaboración
-propia.}
+\includegraphics[width=0.85\linewidth]{real3d.pdf}
+\figurenote{Escaneo con el prototipo físico. Altura $h$ de cada casilla después
+de restar el plano de la mesa. Elaboración propia.}
 \end{figure}
-
-\subsection{Validación con el prototipo físico}
-
-Se armó el circuito en la protoboard según la Figura~\ref{fig:protoboard} y se
-cargó primero el programa de prueba \texttt{firmware/prueba\_servo}, que lleva
-el servo a $0^\circ$, $90^\circ$ y $180^\circ$ y luego hace barridos continuos.
-El servo recorrió las tres posiciones y los barridos, y el monitor serial no
-registró reinicios del ESP32 por caída de tensión, lo que indica que la
-alimentación desde el pin VIN, con el condensador de 1000 µF, es suficiente.
-
-Después se conectó el sensor y se cargó el firmware del escáner. El programa
-\texttt{firmware/diagnostico\_i2c} sirvió para comprobar la conexión: con el
-sensor bien soldado, las líneas SDA y SCL quedan en nivel alto y el VL53L0X
-responde en la dirección 0x29 del bus I\textsuperscript{2}C.
-
-Con el sensor montado sobre el servo, se capturaron \realBarridos{} barridos
-completos a través del puente USB con \texttt{experimentos/capturar.ts}. Se
-obtuvieron \realLecturas{} lecturas con eco, en \realAngulos{} de los 91
-ángulos del barrido, con distancias entre \realMin{} y \realMax{} mm
-(Tabla~\ref{tab:real}). La Figura~\ref{fig:real} muestra esas lecturas
-convertidas a coordenadas cartesianas con $R(\theta)\,[r+d,\;0]^{T}$, el mismo
-cálculo que hace la interfaz.
-
-Como no se contaba con una referencia externa para cada ángulo, la
-repetibilidad se estimó comparando la distancia medida en el mismo ángulo en
-los dos barridos. La diferencia media fue de \realRepMedia{} mm y la mediana,
-de \realRepMediana{} mm. Las diferencias no son simétricas: en varios tramos,
-el barrido que avanza hacia $180^\circ$ mide sistemáticamente distinto del que
-regresa hacia $0^\circ$.
-
-\input{tablas/reales}
-
-\begin{figure}[htbp]
-\caption{Escaneo real con el prototipo, en el sistema local del aparato}
-\label{fig:real}
-\centering
-\includegraphics[width=0.85\linewidth]{real_escaneo.pdf}
-\figurenote{Dos barridos consecutivos del VL53L0X sobre el servo, convertidos
-con $R(\theta)$ y $d=15$ mm. El triángulo marca el eje del servo. Elaboración
-propia.}
-\end{figure}
+\fi

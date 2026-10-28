@@ -1,28 +1,27 @@
 \section{Conclusiones}
 
-Se construyó el prototipo con un ESP32, un sensor VL53L0X y un servomotor
-SG90, con un costo total de entre 62.000 y 97.000 pesos colombianos. Su
-firmware realiza barridos de $0^\circ$ a $180^\circ$ en pasos de $2^\circ$ y
-envía cada lectura $(r,\theta)$ en formato JSON. Con el prototipo real se
-capturaron \realBarridos{} barridos completos con \realLecturas{} lecturas con
-eco; la distancia medida en un mismo ángulo varió en promedio \realRepMedia{} mm
-entre barridos.
+Se construyó un escáner 3D con un ESP32 y un sensor VL53L0X dentro de una caja
+de cartón, sin motores ni componentes adicionales, con un costo de entre
+50.000 y 78.000 pesos colombianos. El firmware entrega en cada casilla una
+medición promediada de diez lecturas válidas, y con el sensor real diez
+mediciones en la misma posición variaron con una desviación de \repDesv{} mm.
 
-La conversión de coordenadas se implementó como el producto
-$R(\theta)\,[r+d,\;0]^{T}$ y la fusión de escaneos como el producto por una
-matriz homogénea de $3\times3$. Las propiedades de estas matrices se
-verificaron numéricamente: el determinante, la ortogonalidad, la conservación
-de la norma y la inversa homogénea se cumplen con desviaciones de entre
-$10^{-16}$ y $10^{-13}$, propias del redondeo en aritmética de doble precisión.
+La conversión de cada casilla y su distancia en un punto 3D se implementó con
+una sola matriz homogénea $A = T\,F\,E$, compuesta por un escalamiento, una
+reflexión y una traslación, y la inclinación de la mesa se corrigió con un
+plano ajustado por mínimos cuadrados. Las propiedades de estas matrices se
+verificaron numéricamente, y en simulación el ajuste del plano redujo el error
+de altura de la mesa vacía de \simMesaSin{} mm a \simMesaCon{} mm.
 
-La interfaz web dibuja el mapa en tiempo real en 2D y 3D y desglosa, para cada
-lectura, los productos matriciales fila por columna con sus valores numéricos;
-el cálculo puede congelarse en una lectura para explicarlo. Permite además
-modificar la pose de la segunda posición y observar de inmediato su efecto en
-el mapa fusionado.
+La interfaz web guía el recorrido de la cuadrícula, construye la figura 3D
+mientras se escanea y la dibuja con rotaciones, proyección ortogonal y
+sombreado programados con matrices propias. Su cuaderno desglosa con los
+números de cada medición el producto por $A$, las ecuaciones normales del
+plano, la matriz de vista y el producto vectorial y el producto punto del
+sombreado. Cada figura se puede guardar o exportar como malla 3D.
 
-En el entorno simulado, el ruido del sensor produjo un error medio de
-\cifRuidoMedio{} mm, mientras que $5^\circ$ de error en la orientación lo
-elevaron a \cifErrorCinco{} mm. Este error sigue exactamente la expresión
-$2|\sin(\delta/2)|\,\|\vect{v}\|$, por lo que la orientación del aparato es la
-magnitud que más debe cuidarse al fusionar escaneos.
+En simulación, el escáner midió la altura de una taza de 95 mm como
+\simTazaMax{} mm y la de una caja de 45 mm como \simCajaMax{} mm. El error se
+concentra en los bordes, donde el cono de unos $25^\circ$ del sensor mezcla la
+superficie del objeto con la de la mesa; esa resolución lateral, y no el ruido
+del sensor, es el principal límite del prototipo.

@@ -3,136 +3,132 @@
 \subsection{Medición de distancia por tiempo de vuelo}
 
 El VL53L0X emite pulsos de luz infrarroja de 940 nm y mide el tiempo $\Delta t$
-que tarda la luz en regresar después de reflejarse en un objeto. Como la luz
-recorre la distancia de ida y de vuelta, la distancia al objeto es
+que tarda la luz en regresar después de reflejarse en una superficie. Como la
+luz recorre la distancia de ida y de vuelta,
 \begin{equation}
 r = \frac{c\,\Delta t}{2},
 \end{equation}
-donde $c$ es la velocidad de la luz. El fabricante especifica un alcance de
-hasta unos 2 m en condiciones favorables y un cono de emisión de
-aproximadamente $25^\circ$ \citep{st2018}. En la práctica, con objetos
-comunes de interior, el alcance útil es cercano a 1,2 m.
+donde $c$ es la velocidad de la luz. El haz no es un rayo delgado: el sensor
+recibe la luz de un cono de aproximadamente $25^\circ$ \citep{st2018}. Por eso
+cada medición es un promedio de lo que hay dentro de un círculo cuyo diámetro
+crece con la distancia; a 15 cm, ese círculo mide unos 6,6 cm.
 
-\subsection{Vectores y coordenadas polares}
+\subsection{Coordenadas homogéneas y transformaciones afines}
 
-Una lectura del escáner es un par $(r,\theta)$: la distancia $r$ al objeto y el
-ángulo $\theta$ al que apunta el sensor. Ese par describe un vector del plano en
-coordenadas polares. Para dibujarlo y operar con él se necesitan sus
-coordenadas cartesianas $(x,y)$, que se obtienen con
+Una transformación lineal $T(\vect{v}) = M\vect{v}$ siempre envía el origen al
+origen, así que no puede representar una traslación. Las coordenadas
+homogéneas resuelven este problema agregando una componente igual a 1: el
+punto $(x,y,z)$ se escribe $(x,y,z,1)$, y una transformación afín
+$\vect{p}\mapsto M\vect{p}+\vect{t}$ se convierte en el producto por una matriz
+de $4\times4$ \citep{hartley2004}:
 \begin{equation}
-x = r\cos\theta, \qquad y = r\sin\theta.
-\label{eq:polares}
+\begin{bmatrix}\vect{p}'\\ 1\end{bmatrix}
+=
+\begin{bmatrix} M & \vect{t} \\ \vect{0}^{T} & 1 \end{bmatrix}
+\begin{bmatrix}\vect{p}\\ 1\end{bmatrix}.
 \end{equation}
-La ecuación~\eqref{eq:polares} puede leerse de otra forma: el punto medido es
-el vector $(r,0)$, que apunta a lo largo del eje $x$, girado un ángulo
-$\theta$. Esa lectura es la que conecta el problema con el álgebra lineal.
+La ventaja es que varias transformaciones encadenadas se combinan en una sola
+matriz multiplicando sus factores.
 
-\subsection{La rotación como transformación lineal}
-
-Una transformación $T:\mathbb{R}^2\to\mathbb{R}^2$ es lineal si conserva sumas
-y productos por escalar. Toda transformación lineal del plano queda definida
-por las imágenes de los vectores de la base canónica
-$\vect{e}_1=(1,0)$ y $\vect{e}_2=(0,1)$, y esas imágenes son las columnas de su
-matriz \citep{lay2016}. Al girar el plano un ángulo $\theta$ en sentido
-antihorario, $\vect{e}_1$ se transforma en $(\cos\theta,\sin\theta)$ y
-$\vect{e}_2$ en $(-\sin\theta,\cos\theta)$. Por lo tanto, la matriz de rotación
-es
+En el escáner, la caja está en la casilla $(i,j)$ de una cuadrícula de lado
+$\Delta$, a una altura $H$ sobre la mesa, y mide la distancia $r$ hacia abajo.
+El punto que toca el haz se obtiene con una sola matriz:
 \begin{equation}
-R(\theta)=
-\begin{bmatrix}
-\cos\theta & -\sin\theta\\
-\sin\theta & \cos\theta
-\end{bmatrix},
-\label{eq:rotacion}
-\end{equation}
-y la ecuación~\eqref{eq:polares} se escribe como un producto matriz--vector:
-\begin{equation}
-\begin{bmatrix} x\\ y \end{bmatrix}
-= R(\theta)\begin{bmatrix} r\\ 0 \end{bmatrix}.
-\label{eq:lectura}
-\end{equation}
-
-\subsection{Matrices ortogonales}
-
-Las columnas de $R(\theta)$ tienen norma 1 y son perpendiculares entre sí, es
-decir, forman una base ortonormal. Una matriz con esta propiedad se llama
-ortogonal y cumple
-\begin{equation}
-R^{T}R = I, \qquad R^{-1}=R^{T}, \qquad \det R = \cos^2\theta + \sin^2\theta = 1
-\end{equation}
-\citep{strang2016}. De la primera igualdad se deduce que la rotación
-conserva la longitud de cualquier vector:
-\begin{equation}
-\|R\vect{v}\|^2 = (R\vect{v})^{T}(R\vect{v}) = \vect{v}^{T}R^{T}R\,\vect{v}
-= \vect{v}^{T}\vect{v} = \|\vect{v}\|^2 .
-\label{eq:norma}
-\end{equation}
-Para el escáner, esto garantiza que convertir una lectura no altera la
-distancia medida: el punto queda exactamente a $r$ milímetros del sensor, solo
-cambia su dirección. Por la misma razón, rotar un escaneo completo no deforma
-el mapa: las distancias y los ángulos entre puntos se conservan.
-
-Las rotaciones también se componen sumando ángulos,
-$R(\alpha)R(\beta)=R(\alpha+\beta)$, lo que permite pasar de la orientación del
-sensor a la orientación del aparato con un solo producto.
-
-\subsection{Traslaciones y coordenadas homogéneas}
-
-Cuando el aparato se mueve a una segunda posición, sus mediciones quedan
-expresadas en un sistema de referencia que está girado un ángulo $\alpha$ y
-desplazado un vector $\vect{t}=(d_x,d_y)$ respecto al primero. Un punto local
-$\vect{p}_L$ se lleva al sistema global con
-\begin{equation}
-\vect{p}_G = R(\alpha)\,\vect{p}_L + \vect{t}.
-\label{eq:afin}
-\end{equation}
-Esta transformación no es lineal, porque envía el origen a $\vect{t}$ y no al
-origen, así que no puede escribirse como una matriz de $2\times2$. Las
-coordenadas homogéneas resuelven el problema agregando una tercera componente
-igual a 1: el punto $(x,y)$ se representa como $(x,y,1)$. En ese espacio, la
-transformación~\eqref{eq:afin} sí es un producto matricial
-\citep{hartley2004}:
-\begin{equation}
-\begin{bmatrix} x_G\\ y_G\\ 1 \end{bmatrix}
+\begin{bmatrix} x\\ y\\ z\\ 1\end{bmatrix}
 =
 \underbrace{\begin{bmatrix}
-\cos\alpha & -\sin\alpha & d_x\\
-\sin\alpha & \cos\alpha & d_y\\
-0 & 0 & 1
-\end{bmatrix}}_{T(\alpha,\,d_x,\,d_y)}
-\begin{bmatrix} x_L\\ y_L\\ 1 \end{bmatrix}.
-\label{eq:homogenea}
+\Delta & 0 & 0 & 0\\
+0 & \Delta & 0 & 0\\
+0 & 0 & -1 & H\\
+0 & 0 & 0 & 1
+\end{bmatrix}}_{A}
+\begin{bmatrix} i\\ j\\ r\\ 1\end{bmatrix},
+\qquad
+x = \Delta i,\quad y = \Delta j,\quad z = H - r.
+\label{eq:casilla}
 \end{equation}
-La ventaja es práctica: rotar y trasladar se reduce a una sola multiplicación,
-y varias transformaciones encadenadas se combinan multiplicando sus matrices.
-La inversa también tiene una forma cerrada que aprovecha la ortogonalidad de
-$R$:
+Esta matriz se descompone en tres transformaciones elementales,
 \begin{equation}
-T^{-1} =
-\begin{bmatrix}
-R^{T} & -R^{T}\vect{t}\\
-\vect{0}^{T} & 1
-\end{bmatrix},
-\label{eq:inversa}
+A = T\,F\,E,\qquad
+E = \operatorname{diag}(\Delta,\Delta,1,1),\quad
+F = \operatorname{diag}(1,1,-1,1),\quad
+T = \begin{bmatrix} I_3 & (0,0,H)^{T}\\ \vect{0}^{T} & 1\end{bmatrix}.
+\label{eq:descomposicion}
 \end{equation}
-y sirve para el problema contrario: saber dónde queda un punto del mapa visto
-desde el aparato.
+$E$ es un escalamiento que convierte índices de casilla en milímetros. $F$ es
+una reflexión respecto al plano $xy$: el sensor mide hacia abajo, así que la
+distancia crece en el sentido de $-z$. Su determinante es $-1$, como el de toda
+reflexión, a diferencia de las rotaciones, cuyo determinante es $+1$. $T$ es la
+traslación que sube el origen del haz a la altura $H$.
 
-\subsection{Cambio de base}
+\subsection{Mínimos cuadrados: el plano de la mesa}
 
-La ecuación~\eqref{eq:afin} es un cambio de base. Las columnas de $R(\alpha)$
-son los ejes $x_2$ y $y_2$ de la segunda posición escritos en la base global,
-y el vector $\vect{t}$ es el origen de esa segunda posición visto desde la
-primera. Un mismo punto físico tiene coordenadas distintas en cada sistema,
-pero ambas describen el mismo lugar. Fusionar dos escaneos consiste en
-expresar todos los puntos en una base común, que en este trabajo es la de la
-primera posición.
+Una mesa real no está perfectamente nivelada, ni la caja se desliza siempre a
+la misma altura. Si se toman como referencia las casillas del borde de la
+cuadrícula, donde no hay objeto, sus puntos deberían estar sobre un plano
+$z = ax + by + c$. Con $m$ puntos se obtiene un sistema sobredeterminado
+$M\vect{u} \approx \vect{z}$, con una fila $(x_k, y_k, 1)$ por punto y
+$\vect{u} = (a,b,c)^{T}$. En general no tiene solución exacta, porque las
+mediciones tienen ruido. La solución de mínimos cuadrados minimiza
+$\|M\vect{u}-\vect{z}\|^2$ y cumple las ecuaciones normales
+\citep{lay2016,boyd2018}:
+\begin{equation}
+M^{T}M\,\vect{u} = M^{T}\vect{z},
+\qquad
+M^{T}M =
+\begin{bmatrix}
+\sum x_k^2 & \sum x_k y_k & \sum x_k\\
+\sum x_k y_k & \sum y_k^2 & \sum y_k\\
+\sum x_k & \sum y_k & m
+\end{bmatrix}.
+\label{eq:normales}
+\end{equation}
+Geométricamente, $M\vect{u}$ es la proyección ortogonal de $\vect{z}$ sobre el
+espacio columna de $M$. Una vez hallado el plano, la altura del objeto en cada
+punto es la diferencia entre el punto medido y el plano:
+$h = z - (ax + by + c)$.
 
-Este es el mismo principio que usan los métodos de registro de escaneos en
-robótica móvil. La diferencia es que esos métodos estiman $\alpha$ y $\vect{t}$
-automáticamente, buscando la transformación que mejor superpone los dos
-escaneos por mínimos cuadrados \citep{besl1992,lu1997}, mientras que en
-este prototipo se miden a mano. La Tabla~\ref{tab:mapeo-conceptos} resume dónde
-aparece cada concepto en el sistema.
+\subsection{Rotaciones en $\mathbb{R}^3$ y proyección}
+
+Para ver la figura desde cualquier ángulo se rota alrededor del eje vertical
+un ángulo $\theta$ y luego se inclina un ángulo $\varphi$ alrededor del eje
+horizontal:
+\begin{equation}
+R_z(\theta)=\begin{bmatrix}\cos\theta & -\sin\theta & 0\\ \sin\theta & \cos\theta & 0\\ 0&0&1\end{bmatrix},\quad
+R_x(\varphi)=\begin{bmatrix}1&0&0\\ 0&\cos\varphi & -\sin\varphi\\ 0&\sin\varphi&\cos\varphi\end{bmatrix},\quad
+V = R_x(\varphi)\,R_z(\theta).
+\end{equation}
+Ambas son matrices ortogonales: $R^{T}R = I$ y $\det R = 1$. Por eso la
+rotación conserva distancias y ángulos, y la figura no se deforma al girarla;
+el producto $V$ de dos rotaciones también es una rotación \citep{strang2016}.
+Después de rotar, la pantalla muestra el ancho y la altura y descarta la
+profundidad, lo que equivale a la proyección ortogonal
+\begin{equation}
+\Pi = \begin{bmatrix}1&0&0\\0&0&1\end{bmatrix},\qquad
+\vect{s} = \Pi\,V\,(\vect{p}-\vect{c}),
+\label{eq:proyeccion}
+\end{equation}
+donde $\vect{c}$ es el centro de la figura. $\Pi$ es una transformación lineal
+de $\mathbb{R}^3$ en $\mathbb{R}^2$ cuyo núcleo es la dirección de la
+profundidad.
+
+\subsection{Producto vectorial y producto punto: el sombreado}
+
+La superficie se forma con triángulos cuyos vértices son puntos medidos en
+casillas vecinas. El producto vectorial de dos lados del triángulo da un
+vector perpendicular a él, su normal:
+\begin{equation}
+\vect{n} = (B-A)\times(C-A).
+\end{equation}
+La cara se ve más iluminada cuanto más directamente mire hacia la luz. Si
+$\hat{\vect{n}}$ y $\hat{\boldsymbol{\ell}}$ son la normal y la dirección de la
+luz normalizadas, el producto punto da el coseno del ángulo entre ellas, y ese
+valor es el brillo de la cara (modelo de Lambert):
+\begin{equation}
+\text{brillo} = \max\bigl(0,\ \hat{\vect{n}}\cdot\hat{\boldsymbol{\ell}}\bigr) = \max(0,\cos\gamma).
+\end{equation}
+
+La Tabla~\ref{tab:mapeo-conceptos} resume dónde aparece cada concepto en el
+sistema.
 
 \input{tablas/mapeo_conceptos}

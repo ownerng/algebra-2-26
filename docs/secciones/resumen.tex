@@ -1,25 +1,23 @@
 \begin{abstract}
-Los robots aspiradora, los vehículos autónomos y los equipos de topografía
-construyen mapas a partir de un problema común: un sensor mide distancias
-respecto a sí mismo y esas medidas deben llevarse a un sistema de referencia
-compartido. Este trabajo presenta un escáner LIDAR 2D de bajo costo, construido
-con un microcontrolador ESP32, un sensor láser de tiempo de vuelo VL53L0X y un
-servomotor SG90, que resuelve ese problema con álgebra lineal. Cada lectura
-$(r,\theta)$ se convierte en un punto del plano mediante la matriz de rotación
-$R(\theta)$, y los escaneos tomados desde dos posiciones se fusionan en un solo
-mapa con una matriz homogénea $3\times3$ que combina rotación y traslación en
-un único producto matricial. Una interfaz web dibuja el mapa en tiempo real y
-muestra la multiplicación de matrices de cada lectura. En un entorno simulado,
-el mapa fusionado reunió \cifPuntosTotal{} puntos y el ruido del sensor produjo
-un error medio de \cifRuidoMedio{} mm. Un error de $5^\circ$ en el ángulo de la
-segunda posición elevó el error medio a \cifErrorCinco{} mm, en concordancia
-exacta con la expresión teórica $2|\sin(\delta/2)|\,\|\vect{v}\|$, lo que
-muestra que la orientación del aparato pesa más que su desplazamiento en la
-calidad del mapa. Con el prototipo real se capturaron dos barridos completos, y la
-distancia medida en un mismo ángulo varió en promedio \realRepMedia{} mm
-entre ellos. Se verificó numéricamente que las matrices implementadas son
-ortogonales, conservan la norma y tienen inversa exacta.
+Este trabajo presenta un escáner 3D de bajo costo construido solo con un
+microcontrolador ESP32 y un sensor láser de tiempo de vuelo VL53L0X. El sensor
+va dentro de una caja que mira hacia abajo y se desliza a una altura fija
+sobre una cuadrícula dibujada en la mesa; en cada casilla se toma una medición
+promediada de la distancia al objeto. Una única matriz homogénea de $4\times4$
+convierte cada casilla y su distancia en un punto del espacio, combinando un
+escalamiento, una reflexión y una traslación. La inclinación de la mesa se
+estima ajustando un plano por mínimos cuadrados a las casillas del borde, y la
+superficie resultante se dibuja en una interfaz web con rotaciones 3D,
+proyección ortogonal y un sombreado calculado con productos vectoriales y
+productos punto. La interfaz desglosa estos cálculos con los números de cada
+medición. En simulación, con la mesa vacía e inclinada, el ajuste del plano
+redujo el error de altura de \simMesaSin{} mm a \simMesaCon{} mm, y la altura
+de una taza de 95 mm se midió como \simTazaMax{} mm. Con el sensor real, diez
+mediciones en la misma posición variaron con una desviación de \repDesv{} mm.
+El cono de unos $25^\circ$ del sensor suaviza los bordes de los objetos, lo
+que limita la resolución lateral. Los componentes del prototipo cuestan menos
+de ochenta mil pesos colombianos.
 \end{abstract}
 
-\keywords{álgebra lineal, matriz de rotación, coordenadas homogéneas,
-cambio de base, LIDAR, mapeo de entornos}
+\keywords{álgebra lineal, matriz homogénea, mínimos cuadrados, rotaciones 3D,
+producto vectorial, escáner 3D}

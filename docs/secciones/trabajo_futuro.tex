@@ -1,22 +1,21 @@
 \section{Trabajo futuro}
 
-El paso más directo es convertir el escáner en un escáner 3D real. Para eso se
-necesita un segundo servo que incline el sensor, de modo que cada lectura
-tenga dos ángulos. Las lecturas pasarían a coordenadas esféricas y la
-conversión se haría con matrices de rotación de $3\times3$ alrededor de dos
-ejes, mientras que la fusión usaría matrices homogéneas de $4\times4$.
+La mejora más directa es reducir el efecto del cono del sensor. El VL53L1X, de
+la misma familia, permite elegir una región de interés más pequeña dentro de su
+campo de visión, lo que haría los bordes más nítidos. Con el sensor actual, una
+alternativa por software es la deconvolución: si se conoce la forma del cono,
+la relación entre la superficie real y las mediciones es un sistema lineal que
+se puede invertir de manera aproximada por mínimos cuadrados con
+regularización.
 
-El segundo paso es estimar la pose automáticamente en lugar de medirla con
-cinta. El algoritmo ICP (\textit{Iterative Closest Point}) busca la rotación y
-la traslación que mejor superponen dos escaneos \citep{besl1992}; en cada
-iteración, la rotación óptima se obtiene en forma cerrada con la
-descomposición en valores singulares de la matriz de covarianza cruzada de los
-puntos \citep{arun1987}. Esto llevaría el proyecto hacia los mínimos
-cuadrados y la SVD, y reduciría el error de orientación, que fue la principal
-fuente de error.
+Para obtener un modelo cerrado del objeto y no solo su vista desde arriba, se
+puede escanear desde varios lados y unir las nubes de puntos. Cada escaneo
+queda en su propio sistema de coordenadas, y la rotación y la traslación que
+los alinean se pueden estimar con el algoritmo ICP, en el que la rotación
+óptima de cada paso se obtiene con la descomposición en valores singulares
+\citep{besl1992,arun1987}.
 
-Otras mejoras posibles son reemplazar el VL53L0X por un sensor de mayor
-alcance, enviar los datos por WiFi con WebSockets para que el escáner funcione
-sin cable, y montar el aparato sobre un vehículo con encoders en las ruedas,
-lo que permitiría encadenar muchas posiciones y acercarse a un sistema de
-SLAM.
+Por último, la posición de la caja podría medirse en lugar de depender de la
+cuadrícula, por ejemplo con dos sensores de distancia más apuntando a las
+paredes de una guía, lo que permitiría mover la caja libremente y tomar
+mediciones de forma continua.

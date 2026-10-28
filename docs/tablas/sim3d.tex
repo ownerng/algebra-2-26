@@ -1,0 +1,48 @@
+% Generado por experimentos/generar3d.ts. No editar a mano.
+\begin{table}[htbp]
+\caption{Escaneo simulado de tres objetos: altura máxima y error frente a la forma real}
+\label{tab:sim3d}
+\begin{tabular}{lrrr}
+\toprule
+Objeto & Alto real (mm) & Alto medido (mm) & RMSE de la altura (mm) \\
+\midrule
+Taza & 95 & 95,6 & 24,6 \\
+Caja & 45 & 43,9 & 6,9 \\
+Libros & 60 & 60,5 & 11,6 \\
+\bottomrule
+\end{tabular}
+\note{Cuadrícula de 10 × 8 casillas de 20 mm, caja a 150 mm de la mesa, mesa inclinada y ruido de $\pm 2$ mm. Alto medido: la casilla más alta. RMSE: raíz del error cuadrático medio de la altura en todas las casillas, después de restar el plano de la mesa. Elaboración propia.}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Escaneo simulado de la mesa vacía: efecto del plano ajustado por mínimos cuadrados}
+\label{tab:mesa}
+\begin{tabular}{lrr}
+\toprule
+ & Sin corregir & Corregido \\
+\midrule
+RMSE de la altura (mm) & 2,51 & 0,38 \\
+Error máximo (mm) & 5,58 & 1,00 \\
+\midrule
+Pendiente en $x$, $a$ (real 0,030) & \multicolumn{2}{r}{0,0299} \\
+Pendiente en $y$, $b$ (real -0,015) & \multicolumn{2}{r}{-0,0161} \\
+\bottomrule
+\end{tabular}
+\note{La mesa simulada está inclinada; la altura correcta en todas las casillas es 0 mm. Elaboración propia.}
+\end{table}
+
+\begin{table}[htbp]
+\caption{Verificación numérica de las matrices del escáner}
+\label{tab:verif3d}
+\begin{tabular}{ll}
+\toprule
+Propiedad & Desviación máxima \\
+\midrule
+$A = T\,F\,E$ & $0$ \\
+$|\det V - 1|$, con $V = R_x(\varphi)R_z(\theta)$ & $3{,}3 \times 10^{-16}$ \\
+$\max |V^{T}V - I|$ & $2{,}2 \times 10^{-16}$ \\
+Plano conocido recuperado por mínimos cuadrados & $0$ \\
+\bottomrule
+\end{tabular}
+\note{Las rotaciones se evaluaron en 1224 combinaciones de $\theta$ y $\varphi$. Elaboración propia.}
+\end{table}

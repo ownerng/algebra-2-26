@@ -83,7 +83,7 @@ export function Cuadricula() {
       <p className="ayuda">
         Cada cuadro mide {paso} mm. El recorrido va en zigzag: la fila 0 de izquierda a derecha, la fila 1 de derecha a
         izquierda, y así. El número de cada casilla es la altura medida en mm; las casillas celestes del borde se usan
-        para encontrar el plano de la mesa. Toca una casilla para repetirla.
+        para encontrar el plano de la mesa. Toca una casilla para ver su cálculo o volver a medirla.
       </p>
     </section>
   );

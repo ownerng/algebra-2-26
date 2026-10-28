@@ -4,16 +4,18 @@
 
 import { interpretarLinea, type Fuente, type OpcionesFuente } from './conexion.ts';
 
-export type ObjetoSimulado = 'taza' | 'caja' | 'libros';
+export type ObjetoSimulado = 'taza' | 'caja' | 'libros' | 'vacia';
 
 export const OBJETOS: Record<ObjetoSimulado, string> = {
   taza: 'Taza (cilindro de 8 cm de diámetro y 9,5 cm de alto)',
   caja: 'Caja (7 × 5 cm, 4,5 cm de alto)',
   libros: 'Libros escalonados (2, 4 y 6 cm)',
+  vacia: 'Mesa vacía (para ver el ajuste del plano)',
 };
 
 // Altura de la superficie (mm) en el punto (x, y) de la mesa, en mm
 export function alturaObjeto(objeto: ObjetoSimulado, x: number, y: number): number {
+  if (objeto === 'vacia') return 0;
   if (objeto === 'taza') {
     return Math.hypot(x - 90, y - 70) <= 40 ? 95 : 0;
   }
@@ -29,7 +31,7 @@ export function alturaObjeto(objeto: ObjetoSimulado, x: number, y: number): numb
 }
 
 export const ALTURA_REAL_MM = 150;          // del lente a la mesa en el origen
-const INCLINACION = { a: 0.03, b: -0.015 };  // la mesa no está perfectamente nivelada
+export const INCLINACION = { a: 0.03, b: -0.015 };  // la mesa no está perfectamente nivelada
 const MEDIO_CONO = (12.5 * Math.PI) / 180;   // el VL53L0X ve un cono de unos 25°
 
 // Distancia que mediría el sensor sobre (x, y): promedio dentro del cono,

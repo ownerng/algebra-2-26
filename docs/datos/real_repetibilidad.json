@@ -1,0 +1,67 @@
+{
+ "medidas": [
+  {
+   "medida": 33,
+   "desv": 0.9,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 32.6,
+   "desv": 0.8,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 33.6,
+   "desv": 1.3,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 32.2,
+   "desv": 0.4,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 32.6,
+   "desv": 1.1,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 33.2,
+   "desv": 0.8,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 32.8,
+   "desv": 0.4,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 32.8,
+   "desv": 0.4,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 34,
+   "desv": 0.7,
+   "n": 10,
+   "origen": "web"
+  },
+  {
+   "medida": 32.6,
+   "desv": 1.1,
+   "n": 10,
+   "origen": "web"
+  }
+ ],
+ "media": 32.940000000000005,
+ "desv_entre": 0.5337498373666156,
+ "desv_interna_media": 0.79
+}

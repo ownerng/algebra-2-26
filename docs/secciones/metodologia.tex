@@ -2,15 +2,14 @@
 
 \subsection{Arquitectura del sistema}
 
-El sistema tiene tres partes: el prototipo físico, que mide; el firmware del
-ESP32, que controla el barrido y envía las lecturas, y una interfaz web, que
-hace los cálculos matriciales y dibuja el mapa
-(Figura~\ref{fig:arquitectura}). Las lecturas viajan por el cable USB como
-texto en formato JSON, una línea por medición, por ejemplo
-\verb|{"r":523,"theta":84}|.
+El sistema tiene tres partes (Figura~\ref{fig:arquitectura}): el prototipo
+físico, que mide; el firmware del ESP32, que promedia las lecturas y las envía,
+y una interfaz web, que guía el recorrido, hace los cálculos matriciales y
+dibuja la figura. Las mediciones viajan por el cable USB como texto en formato
+JSON, por ejemplo \verb|{"medida":143.2,"desv":1.1,"n":10}|.
 
 \begin{figure}[htbp]
-\caption{Arquitectura del escáner}
+\caption{Arquitectura del escáner 3D}
 \label{fig:arquitectura}
 \centering
 \includegraphics[width=0.95\linewidth]{arquitectura.pdf}
@@ -19,24 +18,16 @@ texto en formato JSON, una línea por medición, por ejemplo
 
 \subsection{Prototipo físico}
 
-El prototipo usa los componentes de la Tabla~\ref{tab:materiales}, montados
-sobre una protoboard de 400 puntos según la Figura~\ref{fig:protoboard}. El
-sensor se alimenta con 3,3 V y se comunica por el bus I\textsuperscript{2}C
-(GPIO 21 para SDA y GPIO 22 para SCL); sus cuatro cables van directo a los pines
-del ESP32. El servomotor se alimenta con los 5 V del pin VIN a través del riel
-inferior de la protoboard y recibe la señal de control por el GPIO 13. Entre
-ese riel de 5 V y tierra se conecta un condensador electrolítico de 1000 µF
-para absorber los picos de corriente del servo, que de otro modo pueden
-reiniciar el microcontrolador. La Figura~\ref{fig:esquematico} muestra el mismo
-circuito como esquemático.
-
-En el diseño mecánico (Figura~\ref{fig:mecanico}), el servo va fijo a una base
-rígida y el sensor se monta sobre el brazo del servo con un soporte en L, con
-el lente lo más cerca posible del eje de giro y a la altura de los objetos que
-se quieren detectar. La distancia $d$ entre el eje y el lente se suma a cada
-lectura (Figura~\ref{fig:geometria}); en la simulación se usó $d = 15$ mm. La
-guía de armado completa, con la lista de pasos y el color de cada cable, está
-en el archivo \texttt{docs/montaje-lidar.html} del repositorio del proyecto.
+El prototipo usa los componentes de la Tabla~\ref{tab:materiales}. El sensor
+VL53L0X se alimenta con 3,3 V y se comunica con el ESP32 por el bus
+I\textsuperscript{2}C (GPIO 21 para SDA y GPIO 22 para SCL); sus cuatro cables
+van soldados a los pines del ESP32. El sensor va dentro de una caja de cartón,
+pegado al fondo con el lente asomando por un orificio, de modo que mide hacia
+abajo. La caja se apoya sobre un soporte a una altura fija $H$ sobre la mesa,
+y debajo se coloca una cartulina con una cuadrícula de cuadros de lado
+$\Delta$ dibujada con regla (Figura~\ref{fig:montaje}). El botón BOOT del ESP32,
+que la placa trae de fábrica, sirve como botón de medición, así que el
+prototipo no necesita componentes adicionales.
 
 \begin{table}[htbp]
 \caption{Materiales del prototipo y costo aproximado}
@@ -47,148 +38,114 @@ Material & Cantidad & Costo aproximado (COP) \\
 \midrule
 ESP32 DevKit V1 de 30 pines & 1 & 25.000 -- 35.000 \\
 Sensor VL53L0X con pines soldados & 1 & 12.000 -- 20.000 \\
-Servomotor SG90 & 1 & 8.000 -- 12.000 \\
-Condensador electrolítico 1000 µF, 16 V & 1 & 1.000 \\
-Cables jumper macho--hembra (paquete) & 1 & 5.000 -- 8.000 \\
-Protoboard de 400 puntos & 1 & 3.000 -- 6.000 \\
+Cables jumper (paquete) & 1 & 5.000 -- 8.000 \\
 Cable USB de datos & 1 & 8.000 -- 15.000 \\
+Caja de cartón, cartulina y soporte & 1 & reciclados \\
 \midrule
-Total & & 62.000 -- 97.000 \\
+Total & & 50.000 -- 78.000 \\
 \bottomrule
 \end{tabular}
-\note{Precios de referencia en tiendas de electrónica de Colombia en 2026.
-Los cables macho--macho del servo pueden reemplazarse por alambre de cable
-UTP. Elaboración propia.}
+\note{Precios de referencia en tiendas de electrónica de Colombia en 2026. Elaboración propia.}
 \end{table}
 
 \begin{figure}[htbp]
-\caption{Conexiones en la protoboard (vista superior)}
-\label{fig:protoboard}
+\caption{Montaje del escáner: la caja se desliza a una altura fija sobre la cuadrícula}
+\label{fig:montaje}
 \centering
-\includegraphics[width=0.9\linewidth]{montaje_protoboard.png}
-\figurenote{El ESP32 ocupa las filas B e I, columnas 6 a 20. Los cables del
-sensor son macho--hembra; los del servo y el riel de 5 V, macho--macho.
-Elaboración propia.}
-\end{figure}
-
-\begin{figure}[htbp]
-\caption{Esquemático del circuito}
-\label{fig:esquematico}
-\centering
-\includegraphics[width=\linewidth]{montaje_esquematico.png}
-\figurenote{Elaboración propia.}
-\end{figure}
-
-\begin{figure}[htbp]
-\caption{Montaje mecánico del sensor sobre el servo}
-\label{fig:mecanico}
-\centering
-\includegraphics[width=\linewidth]{montaje_mecanico.png}
-\figurenote{Izquierda: vista superior con el eje del servo como origen del
-sistema local. Derecha: vista lateral con el lente sobre el eje de giro.
-Elaboración propia.}
-\end{figure}
-
-\begin{figure}[htbp]
-\caption{Geometría de una lectura en el sistema local del aparato}
-\label{fig:geometria}
-\centering
-\includegraphics[width=0.6\linewidth]{geometria.pdf}
-\figurenote{El sensor mide $r$ desde el lente, que está a una distancia $d$ del
-eje de giro. Por eso el vector que se rota es $(r+d,\,0)$. Elaboración propia.}
+\includegraphics[width=0.9\linewidth]{montaje3d.pdf}
+\figurenote{En cada casilla $(i,j)$ el sensor mide la distancia $r$ hacia abajo;
+la altura de la superficie es $H - r$. Elaboración propia.}
 \end{figure}
 
 \subsection{Firmware}
 
-El firmware, escrito en C++ con el entorno de Arduino, mueve el servo de
-$0^\circ$ a $180^\circ$ y de regreso en pasos de $2^\circ$. En cada paso espera
-35 ms a que el servo se estabilice, toma una medición del sensor y envía la
-línea JSON correspondiente. Cuando no hay objetos dentro del alcance envía
-$r=-1$, para que la interfaz pueda mover el haz aunque no dibuje un punto. El
-firmware también acepta tres comandos de un carácter desde la interfaz:
-iniciar, pausar y centrar el servo en $90^\circ$.
+El firmware, escrito en C++ con el entorno de Arduino, configura el VL53L0X en
+su modo de alta precisión. Cuando recibe el comando \texttt{M} desde la
+interfaz, o cuando se presiona el botón BOOT, toma diez lecturas y envía su
+media y su desviación estándar. El sensor marca cada lectura con un código de
+estado; solo se aceptan las que tienen estado 0 (medición válida), y si una
+lectura falla se repite hasta tres veces. Además, cada 120 ms envía una lectura
+individual para que la interfaz muestre en vivo lo que hay debajo de la caja.
+
+\subsection{Procedimiento de escaneo}
+
+Se usó una cuadrícula de \simNX{} columnas por \simNY{} filas con cuadros de
+\simPaso{} mm. El procedimiento es el siguiente:
+\begin{enumerate}
+\item Con la mesa vacía, se pone la caja en el soporte y se mide la distancia a
+la mesa; ese valor es $H$.
+\item Se coloca el objeto en el centro de la cuadrícula, dejando libres las
+casillas del borde.
+\item La interfaz indica la casilla en la que debe ponerse la caja. Se pulsa
+\textit{Medir} y la interfaz guarda la medición y señala la siguiente casilla.
+El recorrido sigue un zigzag (la fila 0 de izquierda a derecha, la fila 1 de
+derecha a izquierda, y así sucesivamente) para que la caja siempre pase a una
+casilla vecina.
+\item Al completar la cuadrícula, la figura se guarda o se exporta.
+\end{enumerate}
 
 \subsection{Procesamiento matemático}
 
-Cada lectura se procesa en dos pasos, que corresponden a los dos productos
-matriciales del marco teórico. Primero, la lectura se lleva al sistema local
-del aparato:
-\begin{equation}
-\vect{p}_L = R(\theta)\begin{bmatrix} r + d\\ 0\end{bmatrix}.
-\end{equation}
-Después, el punto local se lleva al sistema global con la matriz homogénea de
-la posición desde la que se midió:
-\begin{equation}
-\begin{bmatrix}\vect{p}_G\\ 1\end{bmatrix}
-= T(\alpha, d_x, d_y)\begin{bmatrix}\vect{p}_L\\ 1\end{bmatrix}.
-\end{equation}
-La primera posición define el sistema global, de modo que para ella
-$\alpha=0$, $d_x=d_y=0$ y $T=I$. Para la segunda posición, $d_x$, $d_y$ y
-$\alpha$ se miden con cinta métrica y transportador después de mover el
-aparato. Si el servo gira en sentido contrario al esperado, la interfaz permite
-usar $180^\circ-\theta$ en lugar de $\theta$, lo que equivale a una reflexión
-del sistema local.
+Cada medición se convierte en un punto con la ecuación~\eqref{eq:casilla}. Con
+las casillas del borde se ajusta el plano de la mesa resolviendo las
+ecuaciones normales~\eqref{eq:normales} por eliminación de Gauss. Como alguna
+casilla del borde puede alcanzar a ver parte del objeto, se hace un segundo
+ajuste descartando los puntos que quedan a más de 6 mm del primer plano. La
+altura del objeto en cada casilla es $h = z - (ax + by + c)$.
 
-Las funciones de álgebra lineal (rotación, matriz homogénea, inversa y
-productos) se programaron directamente en TypeScript, sin bibliotecas de
-cálculo, para que el código refleje las ecuaciones del marco teórico.
+La superficie se arma con dos triángulos por cada cuadro de la cuadrícula que
+tenga sus cuatro esquinas medidas. Cada vértice se rota y se proyecta con la
+ecuación~\eqref{eq:proyeccion}, cada triángulo se sombrea con su normal y el
+producto punto con la dirección de la luz, y los triángulos se pintan del más
+lejano al más cercano. Todas estas operaciones se programaron directamente en
+TypeScript, sin bibliotecas de gráficos 3D ni de álgebra lineal, para que el
+código siga las ecuaciones del marco teórico.
 
 \subsection{Interfaz web}
 
 La interfaz se construyó con React y TypeScript, se empaqueta con Bun y se
-ejecuta en el navegador. Recibe los datos del ESP32 a través de un puente USB
-(\texttt{web/puente.ts}) que reenvía cada línea del puerto serie por WebSocket,
-lo que permite usarla en cualquier navegador; si el puente no está activo,
-usa la API Web Serial de Chrome. Está organizada para que quien la mira sepa
-qué se está calculando y por qué:
-
+ejecuta en el navegador. Recibe los datos del ESP32 por un puente USB
+(\texttt{web/puente.ts}) que reenvía el puerto serie por WebSocket, lo que
+permite usarla en cualquier navegador; sin el puente, usa la API Web Serial de
+Chrome. Tiene cinco partes:
 \begin{itemize}
-\item Una guía de cuatro pasos en la parte superior (conectar, escanear desde
-la posición 1, mover el aparato y escanear desde la posición 2) que se marca
-sola a medida que se completa cada paso.
-\item El radar 2D, dibujado con Canvas, con escala de 30~cm, 60~cm o 1,2~m, y
-una vista 3D hecha con Three.js en la que el mapa del plano se levanta en
-altura para facilitar su lectura. Esta vista 3D es una visualización: el
-sensor mide en un solo plano.
-\item Un panel del prototipo que dibuja en vista superior el servo, el sensor y
-el haz, y gira con cada lectura.
-\item Un panel donde se indica desde qué posición se mide y cuánto se movió el
-aparato entre las dos posiciones ($d_x$, $d_y$ y $\alpha$). Esos tres números
-forman la matriz $T$; al cambiarlos, el mapa se recalcula al instante, lo que
-permite ver cómo una pose mal medida desarma el mapa.
-\item Un cuaderno, escrito con KaTeX, que desglosa el cálculo de una lectura en
-cinco pasos: la suma $r+d$, la matriz $R(\theta)$ con sus valores, el producto
-fila por columna con la comprobación de la norma, el producto por $T$ y el
-punto resultante. Un botón permite congelar el cálculo en una lectura para
-explicarla con calma; esa lectura queda marcada en el radar.
+\item Una guía de cuatro pasos (conectar, medir la mesa, recorrer la cuadrícula
+y ver y guardar) que se marca sola a medida que se avanza.
+\item La cuadrícula vista desde arriba, que indica en qué casilla poner la caja,
+colorea las casillas medidas según su altura y muestra la lectura en vivo.
+\item La figura 3D, que se construye mientras se escanea y se gira arrastrando
+con el mouse.
+\item Un cuaderno que desglosa, con KaTeX y con los números de una medición, los
+cinco pasos del cálculo: la medición, el producto por $A$, el plano de la mesa
+con sus ecuaciones normales, la rotación y la proyección de la vista, y el
+producto vectorial y el producto punto del sombreado. Se puede congelar en una
+casilla o elegir una casilla medida para ver su cálculo.
+\item Los ajustes: la altura $H$, el tamaño de la cuadrícula y los archivos.
+Cada escaneo se puede guardar en el navegador o exportar como malla 3D
+(\texttt{.obj}), como tabla (\texttt{.csv}) o como archivo de la página
+(\texttt{.json}).
 \end{itemize}
-
-Con el botón \textit{Simular prototipo}, la interfaz usa el simulador descrito
-en el protocolo experimental y superpone en el radar la habitación real, para
-comparar lo que mide el escáner con lo que debería medir. El código del
+El botón \textit{Simular prototipo} reemplaza el sensor por un simulador que
+se describe a continuación. En la simulación, la caja puede recorrer la
+cuadrícula sola, para mostrar cómo se construye la figura. El código del
 proyecto (firmware, interfaz, pruebas y este informe) está en
 \url{https://github.com/ownerng/algebra-2-26}.
 
 \subsection{Protocolo experimental}
 
-Para medir la precisión de la fusión se necesita conocer la posición real de
-cada objeto, algo que no es posible con mediciones a mano. Por eso los
-experimentos cuantitativos se hicieron en un entorno simulado: una habitación
-virtual con paredes, las patas de una mesa y de una silla, una caja y una
-papelera. El simulador lanza un rayo en la dirección de cada ángulo, calcula la
-intersección con los objetos y devuelve la distancia con el mismo formato JSON
-que el firmware. Se agregó ruido uniforme de $\pm(3 + 0{,}01\,r)$ mm y una
-probabilidad de 3\,\% de perder la lectura. El generador de números aleatorios
-usa una semilla fija, de modo que los resultados son reproducibles.
+Para medir la exactitud de la reconstrucción hay que conocer la forma real del
+objeto, así que se usó un simulador. Este representa una mesa inclinada
+($z = 0{,}03\,x - 0{,}015\,y$) con un objeto encima y la caja a 150 mm de la
+mesa. Para imitar el cono del sensor, la distancia simulada es un promedio de
+las distancias dentro de un círculo bajo la caja, en el que pesan más las
+superficies cercanas, porque devuelven más luz. A cada lectura se le suma un
+ruido uniforme de $\pm 2$ mm, y el generador de números aleatorios usa una
+semilla fija para que los resultados se puedan reproducir. Se escanearon tres
+objetos de forma conocida (una taza cilíndrica, una caja y unos libros
+escalonados) y la mesa vacía. Para los objetos se calculó el error de la altura
+en todas las casillas; para la mesa vacía, con y sin la corrección del plano.
 
-Se realizaron tres experimentos:
-\begin{enumerate}
-\item Escaneo desde dos posiciones y fusión con la pose correcta.
-\item Fusión con una pose errónea ($8^\circ$ de error en $\alpha$ y 80 mm en
-$d_x$), para observar el efecto en el mapa.
-\item Barrido del error en $\alpha$ entre $0^\circ$ y $20^\circ$ sin ruido del
-sensor, comparando el error medio de registro con la predicción teórica.
-\end{enumerate}
-Además, se verificaron numéricamente las propiedades de las matrices
-implementadas y se escribieron siete pruebas automáticas para las funciones
-de álgebra lineal y su concordancia con el simulador.
+Con el sensor real se midió la repetibilidad: se tomaron \repN{} mediciones
+promediadas seguidas con la caja quieta en la misma posición. Además, se
+verificaron numéricamente las propiedades de las matrices y se escribieron
+pruebas automáticas para las funciones de álgebra lineal y el simulador.

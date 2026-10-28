@@ -1,0 +1,25 @@
+\documentclass[border=4pt]{standalone}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,3d}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+% Se compila desde la carpeta docs/: las rutas de datos son relativas a ella.
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[name=taza, width=8.2cm, height=7cm, view={-35}{40},
+  title={Taza (alto real 95 mm)}, title style={font=\small},
+  xlabel={$x$ (mm)}, ylabel={$y$ (mm)}, zlabel={$h$ (mm)},
+  zmin=0, zmax=110, colormap/hot2, tick label style={font=\scriptsize}, label style={font=\small}]
+\addplot3[surf, faceted color=black!40, mesh/ordering=x varies] table[col sep=comma, x=x, y=y, z=h]{datos/sim_taza.csv};
+\end{axis}
+\begin{axis}[at={(taza.east)}, anchor=west, xshift=1.2cm, width=8.2cm, height=7cm, view={-35}{40},
+  title={Caja (alto real 45 mm)}, title style={font=\small},
+  xlabel={$x$ (mm)}, ylabel={$y$ (mm)}, zlabel={$h$ (mm)},
+  zmin=0, zmax=110, colormap/hot2, tick label style={font=\scriptsize}, label style={font=\small}]
+\addplot3[surf, faceted color=black!40, mesh/ordering=x varies] table[col sep=comma, x=x, y=y, z=h]{datos/sim_caja.csv};
+\end{axis}
+\end{tikzpicture}
+\end{document}

@@ -83,8 +83,11 @@ class Escaneo extends EventTarget {
     return this.total;
   }
 
+  // Tocar una casilla la vuelve la siguiente a medir y, si ya tiene medición,
+  // muestra su cálculo en el cuaderno.
   irA(i: number, j: number) {
     this.cursor = this.indice(i, j);
+    if (this.medidas.has(clave(i, j))) this.ultima = { i, j };
     this.avisar();
   }
 
