@@ -2,27 +2,27 @@
 
 \subsection{Objetivo general}
 
-Desarrollar un sistema de clasificacion de objetos por tamano, color, forma e
-identidad, implementado mediante operaciones de algebra lineal, que permita
-evaluar comparativamente el aporte de tres representaciones de caracteristicas
-distintas bajo un mismo clasificador de minimos cuadrados regularizado.
+Desarrollar un prototipo de escáner LIDAR 2D de bajo costo que construya mapas
+de su entorno aplicando transformaciones lineales ---rotaciones en
+$\mathbb{R}^2$ y transformaciones afines en coordenadas homogéneas--- y que
+muestre en tiempo real los cálculos matriciales involucrados.
 
-\subsection{Objetivos especificos}
+\subsection{Objetivos específicos}
 
 \begin{enumerate}
-\item Implementar tres extractores de caracteristicas ---descriptores
-geometricos y cromaticos, proyeccion sobre eigen-objetos mediante
-descomposicion en valores singulares, y representaciones de una red
-convolucional preentrenada--- empleando unicamente operaciones matriciales
-programadas sobre NumPy.
+\item Construir el prototipo físico con un ESP32, un sensor VL53L0X y un
+servomotor SG90, junto con su firmware, para obtener lecturas $(r,\theta)$ en
+un barrido de $0^\circ$ a $180^\circ$.
 
-\item Construir un clasificador multiclase de minimos cuadrados con
-regularizacion de Tikhonov, verificando su equivalencia numerica con una
-implementacion de referencia y caracterizando el efecto del parametro de
-regularizacion sobre el numero de condicion de la matriz normal.
+\item Implementar la conversión de coordenadas polares a cartesianas mediante
+la matriz de rotación y la fusión de escaneos de dos posiciones mediante una
+matriz homogénea de $3\times3$, verificando numéricamente sus propiedades:
+ortogonalidad, determinante unitario, conservación de la norma y existencia de
+la inversa.
 
-\item Evaluar el desempeno comparativo de las tres representaciones mediante
-un estudio de ablacion con validacion cruzada, cuantificando la contribucion
-de la representacion frente a la del clasificador en la exactitud final del
-sistema.
+\item Desarrollar una interfaz web que dibuje el mapa en tiempo real y muestre
+paso a paso la multiplicación de matrices de cada lectura.
+
+\item Cuantificar el efecto del ruido del sensor y de los errores en la
+posición y orientación del aparato sobre la precisión del mapa fusionado.
 \end{enumerate}

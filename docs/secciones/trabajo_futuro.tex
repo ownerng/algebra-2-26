@@ -1,16 +1,22 @@
 \section{Trabajo futuro}
 
-% TODO: ampliar cada linea en prosa.
+El paso más directo es convertir el escáner en un escáner 3D real. Para eso se
+necesita un segundo servo que incline el sensor, de modo que cada lectura
+tenga dos ángulos. Las lecturas pasarían a coordenadas esféricas y la
+conversión se haría con matrices de rotación de $3\times3$ alrededor de dos
+ejes, mientras que la fusión usaría matrices homogéneas de $4\times4$.
 
-\begin{itemize}
-\item Incorporacion del peso real mediante celda de carga HX711 sobre ESP32.
-La arquitectura ya contempla esa componente del vector de caracteristicas,
-desactivada mientras no existan mediciones de masa.
-\item Ajuste fino del extractor sobre imagenes del dominio propio, para cerrar
-la brecha observada entre dataset y camara.
-\item Banda transportadora fisica, con disparo por fotocelda en lugar del
-disparador de estabilidad por software.
-\item Comparacion contra una maquina de vectores de soporte con nucleo, para
-medir cuanto aporta la no linealidad situada en el clasificador y no en la
-representacion.
-\end{itemize}
+El segundo paso es estimar la pose automáticamente en lugar de medirla con
+cinta. El algoritmo ICP (\textit{Iterative Closest Point}) busca la rotación y
+la traslación que mejor superponen dos escaneos \parencite{besl1992}; en cada
+iteración, la rotación óptima se obtiene en forma cerrada con la
+descomposición en valores singulares de la matriz de covarianza cruzada de los
+puntos \parencite{arun1987}. Esto llevaría el proyecto hacia los mínimos
+cuadrados y la SVD, y reduciría el error de orientación, que fue la principal
+fuente de error.
+
+Otras mejoras posibles son reemplazar el VL53L0X por un sensor de mayor
+alcance, enviar los datos por WiFi con WebSockets para que el escáner funcione
+sin cable, y montar el aparato sobre un vehículo con encoders en las ruedas,
+lo que permitiría encadenar muchas posiciones y acercarse a un sistema de
+SLAM.

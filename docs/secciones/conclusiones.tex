@@ -1,5 +1,26 @@
 \section{Conclusiones}
 
-% TODO: una conclusion por objetivo especifico, en el mismo orden en que
-% fueron planteados, cada una respaldada por un resultado cuantificado del
-% capitulo anterior.
+Se construyó un prototipo de escáner con un ESP32, un sensor VL53L0X y un
+servomotor SG90, con un costo total de entre 62.000 y 97.000 pesos
+colombianos. Su firmware realiza barridos de $0^\circ$ a $180^\circ$ en pasos
+de $2^\circ$ y envía cada lectura $(r,\theta)$ en formato JSON. El servo y su
+alimentación se validaron sobre el circuito real sin reinicios del
+microcontrolador.
+
+La conversión de coordenadas se implementó como el producto
+$R(\theta)\,[r+d,\;0]^{T}$ y la fusión de escaneos como el producto por una
+matriz homogénea de $3\times3$. Las propiedades de estas matrices se
+verificaron numéricamente: el determinante, la ortogonalidad, la conservación
+de la norma y la inversa homogénea se cumplen con desviaciones del orden de
+$10^{-16}$, el límite de la aritmética de doble precisión.
+
+La interfaz web dibuja el mapa en tiempo real en 2D y 3D y muestra, para cada
+lectura, los productos matriciales con sus valores numéricos. Permite además
+modificar la pose de la segunda posición y observar de inmediato su efecto en
+el mapa fusionado.
+
+En el entorno simulado, el ruido del sensor produjo un error medio de
+\cifRuidoMedio{} mm, mientras que $5^\circ$ de error en la orientación lo
+elevaron a \cifErrorCinco{} mm. Este error sigue exactamente la expresión
+$2|\sin(\delta/2)|\,\|\vect{v}\|$, por lo que la orientación del aparato es la
+magnitud que más debe cuidarse al fusionar escaneos.

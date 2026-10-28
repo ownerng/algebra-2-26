@@ -1,14 +1,40 @@
-\section{Introduccion}
+\section{Introducción}
 
-% TODO: 3 a 5 parrafos. Guion sugerido:
-%   1. Contexto: clasificacion automatica de objetos en linea de produccion.
-%   2. Problema: cuanto del desempeno viene del clasificador y cuanto de la
-%      representacion de entrada.
-%   3. Antecedentes: eigenfaces \parencite{turk1991}, minimos cuadrados como
-%      clasificador \parencite{boyd2018}, datasets \parencite{nene1996,muresan2018}.
-%   4. Aporte: mismo clasificador lineal sobre tres representaciones, con el
-%      motor implementado en NumPy sin bibliotecas de aprendizaje automatico.
-%   5. Organizacion del documento.
+Un robot que se mueve por una casa, un vehículo que circula por una calle o un
+dron que inspecciona una estructura necesitan saber qué hay a su alrededor. Una
+de las formas más usadas de obtener esa información es el LIDAR
+(\textit{Light Detection and Ranging}): un haz láser recorre el entorno y, para
+cada dirección, el sensor mide la distancia al primer obstáculo. El resultado
+es una nube de puntos que describe la geometría de paredes, muebles y objetos
+\parencite{siegwart2011}.
 
-% Ejemplo de cita para conservar el estilo APA autor-fecha:
-% El metodo de eigen-objetos se deriva del trabajo de \textcite{turk1991}.
+El sensor, sin embargo, no entrega puntos del mapa. Entrega pares
+$(r,\theta)$: una distancia y un ángulo medidos desde su propia posición y con
+su propia orientación. Para dibujar un mapa hay que convertir esos pares en
+coordenadas cartesianas y, cuando el sensor cambia de lugar, expresar todas las
+mediciones en un mismo sistema de referencia. Este es un problema de
+transformaciones lineales y de cambio de base, y es el núcleo de técnicas como
+el registro de escaneos y la localización y mapeo simultáneos, conocida como
+SLAM \parencite{lu1997,durrantwhyte2006}.
+
+Los escáneres comerciales cuestan desde varios cientos de miles de pesos, lo
+que dificulta usarlos para enseñar estos conceptos. Este trabajo construye una
+versión mínima del mismo principio con componentes que suman menos de cien mil
+pesos colombianos: un sensor láser de tiempo de vuelo VL53L0X
+\parencite{st2018}, un servomotor SG90 que lo hace girar entre $0^\circ$ y
+$180^\circ$ y un microcontrolador ESP32 \parencite{espressif2023} que envía las
+lecturas a un computador.
+
+El aporte del proyecto es hacer visible el álgebra lineal que hay detrás del
+mapa. La conversión de cada lectura se escribe como el producto de una matriz
+de rotación por un vector, la fusión de dos escaneos como el producto de una
+matriz homogénea de $3\times3$, y una interfaz web muestra esas
+multiplicaciones con los números reales de cada medición mientras el mapa se
+dibuja. Además, se cuantifica cómo los errores al medir la posición del aparato
+se propagan al mapa, y se comprueba que el resultado coincide con lo que
+predice la teoría de matrices ortogonales.
+
+El documento está organizado así: la sección de marco teórico presenta los
+conceptos de álgebra lineal empleados; la metodología describe el prototipo,
+el firmware, la interfaz y el protocolo experimental; luego se presentan y
+discuten los resultados, y se cierra con las conclusiones y el trabajo futuro.

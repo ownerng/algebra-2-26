@@ -1,93 +1,138 @@
-\section{Marco teorico}
+\section{Marco teórico}
 
-% TODO: desarrollar cada subseccion. Las formulas ya estan planteadas y
-% coinciden con las docstrings del codigo fuente; el texto debe explicarlas.
+\subsection{Medición de distancia por tiempo de vuelo}
 
-\subsection{La imagen como objeto algebraico}
-
-Una imagen digital en color es un tensor $I \in \mathbb{R}^{H \times W \times 3}$.
-% TODO: desarrollar.
-
-\subsection{Transformaciones lineales de color}
-
-La conversion de RGB a YCbCr, en la recomendacion ITU-R BT.601, es una
-transformacion afin cuya parte lineal es una matriz de $3 \times 3$:
-
+El VL53L0X emite pulsos de luz infrarroja de 940 nm y mide el tiempo $\Delta t$
+que tarda la luz en regresar después de reflejarse en un objeto. Como la luz
+recorre la distancia de ida y de vuelta, la distancia al objeto es
 \begin{equation}
-\begin{bmatrix} Y \\ C_b \\ C_r \end{bmatrix}
-=
+r = \frac{c\,\Delta t}{2},
+\end{equation}
+donde $c$ es la velocidad de la luz. El fabricante especifica un alcance de
+hasta unos 2 m en condiciones favorables y un cono de emisión de
+aproximadamente $25^\circ$ \parencite{st2018}. En la práctica, con objetos
+comunes de interior, el alcance útil es cercano a 1,2 m.
+
+\subsection{Vectores y coordenadas polares}
+
+Una lectura del escáner es un par $(r,\theta)$: la distancia $r$ al objeto y el
+ángulo $\theta$ al que apunta el sensor. Ese par describe un vector del plano en
+coordenadas polares. Para dibujarlo y operar con él se necesitan sus
+coordenadas cartesianas $(x,y)$, que se obtienen con
+\begin{equation}
+x = r\cos\theta, \qquad y = r\sin\theta.
+\label{eq:polares}
+\end{equation}
+La ecuación~\eqref{eq:polares} puede leerse de otra forma: el punto medido es
+el vector $(r,0)$, que apunta a lo largo del eje $x$, girado un ángulo
+$\theta$. Esa lectura es la que conecta el problema con el álgebra lineal.
+
+\subsection{La rotación como transformación lineal}
+
+Una transformación $T:\mathbb{R}^2\to\mathbb{R}^2$ es lineal si conserva sumas
+y productos por escalar. Toda transformación lineal del plano queda definida
+por las imágenes de los vectores de la base canónica
+$\vect{e}_1=(1,0)$ y $\vect{e}_2=(0,1)$, y esas imágenes son las columnas de su
+matriz \parencite{lay2016}. Al girar el plano un ángulo $\theta$ en sentido
+antihorario, $\vect{e}_1$ se transforma en $(\cos\theta,\sin\theta)$ y
+$\vect{e}_2$ en $(-\sin\theta,\cos\theta)$. Por lo tanto, la matriz de rotación
+es
+\begin{equation}
+R(\theta)=
 \begin{bmatrix}
- 0.2990 &  0.5870 &  0.1140 \\
--0.1687 & -0.3313 &  0.5000 \\
- 0.5000 & -0.4187 & -0.0813
-\end{bmatrix}
-\begin{bmatrix} R \\ G \\ B \end{bmatrix}
-+
-\begin{bmatrix} 0 \\ 128 \\ 128 \end{bmatrix}.
+\cos\theta & -\sin\theta\\
+\sin\theta & \cos\theta
+\end{bmatrix},
+\label{eq:rotacion}
 \end{equation}
-
-La conversion de RGB a HSV, en cambio, \emph{no} es lineal: el tono y la
-saturacion se definen a partir de $\max(R,G,B)$, $\min(R,G,B)$ y cocientes
-entre esas cantidades, operaciones que no admiten representacion matricial.
-Esa es la razon por la que la segmentacion de este trabajo opera en YCbCr.
-% TODO: ampliar.
-
-\subsection{Momentos y matriz de inercia}
-
-Con los momentos centrales de segundo orden de la mascara binaria se construye
-
+y la ecuación~\eqref{eq:polares} se escribe como un producto matriz--vector:
 \begin{equation}
-M = \frac{1}{\mu_{00}}
-\begin{bmatrix} \mu_{20} & \mu_{11} \\ \mu_{11} & \mu_{02} \end{bmatrix},
+\begin{bmatrix} x\\ y \end{bmatrix}
+= R(\theta)\begin{bmatrix} r\\ 0 \end{bmatrix}.
+\label{eq:lectura}
 \end{equation}
 
-matriz simetrica y semidefinida positiva cuyos autovectores son las direcciones
-principales del objeto y cuyos autovalores miden la dispersion a lo largo de
-esas direcciones.
-% TODO: desarrollar.
+\subsection{Matrices ortogonales}
 
-\subsection{Descomposicion en valores singulares y eigen-objetos}
-
-Sea $A \in \mathbb{R}^{m \times d}$ la matriz de imagenes centradas. Su
-descomposicion en valores singulares $A = U \Sigma V^{T}$ entrega en las
-columnas de $V$ los autovectores de la matriz de covarianza
-$C = A^{T}A/(m-1)$. Cuando $m \ll d$ se aplica la identidad de
-\textcite{turk1991}: si $A A^{T} u = \mu\, u$, entonces
-
+Las columnas de $R(\theta)$ tienen norma 1 y son perpendiculares entre sí, es
+decir, forman una base ortonormal. Una matriz con esta propiedad se llama
+ortogonal y cumple
 \begin{equation}
-A^{T}A \,(A^{T}u) = \mu \,(A^{T}u),
+R^{T}R = I, \qquad R^{-1}=R^{T}, \qquad \det R = \cos^2\theta + \sin^2\theta = 1
 \end{equation}
-
-de modo que $v = A^{T}u / \lVert A^{T}u \rVert$ es autovector de la matriz
-grande sin necesidad de construirla.
-% TODO: desarrollar.
-
-\subsection{Minimos cuadrados regularizados}
-
-El clasificador resuelve
-
+\parencite{strang2016}. De la primera igualdad se deduce que la rotación
+conserva la longitud de cualquier vector:
 \begin{equation}
-\min_{W} \; \lVert XW - Y \rVert_{F}^{2} + \lambda \lVert W \rVert_{F}^{2},
-\qquad
-W = (X^{T}X + \lambda I)^{-1} X^{T} Y ,
+\|R\vect{v}\|^2 = (R\vect{v})^{T}(R\vect{v}) = \vect{v}^{T}R^{T}R\,\vect{v}
+= \vect{v}^{T}\vect{v} = \|\vect{v}\|^2 .
+\label{eq:norma}
 \end{equation}
+Para el escáner, esto garantiza que convertir una lectura no altera la
+distancia medida: el punto queda exactamente a $r$ milímetros del sensor, solo
+cambia su dirección. Por la misma razón, rotar un escaneo completo no deforma
+el mapa: las distancias y los ángulos entre puntos se conservan.
 
-que con $\lambda = 0$ coincide con $W = X^{+}Y$, donde $X^{+}$ es la
-pseudoinversa de Moore-Penrose \parencite{boyd2018}.
-% TODO: desarrollar, incluir la interpretacion geometrica de la proyeccion
-% sobre el espacio columna de X y la frontera de decision como hiperplano.
+Las rotaciones también se componen sumando ángulos,
+$R(\alpha)R(\beta)=R(\alpha+\beta)$, lo que permite pasar de la orientación del
+sensor a la orientación del aparato con un solo producto.
 
-\subsection{Numero de condicion y regularizacion}
+\subsection{Traslaciones y coordenadas homogéneas}
 
+Cuando el aparato se mueve a una segunda posición, sus mediciones quedan
+expresadas en un sistema de referencia que está girado un ángulo $\alpha$ y
+desplazado un vector $\vect{t}=(d_x,d_y)$ respecto al primero. Un punto local
+$\vect{p}_L$ se lleva al sistema global con
 \begin{equation}
-\operatorname{cond}_2(X^{T}X + \lambda I)
-= \frac{\sigma_{\max} + \lambda}{\sigma_{\min} + \lambda}
+\vect{p}_G = R(\alpha)\,\vect{p}_L + \vect{t}.
+\label{eq:afin}
 \end{equation}
+Esta transformación no es lineal, porque envía el origen a $\vect{t}$ y no al
+origen, así que no puede escribirse como una matriz de $2\times2$. Las
+coordenadas homogéneas resuelven el problema agregando una tercera componente
+igual a 1: el punto $(x,y)$ se representa como $(x,y,1)$. En ese espacio, la
+transformación~\eqref{eq:afin} sí es un producto matricial
+\parencite{hartley2004}:
+\begin{equation}
+\begin{bmatrix} x_G\\ y_G\\ 1 \end{bmatrix}
+=
+\underbrace{\begin{bmatrix}
+\cos\alpha & -\sin\alpha & d_x\\
+\sin\alpha & \cos\alpha & d_y\\
+0 & 0 & 1
+\end{bmatrix}}_{T(\alpha,\,d_x,\,d_y)}
+\begin{bmatrix} x_L\\ y_L\\ 1 \end{bmatrix}.
+\label{eq:homogenea}
+\end{equation}
+La ventaja es práctica: rotar y trasladar se reduce a una sola multiplicación,
+y varias transformaciones encadenadas se combinan multiplicando sus matrices.
+La inversa también tiene una forma cerrada que aprovecha la ortogonalidad de
+$R$:
+\begin{equation}
+T^{-1} =
+\begin{bmatrix}
+R^{T} & -R^{T}\vect{t}\\
+\vect{0}^{T} & 1
+\end{bmatrix},
+\label{eq:inversa}
+\end{equation}
+y sirve para el problema contrario: saber dónde queda un punto del mapa visto
+desde el aparato.
 
-decrece monotonamente con $\lambda$: la regularizacion desplaza todo el
-espectro y estabiliza la solucion a costa de sesgo.
-% TODO: desarrollar.
+\subsection{Cambio de base}
 
-\subsection{Mapeo de conceptos}
+La ecuación~\eqref{eq:afin} es un cambio de base. Las columnas de $R(\alpha)$
+son los ejes $x_2$ y $y_2$ de la segunda posición escritos en la base global,
+y el vector $\vect{t}$ es el origen de esa segunda posición visto desde la
+primera. Un mismo punto físico tiene coordenadas distintas en cada sistema,
+pero ambas describen el mismo lugar. Fusionar dos escaneos consiste en
+expresar todos los puntos en una base común, que en este trabajo es la de la
+primera posición.
+
+Este es el mismo principio que usan los métodos de registro de escaneos en
+robótica móvil. La diferencia es que esos métodos estiman $\alpha$ y $\vect{t}$
+automáticamente, buscando la transformación que mejor superpone los dos
+escaneos por mínimos cuadrados \parencite{besl1992,lu1997}, mientras que en
+este prototipo se miden a mano. La Tabla~\ref{tab:mapeo-conceptos} resume dónde
+aparece cada concepto en el sistema.
 
 \input{tablas/mapeo_conceptos}

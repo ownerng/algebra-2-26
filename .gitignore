@@ -1,21 +1,3 @@
-# Entorno
-.venv/
-logs.txt*
-__pycache__/
-*.py[cod]
-.pytest_cache/
-
-# Datos pesados: se regeneran con  python -m src.setup
-data/raw/
-data/cache/
-
-# El modelo entrenado SI se versiona (1.7 MB): es lo que permite que una copia
-# recien clonada clasifique sin bajar el ~1 GB de datasets ni entrenar.
-# results/scoal_model.pkl  <- versionado a proposito
-
-# Via D: el checkpoint (EfficientNet-B0, fp16, ~8.5 MB) SI se versiona, igual que
-# scoal_model.pkl: la app clasifica fruta desde el primer arranque.
-
 # Salida de LaTeX
 docs/*.aux
 docs/*.log
@@ -25,11 +7,16 @@ docs/*.blg
 docs/*.out
 docs/*.run.xml
 docs/*.toc
-docs/*.fff
-docs/*.ttt
-docs/*.lof
-docs/*.lot
+docs/*.fls
+docs/*.fdb_latexmk
+docs/*.synctex.gz
+docs/informe.pdf
+
+# Arduino
+firmware/**/build/
 
 # Sistema
+node_modules/
 Thumbs.db
 .DS_Store
+.playwright-mcp/

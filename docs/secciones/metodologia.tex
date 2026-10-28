@@ -1,36 +1,160 @@
-\section{Metodologia}
+\section{Metodología}
 
-% TODO: redactar en pasado y en tercera persona, siguiendo el orden del
-% pipeline implementado.
+\subsection{Arquitectura del sistema}
 
-\subsection{Datos}
+El sistema tiene tres partes: el prototipo físico, que mide; el firmware del
+ESP32, que controla el barrido y envía las lecturas, y una interfaz web, que
+hace los cálculos matriciales y dibuja el mapa
+(Figura~\ref{fig:arquitectura}). Las lecturas viajan por el cable USB como
+texto en formato JSON, una línea por medición, por ejemplo
+\texttt{\{"r":523,"theta":84\}}.
 
-% TODO: COIL-100 \parencite{nene1996} y Fruits-360 \parencite{muresan2018}.
-% Justificar el subconjunto de diez clases con solapamiento deliberado y el
-% balanceo a trescientas imagenes por clase.
+\begin{figure}[htbp]
+\caption{Arquitectura del escáner}
+\label{fig:arquitectura}
+\centering
+\begin{tikzpicture}[
+  bloque/.style={draw, rounded corners, align=center, minimum height=1.3cm,
+                 text width=3.1cm, font=\small},
+  flecha/.style={-{Stealth[length=2.5mm]}, thick},
+  node distance=1.1cm]
+\node[bloque] (sensor) {Sensor VL53L0X\\ distancia $r$ (I\textsuperscript{2}C)};
+\node[bloque, below=of sensor] (servo) {Servo SG90\\ ángulo $\theta$ (PWM)};
+\node[bloque, right=1.5cm of $(sensor)!0.5!(servo)$] (esp) {ESP32\\ barrido y envío\\ JSON $(r,\theta)$};
+\node[bloque, right=1.5cm of esp] (web) {Interfaz web\\ $R(\theta)$ y $T(\alpha,d_x,d_y)$\\ mapa y panel};
+\draw[flecha] (sensor) -- (esp);
+\draw[flecha] (esp) -- (servo);
+\draw[flecha] (esp) -- node[above, font=\footnotesize]{USB serial} (web);
+\end{tikzpicture}
+\figurenote{Elaboración propia.}
+\end{figure}
 
-\subsection{Segmentacion y normalizacion}
+\subsection{Prototipo físico}
 
-% TODO: umbral sobre la distancia al color de fondo en YCbCr, operaciones
-% morfologicas, contorno de area maxima, recorte cuadrado con fondo neutro.
+El prototipo usa los componentes de la Tabla~\ref{tab:materiales}. El sensor
+se alimenta con 3,3 V y se comunica por el bus I\textsuperscript{2}C (GPIO 21
+para SDA y GPIO 22 para SCL). El servomotor se alimenta con los 5 V del pin VIN
+y recibe la señal de control por el GPIO 13. Entre las líneas de 5 V y tierra
+se conectó un condensador electrolítico de 1000 µF para absorber los picos de
+corriente del servo, que de otro modo pueden reiniciar el microcontrolador.
+El sensor va fijado sobre el brazo del servo con un soporte en L, con el lente
+lo más cerca posible del eje de giro. La distancia $d$ entre el eje y el lente
+se midió y se suma a cada lectura (Figura~\ref{fig:geometria}).
 
-\subsection{Representaciones evaluadas}
+\begin{table}[htbp]
+\caption{Materiales del prototipo y costo aproximado}
+\label{tab:materiales}
+\begin{tabular}{lcl}
+\toprule
+Material & Cantidad & Costo aproximado (COP) \\
+\midrule
+ESP32 DevKit V1 de 30 pines & 1 & 25.000 -- 35.000 \\
+Sensor VL53L0X con pines soldados & 1 & 12.000 -- 20.000 \\
+Servomotor SG90 & 1 & 8.000 -- 12.000 \\
+Condensador electrolítico 1000 µF, 16 V & 1 & 1.000 \\
+Cables jumper macho--hembra (paquete) & 1 & 5.000 -- 8.000 \\
+Protoboard de 400 puntos & 1 & 3.000 -- 6.000 \\
+Cable USB de datos & 1 & 8.000 -- 15.000 \\
+\midrule
+Total & & 62.000 -- 97.000 \\
+\bottomrule
+\end{tabular}
+\note{Precios de referencia en tiendas de electrónica de Colombia en 2026.
+Los cables macho--macho del servo pueden reemplazarse por alambre de cable
+UTP. Elaboración propia.}
+\end{table}
 
-% TODO: via A (dieciseis descriptores geometricos y cromaticos), via B
-% (eigen-objetos sobre imagenes de 64x64), via C (embeddings de
-% MobileNetV3-Small congelado \parencite{howard2019} reducidos por PCA propia).
+\begin{figure}[htbp]
+\caption{Geometría de una lectura en el sistema local del aparato}
+\label{fig:geometria}
+\centering
+\begin{tikzpicture}[scale=1.1, >={Stealth[length=2.5mm]}]
+\draw[->] (-3.2,0) -- (3.4,0) node[right] {$x_L$};
+\draw[->] (0,-0.4) -- (0,3.4) node[above] {$y_L$};
+\draw[dashed, gray] (3,0) arc (0:180:3);
+\foreach \a in {0,30,...,180} \node[gray, font=\scriptsize] at (\a:3.35) {$\a^\circ$};
+\fill[blue!60] (0,0) circle (0.12);
+\draw[thick, red!70!black, ->] (0,0) -- (55:0.45);
+\draw[very thick, orange!80!black, ->] (55:0.45) -- (55:2.4);
+\fill (55:2.4) circle (0.07) node[above right] {$(x_L, y_L)$};
+\draw (0.8,0) arc (0:55:0.8);
+\node at (27:1.05) {$\theta$};
+\node[red!70!black, font=\small] at (80:0.35) {$d$};
+\node[orange!80!black] at (62:1.6) {$r$};
+\draw[dotted] (55:2.4) -- ({2.4*cos(55)},0);
+\draw[dotted] (55:2.4) -- (0,{2.4*sin(55)});
+\end{tikzpicture}
+\figurenote{El sensor mide $r$ desde el lente, que está a una distancia $d$ del
+eje de giro. Por eso el vector que se rota es $(r+d,\,0)$. Elaboración propia.}
+\end{figure}
 
-\subsection{Clasificador}
+\subsection{Firmware}
 
-% TODO: minimos cuadrados multiclase con regularizacion de Tikhonov;
-% estandarizacion ajustada unicamente con el conjunto de entrenamiento.
+El firmware, escrito en C++ con el entorno de Arduino, mueve el servo de
+$0^\circ$ a $180^\circ$ y de regreso en pasos de $2^\circ$. En cada paso espera
+35 ms a que el servo se estabilice, toma una medición del sensor y envía la
+línea JSON correspondiente. Cuando no hay objetos dentro del alcance envía
+$r=-1$, para que la interfaz pueda mover el haz aunque no dibuje un punto. El
+firmware también acepta tres comandos de un carácter desde la interfaz:
+iniciar, pausar y centrar el servo en $90^\circ$.
+
+\subsection{Procesamiento matemático}
+
+Cada lectura se procesa en dos pasos, que corresponden a los dos productos
+matriciales del marco teórico. Primero, la lectura se lleva al sistema local
+del aparato:
+\begin{equation}
+\vect{p}_L = R(\theta)\begin{bmatrix} r + d\\ 0\end{bmatrix}.
+\end{equation}
+Después, el punto local se lleva al sistema global con la matriz homogénea de
+la posición desde la que se midió:
+\begin{equation}
+\begin{bmatrix}\vect{p}_G\\ 1\end{bmatrix}
+= T(\alpha, d_x, d_y)\begin{bmatrix}\vect{p}_L\\ 1\end{bmatrix}.
+\end{equation}
+La primera posición define el sistema global, de modo que para ella
+$\alpha=0$, $d_x=d_y=0$ y $T=I$. Para la segunda posición, $d_x$, $d_y$ y
+$\alpha$ se miden con cinta métrica y transportador después de mover el
+aparato. Si el servo gira en sentido contrario al esperado, la interfaz permite
+usar $180^\circ-\theta$ en lugar de $\theta$, lo que equivale a una reflexión
+del sistema local.
+
+Las funciones de álgebra lineal (rotación, matriz homogénea, inversa y
+productos) se programaron directamente en JavaScript, sin bibliotecas de
+cálculo, para que el código refleje las ecuaciones del marco teórico.
+
+\subsection{Interfaz web}
+
+La interfaz se ejecuta en el navegador y recibe los datos con la API Web
+Serial. Tiene una vista de radar 2D dibujada con Canvas y una vista 3D hecha con
+la biblioteca Three.js, en la que el mapa del plano se levanta en altura para
+facilitar su lectura. Esta vista 3D es una visualización: el sensor mide en un
+solo plano. Junto al mapa, un panel muestra la multiplicación de matrices de la
+lectura más reciente con sus valores numéricos, la matriz homogénea de la
+posición activa y las columnas de $R(\alpha)$ como ejes de la segunda
+posición. Al modificar $d_x$, $d_y$ o $\alpha$, el mapa se recalcula al
+instante, lo que permite ver cómo una pose mal medida desarma el mapa.
 
 \subsection{Protocolo experimental}
 
-% TODO: particion estratificada con semilla fija, validacion cruzada de cinco
-% pliegues, tres barridos de ablacion y baselines de comparacion.
+Para medir la precisión de la fusión se necesita conocer la posición real de
+cada objeto, algo que no es posible con mediciones a mano. Por eso los
+experimentos cuantitativos se hicieron en un entorno simulado: una habitación
+virtual con paredes, las patas de una mesa y de una silla, una caja y una
+papelera. El simulador lanza un rayo en la dirección de cada ángulo, calcula la
+intersección con los objetos y devuelve la distancia con el mismo formato JSON
+que el firmware. Se agregó ruido uniforme de $\pm(3 + 0{,}01\,r)$ mm y una
+probabilidad de 3\,\% de perder la lectura. El generador de números aleatorios
+usa una semilla fija, de modo que los resultados son reproducibles.
 
-\subsection{Implementacion}
-
-% TODO: NumPy como unico motor; sklearn empleado solo como referencia de
-% verificacion numerica; torch empleado solo como extractor congelado.
+Se realizaron tres experimentos:
+\begin{enumerate}
+\item Escaneo desde dos posiciones y fusión con la pose correcta.
+\item Fusión con una pose errónea ($8^\circ$ de error en $\alpha$ y 80 mm en
+$d_x$), para observar el efecto en el mapa.
+\item Barrido del error en $\alpha$ entre $0^\circ$ y $20^\circ$ sin ruido del
+sensor, comparando el error medio de registro con la predicción teórica.
+\end{enumerate}
+Además, se verificaron numéricamente las propiedades de las matrices
+implementadas y se escribieron pruebas automáticas para cada función de
+álgebra lineal.

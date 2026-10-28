@@ -1,8 +1,25 @@
 \newpage
 \section*{Abstract}
-% TODO: version en ingles del resumen.
 
-\noindent\textit{Keywords:} linear algebra, object classification,
-principal component analysis, least squares, singular value
-decomposition, computer vision.
+Robot vacuums, autonomous vehicles and surveying equipment build maps from a
+shared problem: a sensor measures distances relative to itself, and those
+measurements must be expressed in a common frame of reference. This work
+presents a low-cost 2D LIDAR scanner built with an ESP32 microcontroller, a
+VL53L0X time-of-flight laser sensor and an SG90 servo motor, which solves that
+problem with linear algebra. Each reading $(r,\theta)$ is turned into a point
+of the plane through the rotation matrix $R(\theta)$, and scans taken from two
+positions are merged into a single map with a $3\times3$ homogeneous matrix
+that combines rotation and translation in one matrix product. A web interface
+draws the map in real time and displays the matrix multiplication behind every
+reading. In a simulated environment, the merged map gathered
+\cifPuntosTotal{} points and sensor noise produced a mean error of
+\cifRuidoMedio{} mm. A $5^\circ$ error in the angle of the second position
+raised the mean error to \cifErrorCinco{} mm, matching the theoretical
+expression $2|\sin(\delta/2)|\,\|\vect{v}\|$, which shows that the device's
+orientation matters more than its displacement for map quality. The
+implemented matrices were numerically verified to be orthogonal, to preserve
+norms and to have an exact inverse.
+
+\noindent\textit{Keywords:} linear algebra, rotation matrix, homogeneous
+coordinates, change of basis, LIDAR, environment mapping.
 \newpage

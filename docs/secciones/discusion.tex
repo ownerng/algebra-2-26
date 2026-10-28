@@ -1,13 +1,38 @@
-\section{Discusion}
+\section{Discusión}
 
-% TODO: responder la pregunta de investigacion con los numeros obtenidos.
-% Puntos que el trabajo debe discutir:
-%   - Cuanto del desempeno depende de la representacion y cuanto del
-%     clasificador, comparando las tres vias bajo el mismo clasificador.
-%   - Por que el clasificador lineal alcanza, o no, el techo del extractor
-%     congelado frente a la cabeza original de la red.
-%   - La discrepancia entre vias en la demostracion en vivo como evidencia de
-%     desplazamiento de dominio, no como defecto de implementacion: los
-%     datasets tienen fondo controlado y la camara no.
-%   - Limitaciones: fondo uniforme, un solo objeto por escena, ausencia de la
-%     medicion de masa.
+Los resultados muestran que el álgebra lineal no es solo una forma de escribir
+el problema: también explica el comportamiento del sistema. El ejemplo más
+claro es el error de orientación. Si la segunda posición se mide con un ángulo
+$\alpha+\delta$ en lugar de $\alpha$, cada punto local $\vect{v}$ se desplaza
+\begin{equation}
+\|R(\alpha+\delta)\vect{v} - R(\alpha)\vect{v}\|
+= \|(R(\delta) - I)\vect{v}\|
+= 2\left|\sin\tfrac{\delta}{2}\right|\,\|\vect{v}\|,
+\end{equation}
+donde se usó que $R(\alpha)$ conserva la norma. El error depende de la
+distancia del punto al aparato: un grado de error mueve poco un objeto cercano
+y mucho uno lejano, como el extremo de una palanca. La curva de la
+Figura~\ref{fig:error-alpha} coincide con esta expresión hasta el redondeo
+numérico, lo que confirma tanto la teoría como la implementación.
+
+El error de traslación se comporta de otra manera. Un error en $d_x$ o $d_y$
+desplaza todos los puntos el mismo vector, sin importar su distancia, porque
+la traslación se suma después de la rotación. En consecuencia, en un escáner
+de este tipo conviene medir con más cuidado el ángulo que la posición: con los
+objetos a unos 80 cm, $1^\circ$ de error equivale a unos 14 mm, mientras que un
+error de 14 mm en la cinta métrica es fácil de evitar.
+
+El ruido del sensor tuvo un efecto mucho menor: \cifRuidoMedio{} mm de error
+medio frente a \cifErrorCinco{} mm con $5^\circ$ de error en $\alpha$. Esto
+indica que, con este sensor, la calidad del mapa fusionado depende más de la
+medición de la pose que de la precisión del VL53L0X.
+
+El trabajo tiene limitaciones que conviene precisar. El sensor mide en un solo
+plano, por lo que el mapa es bidimensional y un objeto que no corte ese plano
+no aparece; la vista 3D de la interfaz es una ayuda visual. El alcance práctico
+es de unos 1,2 m y las superficies oscuras o brillantes devuelven menos luz.
+El servo SG90 tiene una precisión angular del orden de uno o dos grados, que se
+suma al error de orientación ya discutido. Por último, los resultados
+cuantitativos provienen de un entorno simulado; el prototipo físico validó el
+barrido del servo y su alimentación, y la medición con el sensor real queda
+pendiente.

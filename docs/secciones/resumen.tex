@@ -1,12 +1,23 @@
 \begin{abstract}
-% TODO: reemplazar este parrafo por el resumen real, de 150 a 250 palabras en
-% espanol. Debe cubrir: problema, metodo, resultado principal cuantificado y
-% conclusion. Los valores numericos salen de docs/tablas/resultados_via.tex,
-% que a su vez se genera desde results/ablacion_via.csv: no escribir cifras a
-% mano. El entorno abstract no puede quedar vacio o la clase apa7 falla.
-Resumen pendiente de redaccion.
+Los robots aspiradora, los vehículos autónomos y los equipos de topografía
+construyen mapas a partir de un problema común: un sensor mide distancias
+respecto a sí mismo y esas medidas deben llevarse a un sistema de referencia
+compartido. Este trabajo presenta un escáner LIDAR 2D de bajo costo, construido
+con un microcontrolador ESP32, un sensor láser de tiempo de vuelo VL53L0X y un
+servomotor SG90, que resuelve ese problema con álgebra lineal. Cada lectura
+$(r,\theta)$ se convierte en un punto del plano mediante la matriz de rotación
+$R(\theta)$, y los escaneos tomados desde dos posiciones se fusionan en un solo
+mapa con una matriz homogénea $3\times3$ que combina rotación y traslación en
+un único producto matricial. Una interfaz web dibuja el mapa en tiempo real y
+muestra la multiplicación de matrices de cada lectura. En un entorno simulado,
+el mapa fusionado reunió \cifPuntosTotal{} puntos y el ruido del sensor produjo
+un error medio de \cifRuidoMedio{} mm. Un error de $5^\circ$ en el ángulo de la
+segunda posición elevó el error medio a \cifErrorCinco{} mm, en concordancia
+exacta con la expresión teórica $2|\sin(\delta/2)|\,\|\vect{v}\|$, lo que
+muestra que la orientación del aparato pesa más que su desplazamiento en la
+calidad del mapa. Se verificó numéricamente que las matrices implementadas son
+ortogonales, conservan la norma y tienen inversa exacta.
 \end{abstract}
 
-\keywords{algebra lineal, clasificacion de objetos,
-analisis de componentes principales, minimos cuadrados,
-descomposicion en valores singulares, vision por computador}
+\keywords{álgebra lineal, matriz de rotación, coordenadas homogéneas,
+cambio de base, LIDAR, mapeo de entornos}

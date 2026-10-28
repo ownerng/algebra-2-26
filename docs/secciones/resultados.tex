@@ -1,80 +1,179 @@
 \section{Resultados}
 
-% Las cifras de este capitulo se inyectan desde los CSV del estudio de
-% ablacion, mediante las tablas generadas en docs/tablas/. No escribir valores
-% numericos a mano: regenerar con
-%     python -m src.experiments.ablation
-% y volver a compilar.
+\subsection{Escaneo y conversión de coordenadas}
 
-\subsection{Comparacion entre representaciones}
-
-\input{tablas/resultados_via}
-
-% TODO: describir la tabla en prosa.
+La Figura~\ref{fig:escaneo-local} muestra un barrido completo desde la primera
+posición, ya convertido a coordenadas cartesianas con la
+ecuación~\eqref{eq:lectura}. De 91 ángulos medidos, \cifPuntosUno{} devolvieron
+eco; los demás apuntaban a zonas sin objetos dentro del alcance del sensor. Las
+lecturas consecutivas sobre un mismo objeto quedan alineadas, de modo que las
+patas de la mesa y de la silla, la papelera y las paredes se reconocen a
+simple vista.
 
 \begin{figure}[htbp]
-\caption{Exactitud por representacion bajo validacion cruzada}
-\figurascoal{ablacion_via.png}{0.6\textwidth}
-\note{Media y desviacion estandar sobre cinco pliegues estratificados.
-Elaboracion propia.}
+\caption{Escaneo desde la posición 1 en su sistema local}
+\label{fig:escaneo-local}
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.85\linewidth, axis equal image,
+  xlabel={$x_L$ (mm)}, ylabel={$y_L$ (mm)},
+  xmin=-1300, xmax=1300, ymin=-100, ymax=1300,
+  grid=major, grid style={gray!20}]
+\addplot[only marks, mark=*, mark size=1.4pt, cyan!70!black]
+  table[col sep=comma, x=x, y=y]{datos/p1_local.csv};
+\addplot[only marks, mark=triangle*, mark size=4pt, black] coordinates {(0,0)};
+\end{axis}
+\end{tikzpicture}
+\figurenote{El triángulo marca el eje del servo. Datos del entorno simulado.
+Elaboración propia.}
 \end{figure}
 
-\subsection{Efecto del numero de componentes}
+\subsection{Fusión de dos posiciones}
+
+La segunda posición se ubicó en $d_x=250$ mm, $d_y=1100$ mm, con
+$\alpha=180^\circ$, es decir, al otro lado de la habitación y mirando en
+sentido contrario. Desde allí se obtuvieron \cifPuntosDos{} puntos. La
+Figura~\ref{fig:fusion} compara la fusión con la pose correcta y con una pose
+mal medida. Con la pose correcta, los dos escaneos encajan: las patas de la
+mesa, vistas desde lados opuestos, coinciden, y la pared derecha aparece
+completa. Con $8^\circ$ de error en $\alpha$ y 80 mm en $d_x$, el segundo
+escaneo queda girado y desplazado, y los objetos aparecen duplicados.
 
 \begin{figure}[htbp]
-\caption{Exactitud y varianza explicada en funcion de $k$}
-\figurascoal{ablacion_k.png}{\textwidth}
-\note{Vias B y C. La linea discontinua marca el noventa por ciento de
-varianza explicada acumulada. Elaboracion propia.}
+\caption{Mapa fusionado con la pose correcta y con una pose errónea}
+\label{fig:fusion}
+\centering
+\begin{tikzpicture}
+\begin{axis}[name=bien, width=0.52\linewidth, axis equal image,
+  title={Pose correcta}, xlabel={$x_G$ (mm)}, ylabel={$y_G$ (mm)},
+  xmin=-1100, xmax=1150, ymin=-300, ymax=1400,
+  grid=major, grid style={gray!20}, title style={font=\small},
+  tick label style={font=\scriptsize}]
+\addplot[only marks, mark=*, mark size=1.1pt, cyan!70!black]
+  table[col sep=comma, x=x, y=y]{datos/fusion_p1.csv};
+\addplot[only marks, mark=*, mark size=1.1pt, magenta]
+  table[col sep=comma, x=x, y=y]{datos/fusion_p2.csv};
+\addplot[only marks, mark=triangle*, mark size=3.5pt, black] coordinates {(0,0) (250,1100)};
+\end{axis}
+\begin{axis}[at={(bien.east)}, anchor=west, xshift=0.6cm,
+  width=0.52\linewidth, axis equal image,
+  title={Error de $8^\circ$ y 80 mm}, xlabel={$x_G$ (mm)},
+  xmin=-1100, xmax=1150, ymin=-300, ymax=1400,
+  grid=major, grid style={gray!20}, title style={font=\small},
+  tick label style={font=\scriptsize}, yticklabels={}]
+\addplot[only marks, mark=*, mark size=1.1pt, cyan!70!black]
+  table[col sep=comma, x=x, y=y]{datos/fusion_p1.csv};
+\addplot[only marks, mark=*, mark size=1.1pt, magenta]
+  table[col sep=comma, x=x, y=y]{datos/fusion_mala_p2.csv};
+\end{axis}
+\end{tikzpicture}
+\figurenote{En cian, los puntos de la posición 1; en magenta, los de la
+posición 2 llevados al sistema global con la ecuación~\eqref{eq:homogenea}.
+Los triángulos marcan las dos posiciones del aparato. Elaboración propia.}
 \end{figure}
 
-% TODO: comentar el punto de saturacion.
+\subsection{Sensibilidad al error de orientación}
 
-\subsection{Efecto de la regularizacion}
+La Figura~\ref{fig:error-alpha} muestra el error medio de registro de los
+puntos de la segunda posición cuando el ángulo $\alpha$ se mide con un error
+$\delta$, sin ruido del sensor. El error crece de forma prácticamente lineal:
+cada grado de error desplaza los puntos unos 14 mm en promedio, y con
+$20^\circ$ el error medio llega a \cifErrorVeinte{} mm. La curva medida
+coincide con la predicción teórica $2|\sin(\delta/2)|$ multiplicada por la
+distancia media de los puntos al aparato, que fue de \cifNormaMedia{} mm; la
+mayor diferencia entre ambas fue de \cifDifTeoria{} mm, atribuible al redondeo
+numérico.
 
 \begin{figure}[htbp]
-\caption{Exactitud y numero de condicion en funcion de $\lambda$}
-\figurascoal{ablacion_lambda.png}{\textwidth}
-\note{El panel derecho muestra $\operatorname{cond}_2(X^{T}X+\lambda I)$ en
-escala logaritmica. Elaboracion propia.}
+\caption{Error medio de registro según el error en el ángulo $\alpha$}
+\label{fig:error-alpha}
+\centering
+\begin{tikzpicture}
+\begin{axis}[width=0.85\linewidth, height=6.5cm,
+  xlabel={Error en $\alpha$, $\delta$ (grados)},
+  ylabel={Error de registro (mm)},
+  xmin=0, xmax=20, ymin=0,
+  grid=major, grid style={gray!20},
+  legend pos=north west, legend style={font=\small}]
+\addplot[thick, magenta, mark=*, mark size=1.5pt]
+  table[col sep=comma, x=delta, y=medio]{datos/error_alpha.csv};
+\addlegendentry{Error medio medido}
+\addplot[thick, dashed, black]
+  table[col sep=comma, x=delta, y=teorico]{datos/error_alpha.csv};
+\addlegendentry{Teoría: $2|\sin(\delta/2)|\,\overline{\|\vect{v}\|}$}
+\addplot[thin, gray, mark=o, mark size=1.2pt]
+  table[col sep=comma, x=delta, y=maximo]{datos/error_alpha.csv};
+\addlegendentry{Error máximo}
+\end{axis}
+\end{tikzpicture}
+\figurenote{Puntos de la posición 2 sin ruido del sensor, para aislar el
+efecto de la orientación. Elaboración propia.}
 \end{figure}
 
-% TODO: comentar el optimo y la caida del numero de condicion.
+La Tabla~\ref{tab:resultados-sim} reúne los resultados del entorno simulado.
+El ruido del sensor produjo un error medio de \cifRuidoMedio{} mm, un orden de
+magnitud menor que el causado por $5^\circ$ de error en la orientación
+(\cifErrorCinco{} mm).
 
-\subsection{Comparacion contra los baselines}
+\input{tablas/resultados_sim}
 
-\input{tablas/baselines}
+\subsection{Verificación de las propiedades de las matrices}
 
-% TODO: comentar la brecha entre la via C y la cabeza original de MobileNetV3.
+La Tabla~\ref{tab:propiedades} muestra que las matrices implementadas cumplen
+las propiedades teóricas hasta la precisión de la aritmética de doble
+precisión, cuyo épsilon es cercano a $2{,}2\times10^{-16}$. El determinante de
+$R(\theta)$ es 1, $R^{T}R$ es la identidad, la norma se conserva y $T^{-1}T$ es
+la identidad. Las siete pruebas automáticas de las funciones de álgebra lineal
+se ejecutaron sin fallos.
 
-\subsection{Analisis cualitativo}
+\input{tablas/propiedades}
+
+\subsection{Interfaz web}
+
+La Figura~\ref{fig:interfaz} muestra la interfaz durante un escaneo. El panel
+derecho presenta los dos productos matriciales con los valores de la lectura
+actual. En el caso mostrado, $\theta=38^\circ$ y $r+d=1200$ mm producen el
+punto $(945{,}6;\;738{,}8)$ mm, cuya norma es de nuevo 1200 mm, como predice la
+ecuación~\eqref{eq:norma}. En la primera posición la matriz homogénea es la
+identidad y el punto global coincide con el local.
 
 \begin{figure}[htbp]
-\caption{Primeros dieciseis eigen-objetos}
-\figurascoal{eigenobjetos.png}{0.6\textwidth}
-\note{Cada panel indica la fraccion de varianza explicada. Elaboracion propia.}
+\caption{Interfaz web: radar 2D y panel de cálculo en vivo}
+\label{fig:interfaz}
+\centering
+\includegraphics[width=\linewidth]{interfaz_2d.png}
+\figurenote{Las flechas roja y verde en cada posición son las columnas de
+$R(\alpha)$, es decir, los ejes locales vistos en la base global. Elaboración
+propia.}
 \end{figure}
 
 \begin{figure}[htbp]
-\caption{Proyeccion sobre las dos primeras componentes principales}
-\figurascoal{scatter_pca.png}{0.6\textwidth}
-\note{Color por clase. Elaboracion propia.}
+\caption{Vista 3D del mapa}
+\label{fig:interfaz-3d}
+\centering
+\includegraphics[width=\linewidth]{interfaz_3d.png}
+\figurenote{Cada punto del plano se levanta como una pared para facilitar la
+lectura. La altura es solo visual. Elaboración propia.}
 \end{figure}
 
-\begin{figure}[htbp]
-\caption{Matriz de confusion de la via A}
-\figurascoal{confusion_A.png}{0.55\textwidth}
-\note{Filas normalizadas por clase real. Elaboracion propia.}
-\end{figure}
+\subsection{Validación con el prototipo físico}
+
+Se armó el circuito en la protoboard y se cargó un programa de prueba que
+lleva el servo a $0^\circ$, $90^\circ$ y $180^\circ$ y luego hace barridos
+continuos. El servo recorrió las tres posiciones y los barridos sin que el
+ESP32 se reiniciara por caída de tensión, lo que confirma que la alimentación
+desde el pin VIN, con el condensador de 1000 µF, es suficiente. La conexión del
+sensor estaba pendiente de soldadura al cierre de este informe.
+
+% TODO: cuando el sensor esté soldado, completar con mediciones reales.
+% Sugerencia: ubicar una caja a 30, 60 y 90 cm medidos con cinta, registrar
+% la lectura del escáner a 90 grados y reportar el error en esta tabla.
+% Agregar también la foto del prototipo en docs/figuras/foto_prototipo.jpg.
 
 \begin{figure}[htbp]
-\caption{Matriz de confusion de la via B}
-\figurascoal{confusion_B.png}{0.55\textwidth}
-\note{Filas normalizadas por clase real. Elaboracion propia.}
-\end{figure}
-
-\begin{figure}[htbp]
-\caption{Matriz de confusion de la via C}
-\figurascoal{confusion_C.png}{0.55\textwidth}
-\note{Filas normalizadas por clase real. Elaboracion propia.}
+\caption{Prototipo armado}
+\label{fig:prototipo}
+\centering
+\figurapendiente{foto_prototipo.jpg}{0.7\linewidth}
+\figurenote{Elaboración propia.}
 \end{figure}

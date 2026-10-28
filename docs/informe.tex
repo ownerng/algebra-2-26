@@ -8,6 +8,10 @@
 \usepackage{booktabs}
 \usepackage{csquotes}
 \usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
 \usepackage[style=apa,backend=biber]{biblatex}
 \DeclareLanguageMapping{spanish}{spanish-apa}
@@ -15,24 +19,29 @@
 
 \graphicspath{{figuras/}}
 
-% Las figuras las genera src/experiments/ablation.py desde los CSV. Mientras
-% no existan, el documento debe seguir compilando: en su lugar se dibuja un
-% marcador con el nombre del archivo que falta.
-\newcommand{\figurascoal}[2]{%
+% Cifras del texto: las genera experimentos/generar.mjs a partir del simulador.
+\input{tablas/cifras}
+
+% Fotos del prototipo: mientras no existan, se dibuja un marcador con el
+% nombre del archivo que falta y el documento sigue compilando.
+\newcommand{\figurapendiente}[2]{%
   \IfFileExists{figuras/#1}%
     {\includegraphics[width=#2]{#1}}%
-    {\fbox{\parbox[c][3cm][c]{#2}{\centering\ttfamily
-       figura pendiente\\\detokenize{#1}}}}%
+    {\fbox{\parbox[c][4cm][c]{#2}{\centering\ttfamily
+       foto pendiente\\\detokenize{#1}}}}%
 }
 
+% Notacion
+\newcommand{\vect}[1]{\mathbf{#1}}
+
 % --- Metadatos de portada (clase apa7, opcion stu) ---
-\title{Clasificacion de objetos mediante algebra lineal:
-       estudio comparativo de tres representaciones de caracteristicas
-       bajo un clasificador de minimos cuadrados}
-\shorttitle{Clasificacion de objetos mediante algebra lineal}
-\author{Jhonnatan}
-\affiliation{Facultad de Ingenieria, Universidad Cooperativa de Colombia}
-\course{Algebra Lineal}
+\title{Escáner LIDAR 2D de bajo costo:
+       mapeo de entornos mediante transformaciones lineales
+       y coordenadas homogéneas}
+\shorttitle{Escáner LIDAR 2D mediante transformaciones lineales}
+\author{Jhonatan Méndez}
+\affiliation{Facultad de Ingeniería, Universidad Cooperativa de Colombia}
+\course{Álgebra Lineal}
 % TODO: reemplazar por el nombre completo del docente.
 \professor{Nombre del docente}
 % TODO: reemplazar por la fecha de entrega.

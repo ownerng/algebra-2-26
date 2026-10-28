@@ -1,26 +1,24 @@
 \begin{table}[htbp]
-\caption{Conceptos de algebra lineal y su punto de aplicacion en el sistema}
+\caption{Conceptos de álgebra lineal y su punto de aplicación en el sistema}
 \label{tab:mapeo-conceptos}
 \begin{tabular}{ll}
 \toprule
-Concepto & Donde se aplica \\
+Concepto & Dónde se aplica \\
 \midrule
-Matrices y tensores & Imagen como $I \in \mathbb{R}^{H \times W \times 3}$ \\
-Producto matriz-vector & Conversion RGB a YCbCr y RGB a gris \\
-Autovalores y autovectores & Matriz de inercia $2\times2$, ejes principales \\
-Matriz de covarianza & Estandarizacion y analisis de componentes principales \\
-Descomposicion en valores singulares & Eigen-objetos, reduccion de 4096 a $k$ \\
-Relacion entre $A^{T}A$ y $AA^{T}$ & Truco de Turk-Pentland para $m \ll n$ \\
-Espacios y subespacios vectoriales & Espacio de caracteristicas, subespacio propio \\
-Proyeccion ortogonal & Representacion en el subespacio de eigen-objetos \\
-Minimos cuadrados & Entrenamiento del clasificador \\
-Pseudoinversa de Moore-Penrose & Solucion cerrada $W = X^{+}Y$ \\
-Rango e independencia lineal & Deteccion de caracteristicas redundantes \\
-Numero de condicion & Diagnostico de $X^{T}X$ mal condicionada \\
-Regularizacion de Tikhonov & Estabilizacion mediante $+\lambda I$ \\
-Norma euclidiana & Baseline k-NN, distancia en el espacio propio \\
-Hiperplanos separadores & Frontera de decision del clasificador lineal \\
+Vectores en $\mathbb{R}^2$ & Cada lectura $(r,\theta)$ como punto del plano \\
+Coordenadas polares y cartesianas & Conversión de la lectura a $(x,y)$ \\
+Transformación lineal & Rotación del vector $(r+d,\,0)$ \\
+Matriz de una transformación & Columnas $R\vect{e}_1$ y $R\vect{e}_2$ \\
+Producto matriz--vector & Paso 1 del panel: $R(\theta)\,[r+d,\;0]^{T}$ \\
+Matriz ortogonal, $\det R = 1$ & El mapa no se deforma al rotarlo \\
+Conservación de la norma & $\|(x_L,y_L)\| = r + d$ \\
+Composición de transformaciones & $R(\alpha)R(\theta) = R(\alpha+\theta)$ \\
+Coordenadas homogéneas & Rotación y traslación en una matriz $3\times3$ \\
+Transformación afín & Paso 2 del panel: $T\,[x_L,\;y_L,\;1]^{T}$ \\
+Cambio de base & Ejes de la posición 2 en la base global \\
+Matriz inversa, $R^{-1}=R^{T}$ & Paso del mapa global al sistema del aparato \\
+Norma euclidiana & Error de registro entre mapas \\
 \bottomrule
 \end{tabular}
-\note{Elaboracion propia.}
+\note{Elaboración propia.}
 \end{table}
