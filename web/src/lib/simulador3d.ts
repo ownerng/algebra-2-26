@@ -13,20 +13,23 @@ export const OBJETOS: Record<ObjetoSimulado, string> = {
   vacia: 'Mesa vacía (para ver el ajuste del plano)',
 };
 
-// Altura de la superficie (mm) en el punto (x, y) de la mesa, en mm
-export function alturaObjeto(objeto: ObjetoSimulado, x: number, y: number): number {
+// Centro de la cuadrícula con la que se hicieron los experimentos del informe
+// (10 × 8 cuadros de 20 mm); en la página, el objeto se pone en el centro de
+// la cuadrícula que se esté usando.
+export const CENTRO_EXPERIMENTOS: [number, number] = [90, 70];
+
+// Altura de la superficie (mm) en el punto (x, y) de la mesa; los objetos se
+// describen respecto al centro c de la cuadrícula.
+export function alturaObjeto(objeto: ObjetoSimulado, x: number, y: number, c: [number, number] = CENTRO_EXPERIMENTOS): number {
+  const dx = x - c[0], dy = y - c[1];
   if (objeto === 'vacia') return 0;
-  if (objeto === 'taza') {
-    return Math.hypot(x - 90, y - 70) <= 40 ? 95 : 0;
-  }
-  if (objeto === 'caja') {
-    return x >= 55 && x <= 125 && y >= 45 && y <= 95 ? 45 : 0;
-  }
+  if (objeto === 'taza') return Math.hypot(dx, dy) <= 40 ? 95 : 0;
+  if (objeto === 'caja') return Math.abs(dx) <= 35 && Math.abs(dy) <= 25 ? 45 : 0;
   // libros apilados en escalera
-  if (y < 30 || y > 110 || x < 30) return 0;
-  if (x < 80) return 20;
-  if (x < 120) return 40;
-  if (x < 160) return 60;
+  if (Math.abs(dy) > 40 || dx < -60) return 0;
+  if (dx < -10) return 20;
+  if (dx < 30) return 40;
+  if (dx < 70) return 60;
   return 0;
 }
 
@@ -36,14 +39,14 @@ const MEDIO_CONO = (12.5 * Math.PI) / 180;   // el VL53L0X ve un cono de unos 25
 
 // Distancia que mediría el sensor sobre (x, y): promedio dentro del cono,
 // pesando más las superficies cercanas, como pasa con la luz que regresa.
-export function distanciaSimulada(objeto: ObjetoSimulado, x: number, y: number, conRuido = true): number {
+export function distanciaSimulada(objeto: ObjetoSimulado, x: number, y: number, conRuido = true, c: [number, number] = CENTRO_EXPERIMENTOS): number {
   const radio = ALTURA_REAL_MM * Math.tan(MEDIO_CONO) * 0.6;
   let suma = 0, pesos = 0;
   for (let k = 0; k < 49; k++) {
     const ang = k * 2.39996, rho = radio * Math.sqrt((k + 0.5) / 49);
     const px = x + rho * Math.cos(ang), py = y + rho * Math.sin(ang);
     const mesa = INCLINACION.a * px + INCLINACION.b * py;
-    const d = ALTURA_REAL_MM - mesa - alturaObjeto(objeto, px, py);
+    const d = ALTURA_REAL_MM - mesa - alturaObjeto(objeto, px, py, c);
     const w = 1 / (d * d);
     suma += w * d;
     pesos += w;
@@ -55,7 +58,7 @@ export function distanciaSimulada(objeto: ObjetoSimulado, x: number, y: number, 
 export class Simulador3D implements Fuente {
   private temporizador: ReturnType<typeof setInterval> | undefined;
 
-  constructor(private opciones: OpcionesFuente & { posicionCaja: () => [number, number]; objeto: () => ObjetoSimulado }) {}
+  constructor(private opciones: OpcionesFuente & { posicionCaja: () => [number, number]; objeto: () => ObjetoSimulado; centro: () => [number, number] }) {}
 
   private emitir(objeto: object) {
     const dato = interpretarLinea(JSON.stringify(objeto));
@@ -67,14 +70,14 @@ export class Simulador3D implements Fuente {
     this.emitir({ estado: 'sensor listo' });
     this.temporizador = setInterval(() => {
       const [x, y] = this.opciones.posicionCaja();
-      this.emitir({ r: Math.round(distanciaSimulada(this.opciones.objeto(), x, y)) });
+      this.emitir({ r: Math.round(distanciaSimulada(this.opciones.objeto(), x, y, true, this.opciones.centro())) });
     }, 40);
   }
 
   async enviar(comando: string) {
     if (comando !== 'M') return;
     const [x, y] = this.opciones.posicionCaja();
-    const lecturas = Array.from({ length: 10 }, () => distanciaSimulada(this.opciones.objeto(), x, y));
+    const lecturas = Array.from({ length: 10 }, () => distanciaSimulada(this.opciones.objeto(), x, y, true, this.opciones.centro()));
     const media = lecturas.reduce((a, b) => a + b, 0) / lecturas.length;
     const desv = Math.sqrt(lecturas.reduce((a, b) => a + (b - media) ** 2, 0) / 9);
     setTimeout(() => this.emitir({ medida: +media.toFixed(1), desv: +desv.toFixed(1), n: 10, origen: 'web' }), 250);

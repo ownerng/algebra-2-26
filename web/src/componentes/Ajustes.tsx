@@ -1,5 +1,4 @@
-// Ajustes del escaneo: tamaño de la cuadrícula, altura de la caja sobre la
-// mesa, simulación y archivos (guardar, abrir y exportar la figura).
+// Ajustes (en un panel lateral): cuadrícula, velocidad, simulación y archivos.
 
 import { useRef, useState } from 'react';
 import { escaneo, useEscaneo, type EscaneoGuardado } from '../lib/escaneo.ts';
@@ -12,11 +11,11 @@ function descargar(nombre: string, contenido: string, tipo: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function Numero({ id, etiqueta, ayuda, unidad, valor, min, alCambiar }:
-  { id: string; etiqueta: string; ayuda: string; unidad: string; valor: number; min: number; alCambiar: (v: number) => void }) {
+function Numero({ id, etiqueta, unidad, valor, min, alCambiar }:
+  { id: string; etiqueta: string; unidad: string; valor: number; min: number; alCambiar: (v: number) => void }) {
   return (
     <label className="campo-fila" htmlFor={id}>
-      <span className="campo-nombre">{etiqueta}<small>{ayuda}</small></span>
+      <span className="campo-nombre">{etiqueta}</span>
       <span className="campo-valor">
         <input id={id} type="number" min={min} value={valor} onChange={(ev) => { const v = Number(ev.target.value); if (v >= min) alCambiar(v); }} />
         <span className="unidad">{unidad}</span>
@@ -26,11 +25,12 @@ function Numero({ id, etiqueta, ayuda, unidad, valor, min, alCambiar }:
 }
 
 export function Ajustes() {
-  const e = useEscaneo(120);
-  const [nombre, setNombre] = useState('Taza');
+  const e = useEscaneo(150);
+  const [nombre, setNombre] = useState('Objeto');
   const archivo = useRef<HTMLInputElement>(null);
   const guardados = e.guardados();
-  const enCurso = e.medidas.size === 0 ? e.recuperarEnCurso() : null;
+  const escaneando = !!e.barrido && e.barrido.fase !== 'fin';
+  const { nx, ny, paso } = e.config;
 
   const abrir = async (lista: FileList | null) => {
     const f = lista?.[0];
@@ -46,71 +46,64 @@ export function Ajustes() {
   };
 
   return (
-    <section className="ajustes" aria-label="Ajustes y archivos">
-      <div className="mando">
-        <h3 className="placa-titulo">Altura de la caja sobre la mesa (opcional)</h3>
-        <p className="ayuda">
-          La altura de cada punto es H − r. No hace falta medir H: el plano de la mesa, ajustado por mínimos cuadrados,
-          corrige la altura. Si quieres el valor exacto, pon la caja sobre la mesa <b>vacía</b> y pulsa <b>Medir la mesa</b>.
-        </p>
-        <Numero id="altura" etiqueta="Altura H" ayuda={e.alturaMedida ? 'medida con el sensor' : 'escrita a mano'} unidad="mm" min={20}
-          valor={e.config.altura} alCambiar={(v) => escaneo.cambiarConfig({ altura: v })} />
-        <button type="button" className="tecla chica" disabled={!e.fuente || e.midiendo} onClick={() => escaneo.medirMesa()}>
-          {e.calibrando ? 'Midiendo la mesa…' : 'Medir la mesa'}
-        </button>
-      </div>
+    <div className="ajustes-panel">
+      <h2>Ajustes</h2>
 
-      <div className="mando">
-        <h3 className="placa-titulo">Tamaño de la cuadrícula</h3>
-        <Numero id="nx" etiqueta="Columnas" ayuda="casillas en x (i)" unidad="" min={2} valor={e.config.nx} alCambiar={(v) => escaneo.cambiarConfig({ nx: Math.min(30, v) })} />
-        <Numero id="ny" etiqueta="Filas" ayuda="casillas en y (j)" unidad="" min={2} valor={e.config.ny} alCambiar={(v) => escaneo.cambiarConfig({ ny: Math.min(30, v) })} />
-        <Numero id="paso" etiqueta="Lado del cuadro" ayuda="Δ, igual al dibujado" unidad="mm" min={5} valor={e.config.paso} alCambiar={(v) => escaneo.cambiarConfig({ paso: v })} />
-        <label className="casilla-check"><input type="checkbox" checked={e.corregirMesa} onChange={(ev) => escaneo.cambiar({ corregirMesa: ev.target.checked })} /> Corregir la inclinación de la mesa (mínimos cuadrados)</label>
-        <p className="ayuda">Cambiar las columnas o filas borra el escaneo actual.</p>
-      </div>
+      <section>
+        <h3>Cuadrícula</h3>
+        <p className="ayuda">Área: {(nx * paso) / 10} × {(ny * paso) / 10} cm. Dibújala igual en la cartulina.</p>
+        <Numero id="nx" etiqueta="Columnas" unidad="" min={2} valor={nx} alCambiar={(v) => escaneo.cambiarConfig({ nx: Math.min(30, v) })} />
+        <Numero id="ny" etiqueta="Filas" unidad="" min={2} valor={ny} alCambiar={(v) => escaneo.cambiarConfig({ ny: Math.min(30, v) })} />
+        <Numero id="paso" etiqueta="Lado del cuadro" unidad="mm" min={5} valor={paso} alCambiar={(v) => escaneo.cambiarConfig({ paso: v })} />
+      </section>
+
+      <section>
+        <h3>Velocidad de la marca</h3>
+        <div className="velocidades" role="radiogroup" aria-label="Velocidad">
+          {[20, 30, 40].map((v) => (
+            <button key={v} type="button" role="radio" aria-checked={e.velocidad === v} disabled={escaneando}
+              className={'alcance' + (e.velocidad === v ? ' activo' : '')} onClick={() => escaneo.cambiar({ velocidad: v })}>
+              {v === 20 ? 'lenta' : v === 30 ? 'normal' : 'rápida'} · {v / 10} cm/s
+            </button>
+          ))}
+        </div>
+        <label className="casilla-check"><input type="checkbox" defaultChecked={escaneo.vista.girar} onChange={(ev) => { escaneo.vista.girar = ev.target.checked; }} /> Girar la figura sola</label>
+        <label className="casilla-check"><input type="checkbox" checked={e.corregirMesa} onChange={(ev) => escaneo.cambiar({ corregirMesa: ev.target.checked })} /> Corregir la inclinación de la mesa</label>
+      </section>
 
       {e.tipoFuente === 'simulacion' && (
-        <div className="mando">
-          <h3 className="placa-titulo">Simulación</h3>
-          <label className="campo-fila" htmlFor="objeto">
-            <span className="campo-nombre">Objeto<small>sobre la mesa virtual</small></span>
-            <select id="objeto" value={e.objeto} onChange={(ev) => escaneo.cambiar({ objeto: ev.target.value as ObjetoSimulado })}>
-              {Object.entries(OBJETOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-            </select>
-          </label>
-          <p className="ayuda">En la simulación, la caja virtual sigue la marca sola: pulsa <b>▶ Escanear</b> y mira cómo se arma la figura.</p>
-        </div>
+        <section>
+          <h3>Objeto simulado</h3>
+          <select value={e.objeto} onChange={(ev) => escaneo.cambiar({ objeto: ev.target.value as ObjetoSimulado })} aria-label="Objeto simulado">
+            {Object.entries(OBJETOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </select>
+        </section>
       )}
 
-      <details className="mando plegable">
-        <summary className="placa-titulo">Guardar y exportar la figura</summary>
+      <section>
+        <h3>Guardar y exportar</h3>
         <div className="fila-botones">
-          <input id="nombre" className="texto" value={nombre} onChange={(ev) => setNombre(ev.target.value)} aria-label="Nombre del escaneo" />
-          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => escaneo.guardarComo(nombre || 'Escaneo')}>Guardar aquí</button>
+          <input className="texto" value={nombre} onChange={(ev) => setNombre(ev.target.value)} aria-label="Nombre del escaneo" />
+          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => escaneo.guardarComo(nombre || 'Escaneo')}>Guardar</button>
         </div>
         {guardados.length > 0 && (
           <ul className="guardados">
             {guardados.map((g) => (
               <li key={g.nombre}>
-                <span>{g.nombre} <small>{g.medidas.length} pts · {new Date(g.fecha).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</small></span>
+                <span>{g.nombre} <small>{g.medidas.length} pts</small></span>
                 <button type="button" className="tecla chica" onClick={() => escaneo.cargar(g)}>Abrir</button>
-                <button type="button" className="tecla chica" onClick={() => escaneo.borrarGuardado(g.nombre)}>✕</button>
+                <button type="button" className="tecla chica" onClick={() => escaneo.borrarGuardado(g.nombre)} aria-label={`Borrar ${g.nombre}`}>✕</button>
               </li>
             ))}
           </ul>
         )}
-        {enCurso && (
-          <button type="button" className="tecla chica" onClick={() => escaneo.cargar(enCurso)}>Recuperar el escaneo sin terminar ({enCurso.medidas.length} pts)</button>
-        )}
         <div className="fila-botones">
-          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => descargar(`${nombre || 'escaneo'}.obj`, escaneo.obj(), 'model/obj')}>Exportar 3D (.obj)</button>
-          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => descargar(`${nombre || 'escaneo'}.csv`, escaneo.csv(), 'text/csv')}>CSV</button>
-          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => descargar(`${nombre || 'escaneo'}.json`, JSON.stringify(escaneo.datos(nombre), null, 2), 'application/json')}>Archivo .json</button>
+          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => descargar(`${nombre || 'escaneo'}.json`, JSON.stringify(escaneo.datos(nombre), null, 2), 'application/json')}>Descargar .json</button>
+          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => descargar(`${nombre || 'escaneo'}.obj`, escaneo.obj(), 'model/obj')}>Modelo 3D .obj</button>
           <button type="button" className="tecla chica" onClick={() => archivo.current?.click()}>Abrir .json</button>
           <input ref={archivo} type="file" accept="application/json,.json" hidden onChange={(ev) => abrir(ev.target.files)} />
         </div>
-        <p className="ayuda">“Guardar aquí” queda en este navegador. El .obj se abre en cualquier visor 3D (por ejemplo, el de Windows o Blender).</p>
-      </details>
-    </section>
+      </section>
+    </div>
   );
 }

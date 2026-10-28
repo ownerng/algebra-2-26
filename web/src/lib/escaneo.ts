@@ -36,7 +36,8 @@ class Escaneo extends EventTarget {
   mensaje = 'Sin conexión';
   sensorListo = false;
 
-  config: Config = { nx: 10, ny: 8, paso: 20, altura: ALTURA_REAL_MM };
+  // Por defecto, un octavo de cartulina (~35 × 25 cm): 11 × 8 cuadros de 3 cm
+  config: Config = { nx: 11, ny: 8, paso: 30, altura: ALTURA_REAL_MM };
   alturaMedida = false;            // true cuando la altura H se midió sobre la mesa vacía
   objeto: ObjetoSimulado = 'taza';
   corregirMesa = true;
@@ -49,7 +50,7 @@ class Escaneo extends EventTarget {
   midiendo = false;
   calibrando = false;
   automatico = false;
-  velocidad = 20;                  // mm/s de la marca en el escaneo continuo
+  velocidad = 30;                  // mm/s de la marca en el escaneo continuo
   barrido: Barrido | null = null;
   private acumulado = new Map<string, { suma: number; suma2: number; n: number }>();
   private reloj: ReturnType<typeof setInterval> | undefined;
@@ -237,6 +238,7 @@ class Escaneo extends EventTarget {
       const opciones = {
         alDato: this.alDato, alEstado: this.alEstado,
         posicionCaja: () => this.posicionCaja(), objeto: () => this.objeto,
+        centro: () => [((this.config.nx - 1) * this.config.paso) / 2, ((this.config.ny - 1) * this.config.paso) / 2] as [number, number],
       };
       if (tipo === 'simulacion') {
         this.fuente = new Simulador3D(opciones);
