@@ -22,3 +22,5 @@ Thumbs.db
 .playwright-mcp/
 docs/graficas/*.aux
 docs/graficas/*.log
+web/node_modules/
+web/dist/

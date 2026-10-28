@@ -2,14 +2,14 @@
 
 .PHONY: web datos test graficas informe limpiar
 
-web:            ## Abre la interfaz en http://localhost:8000
+web:            ## Abre la interfaz en http://localhost:3000 (Bun)
 	./iniciar-web.sh
 
 datos:          ## Regenera las cifras, tablas y CSV del informe desde el simulador
-	node experimentos/generar.mjs
+	bun experimentos/generar.mjs
 
 test:           ## Pruebas de la matemática
-	node --test tests/matematica.test.mjs
+	bun test tests/
 
 graficas: datos ## Compila las figuras de docs/graficas/*.tex a PDF
 	cd docs && for f in graficas/*.tex; do pdflatex -output-directory graficas $$f; done

@@ -14,9 +14,9 @@ escaneos en un mapa global con una matriz homogénea 3×3.
 | `firmware/prueba_servo/` | Prueba solo del servo (0°, 90°, 180° y barrido) |
 | `firmware/servo_reposo/` | Deja el servo quieto en 90° |
 | `experimentos/generar.mjs` | Genera las cifras, tablas y gráficas del informe (`make datos`) |
-| `web/` | Interfaz: radar 2D, mapa 3D y panel de matrices en vivo |
-| `tests/` | Pruebas de la matemática (`node --test tests/matematica.test.mjs`) |
-| `iniciar-web.sh` | Abre la interfaz en `http://localhost:8000` |
+| `web/` | Interfaz en React + Bun: radar 2D, mapa 3D, prototipo simulado y matrices en vivo |
+| `tests/` | Pruebas de la matemática (`bun test tests/`) |
+| `iniciar-web.sh` | Abre la interfaz en `http://localhost:3000` |
 
 ## 1. Subir el firmware
 
@@ -32,8 +32,11 @@ escaneos en un mapa global con una matriz homogénea 3×3.
 ./iniciar-web.sh
 ```
 
-Usa **Chrome, Chromium o Edge**: Firefox no tiene Web Serial. Pulsa
-**Conectar ESP32** y elige el puerto. Sin el hardware, usa **Modo demo**.
+Necesita [Bun](https://bun.sh). Usa **Chrome, Chromium o Edge**: Firefox no
+tiene Web Serial. Pulsa **Conectar ESP32** y elige el puerto. Sin el sensor,
+pulsa **Simular prototipo**: el panel del prototipo muestra lo que debería
+hacer el aparato y el radar superpone la habitación real para comparar.
+`localhost:3000/#demo` arranca la simulación directamente.
 
 ## 3. Hacer el mapa con dos posiciones
 

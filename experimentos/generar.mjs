@@ -1,5 +1,5 @@
 // Genera los datos y las tablas del informe a partir del simulador.
-// Uso:  node experimentos/generar.mjs
+// Uso:  bun experimentos/generar.mjs
 // Salida: docs/datos/*.csv (para pgfplots) y docs/tablas/*.tex
 // Las cifras del informe salen de aquí: no se escriben a mano en el .tex.
 
@@ -17,8 +17,8 @@ Math.random = () => {
 };
 
 const { procesarLectura, rotacion, homogenea, inversaHomogenea, multiplicarMat, multiplicarMatVec, det2 } =
-  await import('../web/js/matematica.js');
-const { medirSimulado, POSES_REALES, DESFASE_LENTE_MM } = await import('../web/js/simulador.js');
+  await import('../web/src/lib/matematica.ts');
+const { medirSimulado, POSES_REALES, DESFASE_LENTE_MM } = await import('../web/src/lib/simulador.ts');
 
 const raiz = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs');
 mkdirSync(join(raiz, 'datos'), { recursive: true });
