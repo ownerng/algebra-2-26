@@ -1,8 +1,8 @@
-// Ajustes (en un panel lateral): cuadrícula, velocidad, simulación y archivos.
+// Ajustes (panel lateral): cámara, sensor de distancia, forma 3D y exportar.
 
-import { useRef, useState } from 'react';
-import { escaneo, useEscaneo, type EscaneoGuardado } from '../lib/escaneo.ts';
-import { OBJETOS, type ObjetoSimulado } from '../lib/simulador3d.ts';
+import { camara, DROIDCAM, useCamara } from '../lib/camara.ts';
+import { escaneo } from '../lib/escaneo.ts';
+import { caras } from './Vista3D.tsx';
 
 function descargar(nombre: string, contenido: string, tipo: string) {
   const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
@@ -11,13 +11,27 @@ function descargar(nombre: string, contenido: string, tipo: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function Numero({ id, etiqueta, unidad, valor, min, alCambiar }:
-  { id: string; etiqueta: string; unidad: string; valor: number; min: number; alCambiar: (v: number) => void }) {
+// Malla en formato OBJ (se abre en cualquier visor 3D)
+function obj(): string {
+  const m = camara.modelo;
+  if (!m) return '';
+  const lineas = ['# Escáner 3D: silueta de la cámara y tamaño con el VL53L0X (unidades: mm)'];
+  let n = 0;
+  for (const c of caras(m)) {
+    for (const p of c.pts) lineas.push(`v ${p[0].toFixed(2)} ${p[1].toFixed(2)} ${p[2].toFixed(2)}`);
+    lineas.push(`f ${n + 1} ${n + 2} ${n + 3} ${n + 4}`);
+    n += 4;
+  }
+  return lineas.join('\n') + '\n';
+}
+
+function Numero({ id, etiqueta, ayuda, unidad, valor, min, max, paso, alCambiar }:
+  { id: string; etiqueta: string; ayuda: string; unidad: string; valor: number; min: number; max: number; paso: number; alCambiar: (v: number) => void }) {
   return (
     <label className="campo-fila" htmlFor={id}>
-      <span className="campo-nombre">{etiqueta}</span>
+      <span className="campo-nombre">{etiqueta}<small>{ayuda}</small></span>
       <span className="campo-valor">
-        <input id={id} type="number" min={min} value={valor} onChange={(ev) => { const v = Number(ev.target.value); if (v >= min) alCambiar(v); }} />
+        <input id={id} type="number" min={min} max={max} step={paso} value={valor} onChange={(ev) => { const v = Number(ev.target.value); if (v >= min && v <= max) alCambiar(v); }} />
         <span className="unidad">{unidad}</span>
       </span>
     </label>
@@ -25,84 +39,58 @@ function Numero({ id, etiqueta, unidad, valor, min, alCambiar }:
 }
 
 export function Ajustes() {
-  const e = useEscaneo(150);
-  const [nombre, setNombre] = useState('Objeto');
-  const archivo = useRef<HTMLInputElement>(null);
-  const guardados = e.guardados();
-  const escaneando = !!e.barrido && e.barrido.fase !== 'fin';
-  const { nx, ny, paso } = e.config;
-
-  const abrir = async (lista: FileList | null) => {
-    const f = lista?.[0];
-    if (!f) return;
-    try {
-      const d = JSON.parse(await f.text()) as EscaneoGuardado;
-      if (d.formato !== 'escaner-3d-v1') throw new Error('formato');
-      escaneo.cargar(d);
-    } catch {
-      alert('Ese archivo no es un escaneo guardado por esta página.');
-    }
-    if (archivo.current) archivo.current.value = '';
-  };
+  const c = useCamara(150);
+  const sensor = escaneo.tipoFuente === 'serial';
+  const vivo = escaneo.vivo && performance.now() - escaneo.vivo.t < 1500 && escaneo.vivo.r > 0 ? escaneo.vivo.r : null;
 
   return (
     <div className="ajustes-panel">
       <h2>Ajustes</h2>
 
       <section>
-        <h3>Cuadrícula</h3>
-        <p className="ayuda">Área: {(nx * paso) / 10} × {(ny * paso) / 10} cm. Dibújala igual en la cartulina.</p>
-        <Numero id="nx" etiqueta="Columnas" unidad="" min={2} valor={nx} alCambiar={(v) => escaneo.cambiarConfig({ nx: Math.min(30, v) })} />
-        <Numero id="ny" etiqueta="Filas" unidad="" min={2} valor={ny} alCambiar={(v) => escaneo.cambiarConfig({ ny: Math.min(30, v) })} />
-        <Numero id="paso" etiqueta="Lado del cuadro" unidad="mm" min={5} valor={paso} alCambiar={(v) => escaneo.cambiarConfig({ paso: v })} />
-      </section>
-
-      <section>
-        <h3>Velocidad de la marca</h3>
-        <div className="velocidades" role="radiogroup" aria-label="Velocidad">
-          {[20, 30, 40].map((v) => (
-            <button key={v} type="button" role="radio" aria-checked={e.velocidad === v} disabled={escaneando}
-              className={'alcance' + (e.velocidad === v ? ' activo' : '')} onClick={() => escaneo.cambiar({ velocidad: v })}>
-              {v === 20 ? 'lenta' : v === 30 ? 'normal' : 'rápida'} · {v / 10} cm/s
-            </button>
-          ))}
-        </div>
-        <label className="casilla-check"><input type="checkbox" defaultChecked={escaneo.vista.girar} onChange={(ev) => { escaneo.vista.girar = ev.target.checked; }} /> Girar la figura sola</label>
-        <label className="casilla-check"><input type="checkbox" checked={e.corregirMesa} onChange={(ev) => escaneo.cambiar({ corregirMesa: ev.target.checked })} /> Corregir la inclinación de la mesa</label>
-      </section>
-
-      {e.tipoFuente === 'simulacion' && (
-        <section>
-          <h3>Objeto simulado</h3>
-          <select value={e.objeto} onChange={(ev) => escaneo.cambiar({ objeto: ev.target.value as ObjetoSimulado })} aria-label="Objeto simulado">
-            {Object.entries(OBJETOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </select>
-        </section>
-      )}
-
-      <section>
-        <h3>Guardar y exportar</h3>
-        <div className="fila-botones">
-          <input className="texto" value={nombre} onChange={(ev) => setNombre(ev.target.value)} aria-label="Nombre del escaneo" />
-          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => escaneo.guardarComo(nombre || 'Escaneo')}>Guardar</button>
-        </div>
-        {guardados.length > 0 && (
-          <ul className="guardados">
-            {guardados.map((g) => (
-              <li key={g.nombre}>
-                <span>{g.nombre} <small>{g.medidas.length} pts</small></span>
-                <button type="button" className="tecla chica" onClick={() => escaneo.cargar(g)}>Abrir</button>
-                <button type="button" className="tecla chica" onClick={() => escaneo.borrarGuardado(g.nombre)} aria-label={`Borrar ${g.nombre}`}>✕</button>
-              </li>
-            ))}
-          </ul>
+        <h3>Cámara</h3>
+        <select value={c.deviceId} onChange={(ev) => void camara.elegir(ev.target.value)} aria-label="Cámara">
+          <option value={DROIDCAM}>Celular por WiFi (DroidCam)</option>
+          {c.dispositivos.map((d, k) => <option key={d.deviceId || k} value={d.deviceId}>{d.label || `Cámara del computador ${k + 1}`}</option>)}
+        </select>
+        {c.usaDroidcam && (
+          <label className="campo-fila" htmlFor="ip-aj">
+            <span className="campo-nombre">IP del celular<small>la "WiFi IP" de DroidCam</small></span>
+            <input id="ip-aj" className="texto" placeholder="192.168.1.5" value={c.ipCelular} onChange={(ev) => camara.cambiarIp(ev.target.value)} />
+          </label>
         )}
-        <div className="fila-botones">
-          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => descargar(`${nombre || 'escaneo'}.json`, JSON.stringify(escaneo.datos(nombre), null, 2), 'application/json')}>Descargar .json</button>
-          <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => descargar(`${nombre || 'escaneo'}.obj`, escaneo.obj(), 'model/obj')}>Modelo 3D .obj</button>
-          <button type="button" className="tecla chica" onClick={() => archivo.current?.click()}>Abrir .json</button>
-          <input ref={archivo} type="file" accept="application/json,.json" hidden onChange={(ev) => abrir(ev.target.files)} />
-        </div>
+        <Numero id="angulo" etiqueta="Ángulo de visión" ayuda="horizontal; la mayoría de celulares, 60–70°" unidad="°" min={20} max={120} paso={1}
+          valor={c.anguloVision} alCambiar={(v) => camara.cambiar({ anguloVision: v })} />
+      </section>
+
+      <section>
+        <h3>Sensor de distancia (tamaño real)</h3>
+        <p className="ayuda">
+          El VL53L0X va junto a la cámara del celular y mide a qué distancia está el objeto. Con esa distancia, cada píxel
+          de la foto se convierte en milímetros.
+        </p>
+        {sensor
+          ? <p className="control-ayuda">Sensor conectado · mide <b>{vivo ? `${vivo} mm` : 'sin eco'}</b></p>
+          : <button type="button" className="tecla chica" onClick={() => void escaneo.conectar('serial')}>Conectar el sensor (ESP32)</button>}
+        <Numero id="dist" etiqueta="Distancia sin sensor" ayuda="se usa si el sensor no está conectado" unidad="mm" min={50} max={3000} paso={10}
+          valor={c.distanciaManual} alCambiar={(v) => camara.cambiar({ distanciaManual: v })} />
+      </section>
+
+      <section>
+        <h3>Forma 3D</h3>
+        <Numero id="grosor" etiqueta="Grosor de la base" ayuda="para objetos planos, como llaves" unidad="mm" min={0.5} max={50} paso={0.5}
+          valor={c.grosor} alCambiar={(v) => camara.cambiar({ grosor: v })} />
+        <label className="campo-fila" htmlFor="relieve">
+          <span className="campo-nombre">Relieve<small>0 = plano · más alto en el centro de la silueta</small></span>
+          <input id="relieve" type="range" min={0} max={1} step={0.05} value={c.relieve} onChange={(ev) => camara.cambiar({ relieve: Number(ev.target.value) })} />
+        </label>
+        <label className="casilla-check"><input type="checkbox" defaultChecked={escaneo.vista.girar} onChange={(ev) => { escaneo.vista.girar = ev.target.checked; }} /> Girar la figura sola</label>
+      </section>
+
+      <section>
+        <h3>Exportar</h3>
+        <button type="button" className="tecla chica" disabled={!c.modelo} onClick={() => descargar('objeto.obj', obj(), 'model/obj')}>Modelo 3D (.obj)</button>
+        <p className="ayuda">El .obj se abre en el Visor 3D de Windows, en Blender o en cualquier visor en línea.</p>
       </section>
     </div>
   );

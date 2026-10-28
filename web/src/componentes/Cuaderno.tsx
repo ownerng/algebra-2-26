@@ -1,23 +1,19 @@
-// Hoja de cuaderno: el cálculo de la última medición desglosado paso a paso,
-// de la distancia del sensor al punto 3D sombreado en la pantalla.
+// Hoja de cuaderno: el cálculo de la última foto desglosado paso a paso, con
+// los números de un píxel del objeto (el del centro de la silueta).
 
 import katex from 'katex';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { cruz, matrizVista, normalizar, punto, sub, type Vec3 } from '../lib/algebra3d.ts';
 import { multiplicarMatVec } from '../lib/matematica.ts';
-import { escaneo, useEscaneo } from '../lib/escaneo.ts';
-
-const FX = '#b5452a';
-const FY = '#2f6f8f';
-const FZ = '#3f7d20';
-const LUZ: Vec3 = [-0.35, -0.55, 1];
+import { escaneo } from '../lib/escaneo.ts';
+import { useCamara } from '../lib/camara.ts';
+import { aPlano, LUZ } from './Vista3D.tsx';
 
 const n = (v: number, dec?: number) => {
   const x = Math.abs(v) < 5e-4 ? 0 : v;
   const d = dec ?? (Math.abs(x) >= 100 ? 1 : Math.abs(x) >= 10 ? 2 : 3);
   return x.toFixed(d).replace('.', '{,}');
 };
-const llano = (tex: string) => tex.replace(/\{,\}/g, ',');
 const mat = (M: number[][], dec?: number) => `\\begin{bmatrix}${M.map((f) => f.map((v) => n(v, dec)).join(' & ')).join(' \\\\ ')}\\end{bmatrix}`;
 const col = (v: number[], dec?: number) => mat(v.map((x) => [x]), dec);
 
@@ -36,124 +32,100 @@ function Paso({ numero, titulo, children }: { numero: number; titulo: string; ch
 }
 
 export function Cuaderno() {
-  const e = useEscaneo(200);
-  const [congelada, setCongelada] = useState<{ i: number; j: number } | null>(null);
-  const celda = congelada ?? e.ultima;
-  const { puntos, plano } = e.geometria();
-  const p = celda && puntos.find((q) => q.i === celda.i && q.j === celda.j);
+  const c = useCamara(300);
+  const m = c.modelo;
 
-  const congelar = () => {
-    const c = congelada ? null : e.ultima;
-    setCongelada(c);
-    escaneo.resaltar(c);
-  };
-
-  if (!p) {
+  if (!m) {
     return (
-      <aside className="cuaderno" aria-label="Cálculo paso a paso">
-        <header className="cuaderno-cabeza"><h2>De la medida al punto 3D</h2></header>
+      <aside className="cuaderno" aria-label="Cálculos">
+        <header className="cuaderno-cabeza"><h2>De la foto al objeto 3D</h2></header>
         <p className="nota">
-          Aquí se desglosa, con los números de cada medición, cómo una distancia del sensor se convierte en un punto de la
-          figura 3D: la matriz que lleva la casilla al espacio, el plano de la mesa por mínimos cuadrados, la rotación de
-          la vista y el sombreado.
+          Aquí se desglosa, con los números de la última foto, cómo se separa el objeto del fondo, cómo se obtiene su tamaño
+          real con la matriz de la cámara y la distancia del sensor, y cómo se gira y se sombrea en 3D.
         </p>
-        <p className="nota">Conecta el ESP32 o pulsa <b>Simular prototipo</b> y toma la primera medición.</p>
+        <p className="nota">Toma una foto para ver los cálculos.</p>
       </aside>
     );
   }
 
-  const { paso: D, altura: H } = e.config;
-  const m = e.medidas.get(`${p.i},${p.j}`)!;
-  const r = m.r;
-  const V = matrizVista(e.vista.theta, e.vista.phi);
-  const c: Vec3 = [((e.config.nx - 1) * D) / 2, ((e.config.ny - 1) * D) / 2, H * 0.35];
-  const pv: Vec3 = [p.x, p.y, Math.max(0, p.h)];
-  const rel = sub(pv, c);
-  const vista = multiplicarMatVec(V, rel);
+  // Píxel de referencia: el más alejado del borde de la silueta (el centro del objeto)
+  let ref = 0;
+  for (let k = 1; k < m.altura.length; k++) if (m.altura[k]! > m.altura[ref]!) ref = k;
+  const u = ref % m.ancho, v = (ref - u) / m.ancho;
+  const p = [m.rgb[ref * 4]!, m.rgb[ref * 4 + 1]!, m.rgb[ref * 4 + 2]!];
+  const d = Math.hypot(p[0]! - m.fondo[0], p[1]! - m.fondo[1], p[2]! - m.fondo[2]);
+  const f = m.K[0]![0]!, cx = m.K[0]![2]!;
+  const du = m.caja.u1 - m.caja.u0 + 1;
+  const X0 = ((m.caja.u0 - cx) * m.Z) / f, X1 = ((m.caja.u1 + 1 - cx) * m.Z) / f;
+  const h = m.altura[ref]!;
 
-  // Triángulo de esta casilla con sus vecinas (si ya están medidas)
-  const vecina = (di: number, dj: number) => puntos.find((q) => q.i === p.i + di && q.j === p.j + dj);
-  const b = vecina(1, 0) ?? vecina(-1, 0);
-  const cc = vecina(0, 1) ?? vecina(0, -1);
-  let tri: { a: Vec3; b: Vec3; c: Vec3; u: Vec3; w: Vec3; nrm: Vec3; brillo: number } | null = null;
-  if (b && cc) {
-    const A: Vec3 = pv, B: Vec3 = [b.x, b.y, Math.max(0, b.h)], C: Vec3 = [cc.x, cc.y, Math.max(0, cc.h)];
-    const u = sub(B, A), w = sub(C, A);
-    let nrm = cruz(u, w);
-    if (nrm[2] < 0) nrm = [-nrm[0], -nrm[1], -nrm[2]];
-    tri = { a: A, b: B, c: C, u, w, nrm, brillo: Math.max(0, punto(normalizar(nrm), normalizar(LUZ))) };
-  }
+  const V = matrizVista(escaneo.vista.theta, escaneo.vista.phi);
+  const [px, py] = aPlano(m, u, v);
+  const P: Vec3 = [px, py, h];
+  const vista = multiplicarMatVec(V, P);
+
+  // Triángulo con dos vecinos a 3 píxeles
+  const paso = 3;
+  const punto3 = (uu: number, vv: number): Vec3 => { const [x, y] = aPlano(m, uu, vv); return [x, y, m.altura[vv * m.ancho + uu]!]; };
+  const B = punto3(Math.min(m.ancho - 1, u + paso), v), C = punto3(u, Math.max(0, v - paso));
+  const U = sub(B, P), W = sub(C, P);
+  let N = cruz(U, W);
+  if (N[2] < 0) N = [-N[0], -N[1], -N[2]];
+  const brillo = Math.max(0, punto(normalizar(N), normalizar(LUZ)));
 
   return (
-    <aside className="cuaderno" aria-label="Cálculo paso a paso">
-      <header className="cuaderno-cabeza">
-        <h2>De la medida al punto 3D</h2>
-        <button type="button" className={'congelar' + (congelada ? ' activo' : '')} onClick={congelar}>
-          {congelada ? '▶ Seguir la última' : '❚❚ Congelar'}
-        </button>
-      </header>
-      <p className="dato">{congelada ? 'Cálculo congelado en una casilla (marcada en la cuadrícula y en 3D).' : 'Última medición tomada.'}</p>
+    <aside className="cuaderno" aria-label="Cálculos">
+      <header className="cuaderno-cabeza"><h2>De la foto al objeto 3D</h2></header>
+      <p className="dato">Números de la última foto, en el píxel ({u}, {v}) del centro del objeto.</p>
 
-      <Paso numero={1} titulo="La medición">
+      <Paso numero={1} titulo="La foto es una matriz">
         <p className="nota">
-          En la casilla (i, j) = ({p.i}, {p.j}) el sensor promedió {m.n} lecturas: r = {llano(n(r, 1))} mm, con una
-          desviación de {llano(n(m.desv, 1))} mm.
+          La foto reducida tiene {m.ancho} × {m.alto} píxeles. Cada píxel es un vector de ℝ³ con su rojo, verde y azul.
+          Este píxel vale:
+        </p>
+        <Formula tex={`\\vec p = ${col(p, 0)}`} />
+      </Paso>
+
+      <Paso numero={2} titulo="Separar el objeto del fondo">
+        <p className="nota">El color del fondo es la mediana de los píxeles del borde de la foto. Qué tan distinto es el píxel del fondo lo dice la norma de la resta:</p>
+        <Formula tex={`\\|\\vec p - \\vec f\\| = \\left\\| ${col(p, 0)} - ${col(m.fondo, 0)} \\right\\| = ${n(d, 1)}`} />
+        <p className="nota">
+          El umbral de Otsu, que separa mejor los dos grupos del histograma, salió en {m.umbral}. Como {n(d, 1).replace('{,}', ',')} {d > m.umbral ? '>' : '≤'} {m.umbral},
+          el píxel es del objeto. La silueta tiene {m.areaPx} píxeles.
         </p>
       </Paso>
 
-      <Paso numero={2} titulo="De la casilla al espacio con A">
+      <Paso numero={3} titulo="Tamaño real: matriz de la cámara">
         <p className="nota">
-          Una sola matriz homogénea 4×4 escala la casilla a milímetros (Δ = {D} mm), voltea el eje del sensor hacia abajo
-          y lo sube a la altura H = {H} mm:
+          La cámara proyecta un punto (X, Y, Z) en el píxel (u, v) con la matriz K, donde f es la distancia focal en píxeles
+          (sale del ángulo de visión de {c.anguloVision}°):
         </p>
-        <Formula tex={`\\begin{bmatrix} \\textcolor{${FX}}{x} \\\\ \\textcolor{${FY}}{y} \\\\ \\textcolor{${FZ}}{z} \\\\ 1 \\end{bmatrix} = \\begin{bmatrix} \\textcolor{${FX}}{${D}} & \\textcolor{${FX}}{0} & \\textcolor{${FX}}{0} & \\textcolor{${FX}}{0} \\\\ \\textcolor{${FY}}{0} & \\textcolor{${FY}}{${D}} & \\textcolor{${FY}}{0} & \\textcolor{${FY}}{0} \\\\ \\textcolor{${FZ}}{0} & \\textcolor{${FZ}}{0} & \\textcolor{${FZ}}{-1} & \\textcolor{${FZ}}{${H}} \\\\ 0 & 0 & 0 & 1 \\end{bmatrix}\\begin{bmatrix} ${p.i} \\\\ ${p.j} \\\\ ${n(r, 1)} \\\\ 1 \\end{bmatrix}`} />
-        <Formula tex={`\\begin{aligned}
-          \\textcolor{${FX}}{x} &= ${D}\\cdot ${p.i} + 0 + 0 + 0 = \\textcolor{${FX}}{${n(p.x, 0)}}\\ \\text{mm} \\\\
-          \\textcolor{${FY}}{y} &= 0 + ${D}\\cdot ${p.j} + 0 + 0 = \\textcolor{${FY}}{${n(p.y, 0)}}\\ \\text{mm} \\\\
-          \\textcolor{${FZ}}{z} &= 0 + 0 - 1\\cdot ${n(r, 1)} + ${H}\\cdot 1 = \\textcolor{${FZ}}{${n(p.z, 1)}}\\ \\text{mm}
-        \\end{aligned}`} />
+        <Formula tex={`\\begin{bmatrix} u \\\\ v \\\\ 1 \\end{bmatrix} \\sim ${mat(m.K, 1)}\\begin{bmatrix} X \\\\ Y \\\\ Z \\end{bmatrix}`} />
         <p className="nota">
-          A = T·F·E: E escala, F = diag(1, 1, −1) es una reflexión (det F = −1) y T traslada en z.
+          {m.zDelSensor ? `El sensor midió Z = ${Math.round(m.Z)} mm.` : `Sin sensor, se supone Z = ${Math.round(m.Z)} mm.`} Despejando,
+          X = (u − cₓ)·Z / f. El objeto va de u = {m.caja.u0} a u = {m.caja.u1 + 1}:
         </p>
+        <Formula tex={`\\text{ancho} = X_1 - X_0 = \\frac{${du}\\cdot ${n(m.Z, 0)}}{${n(f, 1)}} = ${n(X1 - X0, 1)}\\ \\text{mm}`} />
       </Paso>
 
-      <Paso numero={3} titulo="El plano de la mesa (mínimos cuadrados)">
-        {plano ? (
-          <>
-            <p className="nota">
-              La mesa no está perfectamente nivelada. Con {plano.n} casillas del borde se busca el plano z = a·x + b·y + c
-              que mejor las ajusta, resolviendo las ecuaciones normales (MᵀM)·[a b c]ᵀ = Mᵀz:
-            </p>
-            <Formula tex={`${mat(plano.MtM, 0)}\\begin{bmatrix} a \\\\ b \\\\ c \\end{bmatrix} = ${col(plano.Mtz, 0)}`} />
-            <Formula tex={`a = ${n(plano.a, 4)},\\quad b = ${n(plano.b, 4)},\\quad c = ${n(plano.c, 2)}`} />
-            <p className="nota">Altura del objeto en este punto, ya sin la inclinación de la mesa:</p>
-            <Formula tex={`h = z - (a x + b y + c) = ${n(p.z, 1)} - (${n(plano.a * p.x + plano.b * p.y + plano.c, 2)}) = ${n(p.h, 1)}\\ \\text{mm}`} />
-          </>
-        ) : (
-          <p className="nota">Cuando haya al menos 6 casillas medidas en el borde de la cuadrícula, aquí se calcula el plano de la mesa.</p>
-        )}
+      <Paso numero={4} titulo="Volumen estimado">
+        <p className="nota">
+          Una foto no trae profundidad, así que el volumen se estima: la altura crece con la distancia al borde de la
+          silueta. En el centro del objeto, con base de {c.grosor} mm:
+        </p>
+        <Formula tex={`h = ${n(c.grosor, 1)} + h_{\\max}\\sqrt{d/d_{\\max}} = ${n(h, 1)}\\ \\text{mm}`} />
       </Paso>
 
-      <Paso numero={4} titulo="Girar la vista 3D">
-        <p className="nota">
-          Para ver la figura desde cualquier ángulo, cada punto se rota con V = Rx(φ)·Rz(θ) y se proyecta con Π, que
-          descarta la profundidad. Ahora θ = {Math.round(((e.vista.theta % 360) + 360) % 360)}° y φ = {Math.round(e.vista.phi)}°:
-        </p>
+      <Paso numero={5} titulo="Girar y proyectar la vista 3D">
+        <p className="nota">Cada punto se rota con V = Rx(φ)·Rz(θ) y se proyecta con Π, que descarta la profundidad:</p>
         <Formula tex={`V = ${mat(V)},\\qquad \\Pi = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix}`} />
-        <Formula tex={`\\Pi\\, V \\,(p - c) = \\Pi ${col(vista, 1)} = ${col([vista[0]!, vista[2]!], 1)}`} />
+        <Formula tex={`\\Pi\\, V ${col(P, 1)} = \\Pi ${col(vista, 1)} = ${col([vista[0]!, vista[2]!], 1)}`} />
       </Paso>
 
-      <Paso numero={5} titulo="Sombrear la superficie">
-        {tri ? (
-          <>
-            <p className="nota">Con dos vecinas medidas se forma un triángulo. Su normal sale del producto vectorial:</p>
-            <Formula tex={`\\vec n = (B - A)\\times(C - A) = ${col(tri.u, 1)}\\times${col(tri.w, 1)} = ${col(tri.nrm, 1)}`} />
-            <p className="nota">Y qué tan iluminado se ve, del producto punto con la dirección de la luz:</p>
-            <Formula tex={`\\text{brillo} = \\hat n \\cdot \\hat \\ell = ${n(tri.brillo)}`} />
-          </>
-        ) : (
-          <p className="nota">Cuando la casilla tenga vecinas medidas, aquí aparece el triángulo de superficie, su normal y su brillo.</p>
-        )}
+      <Paso numero={6} titulo="Sombrear la superficie">
+        <p className="nota">Con dos puntos vecinos se forma un triángulo; su normal sale del producto vectorial y su brillo, del producto punto con la luz:</p>
+        <Formula tex={`\\vec n = (B - A)\\times(C - A) = ${col(U, 1)}\\times${col(W, 1)} = ${col(N, 1)}`} />
+        <Formula tex={`\\text{brillo} = \\hat n \\cdot \\hat \\ell = ${n(brillo)}`} />
       </Paso>
     </aside>
   );

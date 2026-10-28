@@ -11,9 +11,9 @@ import './estilos.css';
 import { App } from './App.tsx';
 import { escaneo } from './lib/escaneo.ts';
 import { camara } from './lib/camara.ts';
-import * as homografia from './lib/homografia.ts';
+import * as vision from './lib/vision.ts';
 
 // Acceso desde la consola del navegador, para depurar y para las pruebas
-(window as unknown as Record<string, unknown>).escaner3d = { escaneo, camara, homografia };
+(window as unknown as Record<string, unknown>).escaner3d = { escaneo, camara, vision };
 
 createRoot(document.getElementById('raiz')!).render(<App />);

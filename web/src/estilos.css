@@ -453,3 +453,16 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
 .silueta canvas { width: 100%; height: auto; image-rendering: pixelated; border-radius: 6px; border: 1px solid var(--borde); }
 .tecla.hecho { border-color: #7dff6a; }
 .camara-panel select { max-width: 320px; }
+
+/* ---------- Pantalla de la cámara ---------- */
+.visor { position: absolute; inset: 0; display: grid; place-items: center; background: #050403; }
+.visor img, .visor video { max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: contain; }
+.visor-vacio {
+  position: absolute; display: flex; flex-direction: column; gap: 12px; padding: 22px 26px; border-radius: 14px;
+  background: rgba(15,11,6,.9); border: 1px solid rgba(255,178,56,.25); min-width: min(420px, 90vw);
+}
+.visor-vacio select, .visor-vacio .texto { padding: 6px 8px; border-radius: 5px; border: 1px solid #2a2218; background: #0d0a06; color: var(--ambar); }
+.mira { position: absolute; left: 50%; top: 45%; width: 34%; aspect-ratio: 1; transform: translate(-50%, -50%); border: 2px dashed rgba(255,178,56,.55); border-radius: 12px; pointer-events: none; }
+.medida { margin: 0; font-family: var(--rotulo); font-weight: 700; font-size: 44px; line-height: 1; color: var(--ambar); text-shadow: 0 0 16px rgba(255,178,56,.4); }
+.medida small { font-size: 20px; color: var(--tenue); text-shadow: none; }
+.barra .piloto { cursor: pointer; font: inherit; font-size: 12px; }
