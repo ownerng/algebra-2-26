@@ -29,6 +29,8 @@ export interface ModeloCamara {
   conIA: boolean;                        // la profundidad la estimó la red neuronal
   planoFondo: Plano | null;              // d = a·u + b·v + c ajustado al borde de la foto
   profundidad: Uint8Array | null;        // profundidad relativa de la red (0 lejos, 255 cerca)
+  zMm: Float32Array;                     // distancia de cada píxel del objeto a la cámara (mm)
+  grosorBase: number;                    // mm que se suman a la altura (grosor de la base)
   mmPorPx: number;
   fondo: [number, number, number];
   umbral: number;
@@ -139,7 +141,10 @@ class Camara extends EventTarget {
       }
       this.estadoTexto = '';
       this.procesar(foto, vivo ?? undefined, this.ultimaProfundidad ?? undefined);
-      if (this.modelo) this.vista = '3d';
+      if (this.modelo) {
+        this.vista = '3d';
+        Object.assign(escaneo.vista, { theta: -25, phi: 55, zoom: 1 });
+      }
     } catch (e) {
       this.error = 'No se pudo tomar la foto: ' + (e as Error).message;
     }
@@ -208,8 +213,35 @@ class Camara extends EventTarget {
       const hMax = this.relieve * 0.5 * Math.min(anchoMm, altoMm);
       for (let k = 0; k < altura.length; k++) if (mascara[k]) altura[k] = this.grosor + (dMax ? hMax * Math.sqrt(dist[k]! / dMax) : 0);
     }
-    this.modelo = { ancho, alto, rgb, mascara, altura, K, Z, zDelSensor, conIA: !!prof, planoFondo, profundidad: prof ?? null, mmPorPx, fondo, umbral, areaPx, caja: { u0, u1, v0, v1, anchoMm, altoMm } };
+    // Se suaviza la altura dentro del objeto (promedio 7×7, dos pasadas
+    // separables) para quitar el ruido de la estimación
+    const suave = suavizar(altura, mascara, ancho, alto, 3);
+    // Distancia a la cámara de cada píxel: el sensor da la del objeto (Z) y lo
+    // que sobresale queda más cerca
+    let hMed = 0, nMed = 0;
+    for (let k = 0; k < suave.length; k++) if (mascara[k]) { hMed += suave[k]!; nMed++; }
+    hMed = nMed ? hMed / nMed : 0;
+    const zMm = new Float32Array(suave.length);
+    for (let k = 0; k < suave.length; k++) zMm[k] = Z + hMed - suave[k]!;
+    this.modelo = { ancho, alto, rgb, mascara, altura: suave, zMm, grosorBase: this.grosor, K, Z, zDelSensor, conIA: !!prof, planoFondo, profundidad: prof ?? null, mmPorPx, fondo, umbral, areaPx, caja: { u0, u1, v0, v1, anchoMm, altoMm } };
   }
+}
+
+// Promedio de una ventana (2r+1)×(2r+1) solo con los píxeles del objeto
+function suavizar(h: Float32Array, m: Uint8Array, w: number, alto: number, r: number): Float32Array {
+  const tmp = new Float32Array(h.length), res = new Float32Array(h.length);
+  for (let v = 0; v < alto; v++) for (let u = 0; u < w; u++) {
+    let s = 0, n = 0;
+    for (let d = -r; d <= r; d++) { const x = u + d; if (x >= 0 && x < w && m[v * w + x]) { s += h[v * w + x]!; n++; } }
+    tmp[v * w + u] = n ? s / n : 0;
+  }
+  for (let v = 0; v < alto; v++) for (let u = 0; u < w; u++) {
+    if (!m[v * w + u]) continue;
+    let s = 0, n = 0;
+    for (let d = -r; d <= r; d++) { const y = v + d; if (y >= 0 && y < alto && m[y * w + u]) { s += tmp[y * w + u]!; n++; } }
+    res[v * w + u] = n ? s / n : 0;
+  }
+  return res;
 }
 
 export const camara = new Camara();

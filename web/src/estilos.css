@@ -466,3 +466,9 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
 .medida { margin: 0; font-family: var(--rotulo); font-weight: 700; font-size: 44px; line-height: 1; color: var(--ambar); text-shadow: 0 0 16px rgba(255,178,56,.4); }
 .medida small { font-size: 20px; color: var(--tenue); text-shadow: none; }
 .barra .piloto { cursor: pointer; font: inherit; font-size: 12px; }
+
+/* ---------- Vista 3D (WebGL) ---------- */
+.vista3d-gl { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, #2a2117 0%, #120e09 55%, #070504 100%); }
+.vista3d-gl .escala-3d, .vista3d-gl .ayuda-3d { position: absolute; left: 14px; font: 500 11px "IBM Plex Mono", ui-monospace, monospace; color: var(--ambar); opacity: .8; pointer-events: none; }
+.vista3d-gl .escala-3d { bottom: 34px; }
+.vista3d-gl .ayuda-3d { bottom: 14px; color: var(--tenue); }

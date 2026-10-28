@@ -7,7 +7,8 @@ import { cruz, matrizVista, normalizar, punto, sub, type Vec3 } from '../lib/alg
 import { multiplicarMatVec } from '../lib/matematica.ts';
 import { escaneo } from '../lib/escaneo.ts';
 import { useCamara } from '../lib/camara.ts';
-import { aPlano, LUZ } from './Vista3D.tsx';
+import { LUZ } from './Vista3D.tsx';
+import { crearPunto3D, inversaK } from '../lib/malla.ts';
 
 const n = (v: number, dec?: number) => {
   const x = Math.abs(v) < 5e-4 ? 0 : v;
@@ -59,14 +60,16 @@ export function Cuaderno() {
   const X0 = ((m.caja.u0 - cx) * m.Z) / f, X1 = ((m.caja.u1 + 1 - cx) * m.Z) / f;
   const h = m.altura[ref]!;
 
+  const Ki = inversaK(m.K);
+  const z = m.zMm[ref]!;
+  const rayo = multiplicarMatVec(Ki, [u, v, 1]);
   const V = matrizVista(escaneo.vista.theta, escaneo.vista.phi);
-  const [px, py] = aPlano(m, u, v);
-  const P: Vec3 = [px, py, h];
+  const punto3 = crearPunto3D(m);
+  const P: Vec3 = punto3(u, v);
   const vista = multiplicarMatVec(V, P);
 
   // Triángulo con dos vecinos a 3 píxeles
   const paso = 3;
-  const punto3 = (uu: number, vv: number): Vec3 => { const [x, y] = aPlano(m, uu, vv); return [x, y, m.altura[vv * m.ancho + uu]!]; };
   const B = punto3(Math.min(m.ancho - 1, u + paso), v), C = punto3(u, Math.max(0, v - paso));
   const U = sub(B, P), W = sub(C, P);
   let N = cruz(U, W);
@@ -137,13 +140,23 @@ export function Cuaderno() {
         )}
       </Paso>
 
-      <Paso numero={5} titulo="Girar y proyectar la vista 3D">
-        <p className="nota">Cada punto se rota con V = Rx(φ)·Rz(θ) y se proyecta con Π, que descarta la profundidad:</p>
+      <Paso numero={5} titulo="Del píxel al espacio: K⁻¹">
+        <p className="nota">
+          Para armar la superficie, cada píxel se lleva al espacio con la inversa de K (como K es triangular superior, su
+          inversa sale directa). Con la distancia z = {n(z, 1).replace('{,}', ',')} mm de este píxel:
+        </p>
+        <Formula tex={`K^{-1} = ${mat(Ki, 4)}`} />
+        <Formula tex={`P = z\\,K^{-1}${col([u, v, 1], 0)} = ${n(z, 1)}${col(rayo, 4)} = ${col(rayo.map((r) => r * z), 1)}\\ \\text{mm}`} />
+        <p className="nota">Los píxeles vecinos se unen en triángulos y la foto se pega encima como textura.</p>
+      </Paso>
+
+      <Paso numero={6} titulo="Girar y proyectar la vista 3D">
+        <p className="nota">Con el origen en el centro del objeto, P queda en ({n(P[0], 1).replace('{,}', ',')}, {n(P[1], 1).replace('{,}', ',')}, {n(P[2], 1).replace('{,}', ',')}) mm. Se rota con V = Rx(φ)·Rz(θ) y se proyecta con Π, que descarta la profundidad:</p>
         <Formula tex={`V = ${mat(V)},\\qquad \\Pi = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 0 & 1 \\end{bmatrix}`} />
         <Formula tex={`\\Pi\\, V ${col(P, 1)} = \\Pi ${col(vista, 1)} = ${col([vista[0]!, vista[2]!], 1)}`} />
       </Paso>
 
-      <Paso numero={6} titulo="Sombrear la superficie">
+      <Paso numero={7} titulo="Sombrear la superficie">
         <p className="nota">Con dos puntos vecinos se forma un triángulo; su normal sale del producto vectorial y su brillo, del producto punto con la luz:</p>
         <Formula tex={`\\vec n = (B - A)\\times(C - A) = ${col(U, 1)}\\times${col(W, 1)} = ${col(N, 1)}`} />
         <Formula tex={`\\text{brillo} = \\hat n \\cdot \\hat \\ell = ${n(brillo)}`} />
