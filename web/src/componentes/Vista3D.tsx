@@ -1,158 +1,176 @@
-// Vista 3D: el mapa 2D levantado como paredes de luz (planta en 3D).
-// El sensor mide en un solo plano; la altura es solo visual.
+// Vista 3D dibujada a mano: cada punto pasa por V = Rx(φ)·Rz(θ) y por la
+// proyección Π; cada triángulo se sombrea con su normal (producto vectorial)
+// y la luz (producto punto). Se pinta de atrás hacia adelante.
 
 import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { COLORES, escaner, type Posicion } from '../lib/escaner.ts';
+import { matrizVista, sombreado, type Vec3 } from '../lib/algebra3d.ts';
+import { multiplicarMatVec } from '../lib/matematica.ts';
+import { escaneo } from '../lib/escaneo.ts';
 
-const MM = 0.001;
-const ALTURA = 0.32;
-const a3D = (x: number, y: number, h = 0) => new THREE.Vector3(x * MM, h, -y * MM);
+const LUZ: Vec3 = [-0.35, -0.55, 1];
+const MONO = '500 11px "IBM Plex Mono", ui-monospace, monospace';
 
-function limpiar(grupo: THREE.Group) {
-  for (const hijo of [...grupo.children]) {
-    grupo.remove(hijo);
-    const malla = hijo as THREE.Mesh;
-    malla.geometry?.dispose();
-    (malla.material as THREE.Material | undefined)?.dispose?.();
-  }
+function colorAltura(t: number, brillo: number) {
+  // De ámbar oscuro (mesa) a ámbar claro (lo más alto), oscurecido por la sombra
+  const base = [58 + t * (255 - 58), 40 + t * (214 - 40), 18 + t * (120 - 18)];
+  const k = 0.3 + 0.7 * brillo;
+  return `rgb(${base.map((c) => Math.round(c * k)).join(',')})`;
 }
 
-function reconstruir(grupoEscaneos: THREE.Group, grupoPoses: THREE.Group) {
-  limpiar(grupoEscaneos);
-  const puntos = escaner.puntos();
-  const aditivo = { transparent: true, blending: THREE.AdditiveBlending, depthWrite: false } as const;
-  for (const id of [1, 2] as Posicion[]) {
-    const lista = puntos[id];
-    if (!lista.length) continue;
-    const color = new THREE.Color(COLORES[id]);
-    grupoEscaneos.add(new THREE.Points(
-      new THREE.BufferGeometry().setFromPoints(lista.map((p) => a3D(p.x, p.y, ALTURA * 0.5))),
-      new THREE.PointsMaterial({ color, size: 0.035, opacity: 0.95, ...aditivo }),
-    ));
-    grupoEscaneos.add(new THREE.LineSegments(
-      new THREE.BufferGeometry().setFromPoints(lista.flatMap((p) => [a3D(p.x, p.y, 0), a3D(p.x, p.y, ALTURA)])),
-      new THREE.LineBasicMaterial({ color, opacity: 0.3, ...aditivo }),
-    ));
-    const tri: THREE.Vector3[] = [];
-    const bordes: THREE.Vector3[] = [];
-    for (let i = 1; i < lista.length; i++) {
-      const p = lista[i - 1]!, q = lista[i]!;
-      if (q.theta - p.theta > 4 || Math.hypot(q.x - p.x, q.y - p.y) > 110) continue;
-      const a = a3D(p.x, p.y, 0), b = a3D(q.x, q.y, 0), c = a3D(q.x, q.y, ALTURA), d = a3D(p.x, p.y, ALTURA);
-      tri.push(a, b, c, a, c, d);
-      bordes.push(d, c);
-    }
-    if (tri.length) {
-      grupoEscaneos.add(new THREE.Mesh(
-        new THREE.BufferGeometry().setFromPoints(tri),
-        new THREE.MeshBasicMaterial({ color, opacity: 0.15, side: THREE.DoubleSide, ...aditivo }),
-      ));
-      grupoEscaneos.add(new THREE.LineSegments(
-        new THREE.BufferGeometry().setFromPoints(bordes),
-        new THREE.LineBasicMaterial({ color, opacity: 0.9, ...aditivo }),
-      ));
-    }
-  }
-
-  limpiar(grupoPoses);
-  for (const id of [1, 2] as Posicion[]) {
-    const pose = escaner.poses[id];
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.05, 24), new THREE.MeshBasicMaterial({ color: COLORES[id] }));
-    base.position.copy(a3D(pose.dx, pose.dy, 0.025));
-    grupoPoses.add(base);
-    const a = (pose.alpha * Math.PI) / 180;
-    const o = a3D(pose.dx, pose.dy, 0.06);
-    const ejeX = a3D(pose.dx + 200 * Math.cos(a), pose.dy + 200 * Math.sin(a), 0.06).sub(o).normalize();
-    const ejeY = a3D(pose.dx - 200 * Math.sin(a), pose.dy + 200 * Math.cos(a), 0.06).sub(o).normalize();
-    grupoPoses.add(new THREE.ArrowHelper(ejeX, o, 0.2, '#ff6f59', 0.04, 0.025));
-    grupoPoses.add(new THREE.ArrowHelper(ejeY, o, 0.2, '#a6e36b', 0.04, 0.025));
-  }
-}
-
-export function Vista3D({ girar }: { girar: boolean }) {
-  const contenedor = useRef<HTMLDivElement>(null);
-  const controlesRef = useRef<OrbitControls | null>(null);
+export function Vista3D() {
+  const lienzo = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const div = contenedor.current!;
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    div.appendChild(renderer.domElement);
-
-    const escena = new THREE.Scene();
-    escena.background = new THREE.Color('#0d0905');
-    escena.fog = new THREE.Fog('#0d0905', 3, 7);
-    const camara = new THREE.PerspectiveCamera(50, 1, 0.01, 50);
-    camara.position.set(0.4, 1.9, 1.6);
-    const controles = new OrbitControls(camara, renderer.domElement);
-    controles.target.set(0, 0, -0.6);
-    controles.enableDamping = true;
-    controles.autoRotateSpeed = 0.6;
-    controlesRef.current = controles;
-
-    const grilla = new THREE.GridHelper(6, 60, '#6b4a1a', '#2a1d0c');
-    escena.add(grilla);
-    const grupoEscaneos = new THREE.Group();
-    const grupoPoses = new THREE.Group();
-    escena.add(grupoEscaneos, grupoPoses);
-
-    const haz = new THREE.Mesh(
-      new THREE.PlaneGeometry(1, 0.012),
-      new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }),
-    );
-    haz.geometry.translate(0.5, 0, 0);
-    escena.add(haz);
-
+    const canvas = lienzo.current!;
+    const g = canvas.getContext('2d')!;
+    let ancho = 0, alto = 0;
     const redimensionar = () => {
-      const { width, height } = div.getBoundingClientRect();
-      if (!width || !height) return;
-      renderer.setSize(width, height);
-      camara.aspect = width / height;
-      camara.updateProjectionMatrix();
+      const dpr = window.devicePixelRatio || 1;
+      const r = canvas.getBoundingClientRect();
+      ancho = r.width; alto = r.height;
+      canvas.width = Math.round(ancho * dpr);
+      canvas.height = Math.round(alto * dpr);
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     const obs = new ResizeObserver(redimensionar);
-    obs.observe(div);
+    obs.observe(canvas);
     redimensionar();
 
-    let version = -1;
-    let cuadro = 0;
-    const bucle = () => {
-      if (escaner.version !== version) {
-        reconstruir(grupoEscaneos, grupoPoses);
-        version = escaner.version;
-      }
-      const u = escaner.ultima;
-      if (u && performance.now() - u.t < 1500) {
-        const pose = escaner.poses[u.posicion];
-        const theta = escaner.invertir ? 180 - u.thetaServo : u.thetaServo;
-        haz.visible = true;
-        (haz.material as THREE.MeshBasicMaterial).color.set(COLORES[u.posicion]);
-        haz.position.copy(a3D(pose.dx, pose.dy, ALTURA * 0.5));
-        haz.rotation.set(0, ((pose.alpha + theta) * Math.PI) / 180, 0);
-        haz.scale.x = (u.r > 0 ? Math.min(u.r + escaner.d, 1200) : 1200) * MM;
-      } else {
-        haz.visible = false;
-      }
-      controles.update();
-      renderer.render(escena, camara);
-      cuadro = requestAnimationFrame(bucle);
+    let arrastre: { x: number; y: number } | null = null;
+    const abajo = (e: PointerEvent) => { arrastre = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); };
+    const mover = (e: PointerEvent) => {
+      if (!arrastre) return;
+      escaneo.vista.theta += (e.clientX - arrastre.x) * 0.4;
+      escaneo.vista.phi = Math.min(89, Math.max(5, escaneo.vista.phi + (e.clientY - arrastre.y) * 0.4));
+      arrastre = { x: e.clientX, y: e.clientY };
     };
-    cuadro = requestAnimationFrame(bucle);
+    const arriba = () => { arrastre = null; };
+    const rueda = (e: WheelEvent) => { e.preventDefault(); escaneo.vista.zoom = Math.min(4, Math.max(0.4, escaneo.vista.zoom * Math.exp(-e.deltaY * 0.0015))); };
+    canvas.addEventListener('pointerdown', abajo);
+    canvas.addEventListener('pointermove', mover);
+    canvas.addEventListener('pointerup', arriba);
+    canvas.addEventListener('wheel', rueda, { passive: false });
+
+    let cuadro = 0;
+    const dibujar = () => {
+      cuadro = requestAnimationFrame(dibujar);
+      if (!ancho) return;
+      const { nx, ny, paso, altura } = escaneo.config;
+      if (escaneo.vista.girar && !arrastre) escaneo.vista.theta += 0.12;
+      const V = matrizVista(escaneo.vista.theta, escaneo.vista.phi);
+      const centro: Vec3 = [((nx - 1) * paso) / 2, ((ny - 1) * paso) / 2, altura * 0.35];
+      const k = (Math.min(ancho, alto) / (Math.max(Math.max(nx, ny) * paso, altura) * 1.6)) * escaneo.vista.zoom;
+      // Pantalla = Π · V · (p − c): Π se queda con la 1.ª y 3.ª componente
+      const pantalla = (p: Vec3) => {
+        const v = multiplicarMatVec(V, [p[0] - centro[0], p[1] - centro[1], p[2] - centro[2]]);
+        return { x: ancho / 2 + k * v[0]!, y: alto / 2 - k * v[2]!, prof: v[1]! };
+      };
+
+      const fondo = g.createRadialGradient(ancho / 2, alto / 2, 0, ancho / 2, alto / 2, Math.max(ancho, alto) * 0.75);
+      fondo.addColorStop(0, '#1a1309');
+      fondo.addColorStop(1, '#0a0704');
+      g.fillStyle = fondo;
+      g.fillRect(0, 0, ancho, alto);
+
+      // Mesa: la cuadrícula en z = 0
+      g.lineWidth = 1;
+      g.strokeStyle = 'rgba(255,178,56,0.13)';
+      g.beginPath();
+      for (let i = 0; i < nx; i++) {
+        const a = pantalla([i * paso, 0, 0]), b = pantalla([i * paso, (ny - 1) * paso, 0]);
+        g.moveTo(a.x, a.y); g.lineTo(b.x, b.y);
+      }
+      for (let j = 0; j < ny; j++) {
+        const a = pantalla([0, j * paso, 0]), b = pantalla([(nx - 1) * paso, j * paso, 0]);
+        g.moveTo(a.x, a.y); g.lineTo(b.x, b.y);
+      }
+      g.stroke();
+
+      // Ejes x, y, z desde la casilla (0, 0)
+      const o = pantalla([0, 0, 0]);
+      const ejes: [Vec3, string, string][] = [[[60, 0, 0], '#ff6f59', 'x'], [[0, 60, 0], '#a6e36b', 'y'], [[0, 0, 60], '#8fd8ff', 'z']];
+      g.font = MONO;
+      for (const [d, color, nombre] of ejes) {
+        const f = pantalla(d);
+        g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(o.x, o.y); g.lineTo(f.x, f.y); g.stroke();
+        g.fillText(nombre, f.x + 4, f.y - 4);
+      }
+
+      // Superficie: dos triángulos por cada cuadro con sus 4 esquinas medidas
+      const { puntos } = escaneo.geometria();
+      const mapa = new Map(puntos.map((p) => [`${p.i},${p.j}`, p]));
+      const maxH = Math.max(10, ...puntos.map((p) => p.h));
+      const tris: { pts: { x: number; y: number }[]; prof: number; color: string }[] = [];
+      for (let j = 0; j < ny - 1; j++) {
+        for (let i = 0; i < nx - 1; i++) {
+          const esquinas = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([a, b]) => mapa.get(`${a},${b}`));
+          if (esquinas.some((e) => !e)) continue;
+          const v = esquinas.map((e) => [e!.x, e!.y, Math.max(0, e!.h)] as Vec3);
+          for (const [a, b, c] of [[0, 1, 2], [0, 2, 3]] as const) {
+            const { brillo } = sombreado(v[a]!, v[b]!, v[c]!, LUZ);
+            const pts = [v[a]!, v[b]!, v[c]!].map(pantalla);
+            const t = Math.min(1, ((v[a]![2] + v[b]![2] + v[c]![2]) / 3) / maxH);
+            tris.push({ pts, prof: (pts[0]!.prof + pts[1]!.prof + pts[2]!.prof) / 3, color: colorAltura(t, brillo) });
+          }
+        }
+      }
+      tris.sort((a, b) => b.prof - a.prof);
+      for (const t of tris) {
+        g.fillStyle = t.color; g.strokeStyle = t.color; g.lineWidth = 0.6;
+        g.beginPath(); g.moveTo(t.pts[0]!.x, t.pts[0]!.y); g.lineTo(t.pts[1]!.x, t.pts[1]!.y); g.lineTo(t.pts[2]!.x, t.pts[2]!.y);
+        g.closePath(); g.fill(); g.stroke();
+      }
+
+      // Puntos medidos
+      for (const p of puntos) {
+        const s = pantalla([p.x, p.y, Math.max(0, p.h)]);
+        g.fillStyle = p.mesa ? 'rgba(143,216,255,0.55)' : '#ffe2a8';
+        g.beginPath(); g.arc(s.x, s.y, 2.2, 0, Math.PI * 2); g.fill();
+      }
+
+      // Casilla congelada en el cuaderno
+      const res = escaneo.resaltada && mapa.get(`${escaneo.resaltada.i},${escaneo.resaltada.j}`);
+      if (res) {
+        const s = pantalla([res.x, res.y, Math.max(0, res.h)]);
+        g.strokeStyle = '#fffaf0'; g.lineWidth = 2;
+        g.beginPath(); g.arc(s.x, s.y, 9, 0, Math.PI * 2); g.stroke();
+      }
+
+      // La caja en la casilla actual y su haz hacia abajo
+      if (escaneo.cursor < escaneo.total) {
+        const [i, j] = escaneo.casillaActual;
+        const x = i * paso, y = j * paso;
+        const arribaCaja = pantalla([x, y, altura]);
+        const vivo = escaneo.vivo && performance.now() - escaneo.vivo.t < 1000 && escaneo.vivo.r > 0 ? escaneo.vivo.r : null;
+        const fin = pantalla([x, y, vivo ? Math.max(0, altura - vivo) : 0]);
+        g.setLineDash([4, 4]);
+        g.strokeStyle = 'rgba(255,178,56,0.8)'; g.lineWidth = 1.5;
+        g.beginPath(); g.moveTo(arribaCaja.x, arribaCaja.y); g.lineTo(fin.x, fin.y); g.stroke();
+        g.setLineDash([]);
+        const m = 14;
+        const tapa = [[-m, -m], [m, -m], [m, m], [-m, m]].map(([a, b]) => pantalla([x + a!, y + b!, altura]));
+        g.fillStyle = 'rgba(255,178,56,0.18)'; g.strokeStyle = '#ffb238';
+        g.beginPath(); tapa.forEach((p, n) => (n ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath(); g.fill(); g.stroke();
+        g.fillStyle = '#ffb238';
+        g.fillText('caja', tapa[1]!.x + 6, tapa[1]!.y);
+      }
+
+      g.fillStyle = 'rgba(255,178,56,0.7)';
+      g.font = MONO;
+      g.fillText(`θ = ${Math.round(((escaneo.vista.theta % 360) + 360) % 360)}°   φ = ${Math.round(escaneo.vista.phi)}°   arrastra para girar`, 14, alto - 14);
+    };
+    cuadro = requestAnimationFrame(dibujar);
 
     return () => {
       cancelAnimationFrame(cuadro);
       obs.disconnect();
-      controles.dispose();
-      limpiar(grupoEscaneos);
-      limpiar(grupoPoses);
-      renderer.dispose();
-      div.removeChild(renderer.domElement);
+      canvas.removeEventListener('pointerdown', abajo);
+      canvas.removeEventListener('pointermove', mover);
+      canvas.removeEventListener('pointerup', arriba);
+      canvas.removeEventListener('wheel', rueda);
     };
   }, []);
 
-  useEffect(() => { if (controlesRef.current) controlesRef.current.autoRotate = girar; }, [girar]);
-
-  return <div ref={contenedor} className="vista3d" />;
+  return <canvas ref={lienzo} className="lienzo3d" aria-label="Superficie 3D del objeto escaneado" />;
 }

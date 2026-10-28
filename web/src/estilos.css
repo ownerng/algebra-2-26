@@ -95,7 +95,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px s
 .columna-principal { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
 
 /* El radar nunca baja de 420 px: en pantallas bajas la página hace scroll */
-.pantalla { flex: 1 0 470px; display: flex; }
+.pantalla { flex: 0 0 auto; height: min(62vh, 560px); min-height: 420px; display: flex; }
 .bisel {
   flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 10px;
   border-radius: 14px; overflow: hidden;
@@ -128,7 +128,8 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px s
   background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px);
   mix-blend-mode: multiply;
 }
-.radar, .vista3d { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lienzo3d { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.lienzo3d:active { cursor: grabbing; }
 .radar { cursor: grab; touch-action: none; }
 .radar:active { cursor: grabbing; }
 .vista3d canvas { display: block; }
@@ -141,7 +142,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px s
 .aviso strong { font-family: var(--rotulo); font-size: 20px; letter-spacing: .14em; text-transform: uppercase; color: var(--ambar); }
 .aviso b { color: var(--ambar); }
 
-.fila-inferior { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 14px; }
+.fila-inferior { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 14px; }
 
 .placa-titulo {
   display: flex; justify-content: space-between; align-items: center; margin: 0;
@@ -250,11 +251,6 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
 .dato { margin: 0; font-size: 11.5px; color: var(--tinta-suave); }
 .nota { margin: 0; font-family: var(--nota); font-style: italic; font-size: 15.5px; line-height: 1.45; color: var(--tinta-suave); }
 
-/* En pantallas altas todo cabe sin scroll y el cuaderno se desplaza por dentro */
-@media (min-height: 860px) and (min-width: 1241px) {
-  .instrumento { height: 100%; grid-template-rows: auto auto minmax(0, 1fr); }
-  .pantalla { flex: 1 1 0; min-height: 0; }
-}
 @media (max-width: 1240px) {
   .cuerpo { grid-template-columns: minmax(0, 1fr); }
   .cristal { min-height: 58vh; }
@@ -310,3 +306,47 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
 
 @media (max-width: 980px) { .guia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .guia { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Escáner 3D: cuadrícula ---------- */
+.cuadricula, .ajustes { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.cuadricula { padding: 12px; border-radius: 10px; background: var(--grafito-1); border: 1px solid var(--borde); }
+.progreso { height: 6px; border-radius: 3px; background: #0d0a06; overflow: hidden; }
+.progreso i { display: block; height: 100%; background: var(--ambar); box-shadow: 0 0 8px var(--ambar); transition: width .2s; }
+.cuadricula-cuerpo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; align-items: center; }
+.cuadricula svg { width: 100%; height: auto; display: block; }
+.casilla { cursor: pointer; }
+.casilla .vacia { fill: #15120d; stroke: #3a3024; }
+.casilla .medida { stroke: #0c0a07; }
+.casilla .medida.mesa { stroke: #8fd8ff; stroke-width: 1.5; }
+.casilla:hover .vacia { fill: #241c12; }
+.casilla-texto { fill: #120c03; font: 600 10px var(--mono); text-anchor: middle; pointer-events: none; }
+.cursor { fill: none; stroke: var(--ambar); stroke-width: 3; filter: drop-shadow(0 0 5px var(--ambar)); animation: pulso 1.1s ease-in-out infinite; }
+@keyframes pulso { 50% { stroke-opacity: .35; } }
+.resaltada { fill: none; stroke: #fffaf0; stroke-width: 2; }
+.eje { fill: var(--tenue); font: 10px var(--mono); text-anchor: middle; }
+.eje-nombre { fill: var(--tenue); font: 600 11px var(--rotulo); }
+.instruccion { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.paso-chico { font-family: var(--rotulo); font-size: 14px; letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); }
+.casilla-grande { font-family: var(--rotulo); font-size: 44px; line-height: 1; color: var(--ambar); text-shadow: 0 0 14px rgba(255,178,56,.4); }
+.instruccion strong { font-family: var(--rotulo); font-size: 20px; color: var(--serigrafia); }
+.medir { font-size: 22px; padding: 10px 28px 9px; margin-top: 4px; }
+.vivo { margin: 4px 0 0; font-size: 12px; color: var(--tenue); }
+.vivo b { color: var(--ambar); }
+
+/* ---------- Escáner 3D: ajustes ---------- */
+.casilla-check { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 12px; color: var(--tenue); }
+.casilla-check input { accent-color: var(--ambar); }
+.ajustes select, .ajustes .texto {
+  padding: 4px 6px; border-radius: 4px; border: 1px solid #2a2218; background: #0d0a06; color: var(--ambar); max-width: 100%;
+}
+.ajustes .texto { width: 130px; }
+.guardados { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.guardados li { display: flex; align-items: center; gap: 6px; }
+.guardados li span { flex: 1; min-width: 0; color: var(--serigrafia); font-size: 12px; }
+.guardados small { color: var(--tenue); }
+.mando .tecla.chica { align-self: flex-start; }
+
+@media (max-width: 980px) {
+  .fila-inferior { grid-template-columns: minmax(0, 1fr); }
+  .cuadricula-cuerpo { grid-template-columns: minmax(0, 1fr); }
+}

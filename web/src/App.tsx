@@ -1,123 +1,57 @@
-import { useEffect, useState } from 'react';
-import { escaner, useEscaner } from './lib/escaner.ts';
-import { Radar } from './componentes/Radar.tsx';
-import { Vista3D } from './componentes/Vista3D.tsx';
-import { Gemelo } from './componentes/Gemelo.tsx';
-import { Cuaderno } from './componentes/Cuaderno.tsx';
-import { Controles } from './componentes/Controles.tsx';
+import { useEffect } from 'react';
+import { escaneo, useEscaneo } from './lib/escaneo.ts';
 import { Guia } from './componentes/Guia.tsx';
+import { Vista3D } from './componentes/Vista3D.tsx';
+import { Cuadricula } from './componentes/Cuadricula.tsx';
+import { Ajustes } from './componentes/Ajustes.tsx';
+import { Cuaderno } from './componentes/Cuaderno.tsx';
 
 function Cabecera() {
-  const e = useEscaner(100);
+  const e = useEscaneo(150);
   const conectado = e.tipoFuente !== 'ninguna';
   return (
     <header className="cabecera">
       <div className="placa">
         <span className="tornillo-placa" aria-hidden="true" />
         <div>
-          <h1>LIDAR-01</h1>
-          <p>Escáner 2D · ESP32 · VL53L0X · SG90</p>
+          <h1>LIDAR-3D</h1>
+          <p>Escáner 3D por cuadrícula · ESP32 · VL53L0X</p>
         </div>
       </div>
-
       <div className="botonera">
         {!conectado ? (
           <>
-            <button type="button" className="tecla grande" onClick={() => escaner.conectar('serial')}
-              title="Usa el puente USB; sin puente, Web Serial (Chrome, Chromium o Edge)">
-              Conectar ESP32
-            </button>
-            <button type="button" className="tecla grande ambar" onClick={() => escaner.conectar('simulacion')}>▶ Simular prototipo</button>
+            <button type="button" className="tecla grande" onClick={() => escaneo.conectar('serial')}
+              title="Usa el puente USB; sin puente, Web Serial (Chrome, Chromium o Edge)">Conectar ESP32</button>
+            <button type="button" className="tecla grande ambar" onClick={() => escaneo.conectar('simulacion')}>▶ Simular prototipo</button>
           </>
         ) : (
-          <>
-            <button type="button" className="tecla" onClick={() => escaner.enviar('S')}>▶ Barrer</button>
-            <button type="button" className="tecla" onClick={() => escaner.enviar('P')}>❚❚ Pausa</button>
-            <button type="button" className="tecla" onClick={() => escaner.enviar('C')}>⊙ 90°</button>
-            <button type="button" className="tecla" onClick={() => escaner.desconectar()}>Desconectar</button>
-          </>
+          <button type="button" className="tecla" onClick={() => escaneo.desconectar()}>Desconectar</button>
         )}
         <span className={'piloto ' + e.estadoConexion} role="status">
           <i aria-hidden="true" />
-          {e.estadoConexion === 'error' ? e.mensaje : conectado ? `${e.mensaje} · ${e.servo}` : e.mensaje}
+          {e.mensaje}{conectado && e.estadoConexion === 'conectado' ? (e.sensorListo ? ' · sensor listo' : ' · esperando el sensor') : ''}
         </span>
       </div>
     </header>
   );
 }
 
-function Pantalla() {
-  const [modo, setModo] = useState<'2d' | '3d'>(() => (location.hash === '#demo-3d' ? '3d' : '2d'));
-  const [encuadre, setEncuadre] = useState(0);
-  const [girar, setGirar] = useState(true);
-  const e = useEscaner(150);
-  const u = e.ultima;
-  const theta = u ? (e.invertir ? 180 - u.thetaServo : u.thetaServo) : null;
-
-  return (
-    <section className="pantalla" aria-label="Mapa">
-      <div className="bisel">
-        <div className="modos" role="tablist">
-          {(['2d', '3d'] as const).map((m) => (
-            <button key={m} type="button" role="tab" aria-selected={modo === m} className={'modo' + (modo === m ? ' activo' : '')} onClick={() => setModo(m)}>
-              {m === '2d' ? 'Radar 2D' : 'Mapa 3D'}
-            </button>
-          ))}
-          <span className="hud">
-            {u ? `P${u.posicion}  θ ${String(theta).padStart(3)}°  r ${u.r > 0 ? String(u.r).padStart(4) + ' mm' : ' sin eco'}` : 'θ —   r —'}
-          </span>
-          {modo === '2d' && (
-            <div className="alcances" role="radiogroup" aria-label="Alcance del radar">
-              {([300, 600, 1200] as const).map((a) => (
-                <button key={a} type="button" role="radio" aria-checked={e.alcanceVista === a}
-                  className={'alcance' + (e.alcanceVista === a ? ' activo' : '')}
-                  onClick={() => escaner.cambiar({ alcanceVista: a })}>
-                  {a === 1200 ? '1,2 m' : a / 10 + ' cm'}
-                </button>
-              ))}
-            </div>
-          )}
-          {modo === '2d'
-            ? <button type="button" className="tecla chica" onClick={() => setEncuadre((n) => n + 1)}>Encuadrar</button>
-            : <label className="casilla"><input type="checkbox" checked={girar} onChange={(ev) => setGirar(ev.target.checked)} /> girar</label>}
-        </div>
-        <div className="cristal">
-          {modo === '2d' ? <Radar encuadre={encuadre} /> : <Vista3D girar={girar} />}
-          {e.tipoFuente !== 'ninguna' && e.servo === 'pausado' && (
-            <div className="aviso pausa">
-              <strong>Barrido en pausa</strong>
-              <span>El ESP32 está conectado pero el servo no está midiendo.</span>
-              <button type="button" className="tecla ambar" onClick={() => escaner.enviar('S')}>▶ Continuar barrido</button>
-            </div>
-          )}
-          {!u && (
-            <div className="aviso">
-              <strong>Sin señal</strong>
-              <span>Conecta el ESP32 por USB o pulsa <b>Simular prototipo</b> para ver lo que debería medir en una habitación de prueba.</span>
-            </div>
-          )}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function App() {
   useEffect(() => {
     const tecla = (ev: KeyboardEvent) => {
-      if ((ev.target as HTMLElement).matches('input')) return;
-      if (ev.key === '1' || ev.key === '2') escaner.cambiar({ posicionActiva: Number(ev.key) as 1 | 2 });
-      if (ev.key === ' ' && escaner.fuente) {
-        ev.preventDefault();
-        escaner.enviar(escaner.servo === 'pausado' ? 'S' : 'P');
-      }
+      if ((ev.target as HTMLElement).matches('input, select, textarea')) return;
+      if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); escaneo.medir(); }
+      if (ev.key === 'Backspace' || (ev.key === 'z' && ev.ctrlKey)) { ev.preventDefault(); escaneo.deshacer(); }
     };
     document.addEventListener('keydown', tecla);
-    // #demo arranca la simulación sin tocar nada (para ensayar la presentación);
-    // #demo-fusion además pasa sola a P2 después de dos barridos desde P1.
-    if (location.hash.startsWith('#demo')) void escaner.conectar('simulacion');
-    const paso = location.hash === '#demo-fusion' ? setTimeout(() => escaner.cambiar({ posicionActiva: 2 }), 8500) : undefined;
-    return () => { document.removeEventListener('keydown', tecla); clearTimeout(paso); };
+    // #demo arranca la simulación; #demo-auto además recorre la cuadrícula sola
+    if (location.hash.startsWith('#demo')) {
+      void escaneo.conectar('simulacion').then(() => {
+        if (location.hash === '#demo-auto') { escaneo.medirMesa(); setTimeout(() => escaneo.escanearAutomatico(), 900); }
+      });
+    }
+    return () => document.removeEventListener('keydown', tecla);
   }, []);
 
   return (
@@ -126,10 +60,18 @@ export function App() {
       <Guia />
       <main className="cuerpo">
         <div className="columna-principal">
-          <Pantalla />
+          <section className="pantalla" aria-label="Vista 3D">
+            <div className="bisel">
+              <div className="modos">
+                <span className="modo activo">Figura 3D</span>
+                <label className="casilla-check"><input type="checkbox" defaultChecked onChange={(ev) => { escaneo.vista.girar = ev.target.checked; }} /> girar sola</label>
+              </div>
+              <div className="cristal"><Vista3D /></div>
+            </div>
+          </section>
           <div className="fila-inferior">
-            <Gemelo />
-            <Controles />
+            <Cuadricula />
+            <Ajustes />
           </div>
         </div>
         <Cuaderno />

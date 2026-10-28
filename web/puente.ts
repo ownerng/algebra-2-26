@@ -94,9 +94,9 @@ Bun.serve({
       clientes.delete(ws);
     },
     async message(_ws, mensaje) {
-      // Comandos de un carácter para el firmware: S, P, C
+      // Comandos de un carácter para el firmware: M (medir) y S, P, C (versión con servo)
       const comando = String(mensaje).trim().toUpperCase();
-      if (archivo && /^[SPC]$/.test(comando)) await archivo.write(comando);
+      if (archivo && /^[MSPC]$/.test(comando)) await archivo.write(comando);
     },
   },
 });

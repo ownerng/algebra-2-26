@@ -4,6 +4,10 @@
 export interface Dato {
   r?: number;
   theta?: number;
+  medida?: number;
+  desv?: number;
+  n?: number;
+  origen?: string;
   estado?: string;
   error?: string;
 }
