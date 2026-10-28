@@ -6,7 +6,6 @@ import { aRad, type Pose } from '../lib/matematica.ts';
 import { COLORES, escaner, type Posicion, type PuntoMapa } from '../lib/escaner.ts';
 import { CIRCULOS, SEGMENTOS } from '../lib/simulador.ts';
 
-const ALCANCE = 1200;
 const FOSFORO = '255,178,56';
 const EJE_X = '#ff6f59';
 const EJE_Y = '#a6e36b';
@@ -33,6 +32,7 @@ class PantallaRadar {
   escala = 0.3;
   origen: [number, number] = [0, 0];
   private sprites: Record<string, HTMLCanvasElement> = {};
+  alcanceEncuadre = 0;
 
   constructor(private canvas: HTMLCanvasElement) {
     this.g = canvas.getContext('2d')!;
@@ -53,6 +53,7 @@ class PantallaRadar {
 
   encuadrar() {
     if (!this.ancho) return;
+    const ALCANCE = escaner.alcanceVista;
     // Esquinas del semicírculo de cada posición, llevadas al sistema global
     const esquinas = [escaner.poses[1], escaner.poses[2]].flatMap((p) => {
       const c = Math.cos(aRad(p.alpha)), s = Math.sin(aRad(p.alpha));
@@ -62,6 +63,16 @@ class PantallaRadar {
     const xs = esquinas.map((e) => e[0]);
     const ys = esquinas.map((e) => e[1]);
     const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)];
+    this.alcanceEncuadre = ALCANCE;
+    // Con alcance corto se centra solo el semicírculo de la posición activa
+    if (ALCANCE < 1200) {
+      const p = escaner.poses[escaner.posicionActiva];
+      const c = Math.cos(aRad(p.alpha)), s = Math.sin(aRad(p.alpha));
+      const [mx, my] = [p.dx - s * ALCANCE * 0.42, p.dy + c * ALCANCE * 0.42];
+      this.escala = Math.min(this.ancho / (2.3 * ALCANCE), this.alto / (1.4 * ALCANCE));
+      this.origen = [this.ancho / 2 - mx * this.escala, this.alto / 2 + my * this.escala];
+      return;
+    }
     this.escala = Math.min(this.ancho / (maxX - minX), this.alto / (maxY - minY)) * 0.94;
     this.origen = [this.ancho / 2 - ((minX + maxX) / 2) * this.escala, this.alto / 2 + ((minY + maxY) / 2) * this.escala];
   }
@@ -86,6 +97,7 @@ class PantallaRadar {
   dibujar(ahora: number) {
     const g = this.g;
     if (!this.ancho) return;
+    if (this.alcanceEncuadre !== escaner.alcanceVista) this.encuadrar();
     // Fondo con viñeta, como el cristal de un tubo
     const fondo = g.createRadialGradient(this.ancho / 2, this.alto / 2, 0, this.ancho / 2, this.alto / 2, Math.max(this.ancho, this.alto) * 0.75);
     fondo.addColorStop(0, '#1a1309');
@@ -146,11 +158,13 @@ class PantallaRadar {
 
   private anillos(pose: Pose, color: string) {
     const g = this.g;
+    const ALCANCE = escaner.alcanceVista;
+    const paso = ALCANCE / 4;
     const [cx, cy] = this.aPantalla(pose.dx, pose.dy);
     const a0 = -aRad(pose.alpha);
     g.font = MONO;
     g.lineWidth = 1;
-    for (let r = 300; r <= ALCANCE; r += 300) {
+    for (let r = paso; r <= ALCANCE; r += paso) {
       g.strokeStyle = color + '38';
       g.beginPath();
       g.arc(cx, cy, r * this.escala, a0 - Math.PI, a0, false);
@@ -158,7 +172,7 @@ class PantallaRadar {
       const lx = cx + Math.cos(a0) * r * this.escala;
       const ly = cy + Math.sin(a0) * r * this.escala;
       g.fillStyle = color + '90';
-      g.fillText(r / 10 + ' cm', lx - 18, ly + 15);
+      g.fillText(String(r / 10).replace('.', ',') + ' cm', lx - 18, ly + 15);
     }
     for (let t = 0; t <= 180; t += 30) {
       const a = a0 - aRad(t);
@@ -168,7 +182,7 @@ class PantallaRadar {
       g.lineTo(cx + Math.cos(a) * ALCANCE * this.escala, cy + Math.sin(a) * ALCANCE * this.escala);
       g.stroke();
       g.fillStyle = color + '80';
-      g.fillText(t + '°', cx + Math.cos(a) * (ALCANCE + 70) * this.escala - 10, cy + Math.sin(a) * (ALCANCE + 70) * this.escala + 4);
+      g.fillText(t + '°', cx + Math.cos(a) * ALCANCE * 1.07 * this.escala - 10, cy + Math.sin(a) * ALCANCE * 1.07 * this.escala + 4);
     }
   }
 
@@ -224,6 +238,7 @@ class PantallaRadar {
     const u = escaner.ultima;
     if (!u || ahora - u.t > 1500) return;
     const g = this.g;
+    const ALCANCE = escaner.alcanceVista;
     const pose = escaner.poses[u.posicion];
     const color = COLORES[u.posicion];
     const theta = escaner.invertir ? 180 - u.thetaServo : u.thetaServo;
@@ -285,7 +300,7 @@ class PantallaRadar {
 
   private escalaGrafica() {
     const g = this.g;
-    const mm = this.escala * 100 < 30 ? 500 : 100;
+    const mm = this.escala * 100 < 30 ? 500 : this.escala * 100 > 220 ? 50 : 100;
     const px = mm * this.escala;
     const x = 18, y = this.alto - 20;
     g.strokeStyle = `rgba(${FOSFORO},0.8)`;

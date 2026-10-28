@@ -28,6 +28,7 @@ class Escaner extends EventTarget {
   d = 15;
   invertir = false;
   verHabitacion = true;
+  alcanceVista: 300 | 600 | 1200 = 1200; // mm que abarca el radar
   poses: Record<Posicion, Pose> = { 1: { dx: 0, dy: 0, alpha: 0 }, 2: { dx: 250, dy: 1100, alpha: 180 } };
   escaneos: Record<Posicion, Map<number, { r: number; t: number }>> = { 1: new Map(), 2: new Map() };
   ultima: Lectura | null = null;
@@ -106,6 +107,8 @@ class Escaner extends EventTarget {
       const puente = new ConexionPuente(opciones);
       this.fuente = puente;
       await puente.conectar();
+      // El ESP32 pudo quedar en pausa de una sesión anterior: se reanuda
+      this.enviar('S');
       return;
     } catch {
       this.fuente = null;
@@ -119,6 +122,7 @@ class Escaner extends EventTarget {
     this.fuente = serial;
     try {
       await serial.conectar();
+      this.enviar('S');
     } catch (error) {
       this.fuente = null;
       this.tipoFuente = 'ninguna';
@@ -136,7 +140,7 @@ class Escaner extends EventTarget {
   }
 
   // ---------- Controles ----------
-  cambiar(cambios: Partial<Pick<Escaner, 'posicionActiva' | 'grabando' | 'd' | 'invertir' | 'verHabitacion'>>) {
+  cambiar(cambios: Partial<Pick<Escaner, 'posicionActiva' | 'grabando' | 'd' | 'invertir' | 'verHabitacion' | 'alcanceVista'>>) {
     Object.assign(this, cambios);
     this.version++;
     this.avisar();

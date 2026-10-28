@@ -108,6 +108,13 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px s
   font-family: var(--rotulo); font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--tenue);
 }
 .modo.activo { color: #241500; background: var(--ambar); box-shadow: 0 0 12px rgba(255,178,56,.35); }
+.alcances { display: inline-flex; margin-left: 8px; border: 1px solid var(--borde); border-radius: 6px; overflow: hidden; }
+.alcance { cursor: pointer; padding: 4px 9px; border: 0; background: transparent; color: var(--tenue); font-family: var(--rotulo); font-weight: 600; font-size: 13px; letter-spacing: .06em; }
+.alcance + .alcance { border-left: 1px solid var(--borde); }
+.alcance.activo { background: rgba(255,178,56,.16); color: var(--ambar); }
+.alcance:focus-visible { outline: 2px solid var(--ambar); outline-offset: -2px; }
+.aviso.pausa { pointer-events: auto; }
+.aviso.pausa .tecla { align-self: center; margin-top: 6px; }
 .hud { margin-left: auto; padding-right: 10px; color: var(--ambar); white-space: pre; font-variant-numeric: tabular-nums; text-shadow: 0 0 8px rgba(255,178,56,.45); }
 
 .cristal {

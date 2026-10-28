@@ -65,12 +65,30 @@ function Pantalla() {
           <span className="hud">
             {u ? `P${u.posicion}  θ ${String(theta).padStart(3)}°  r ${u.r > 0 ? String(u.r).padStart(4) + ' mm' : ' sin eco'}` : 'θ —   r —'}
           </span>
+          {modo === '2d' && (
+            <div className="alcances" role="radiogroup" aria-label="Alcance del radar">
+              {([300, 600, 1200] as const).map((a) => (
+                <button key={a} type="button" role="radio" aria-checked={e.alcanceVista === a}
+                  className={'alcance' + (e.alcanceVista === a ? ' activo' : '')}
+                  onClick={() => escaner.cambiar({ alcanceVista: a })}>
+                  {a === 1200 ? '1,2 m' : a / 10 + ' cm'}
+                </button>
+              ))}
+            </div>
+          )}
           {modo === '2d'
             ? <button type="button" className="tecla chica" onClick={() => setEncuadre((n) => n + 1)}>Encuadrar</button>
             : <label className="casilla"><input type="checkbox" checked={girar} onChange={(ev) => setGirar(ev.target.checked)} /> girar</label>}
         </div>
         <div className="cristal">
           {modo === '2d' ? <Radar encuadre={encuadre} /> : <Vista3D girar={girar} />}
+          {e.tipoFuente !== 'ninguna' && e.servo === 'pausado' && (
+            <div className="aviso pausa">
+              <strong>Barrido en pausa</strong>
+              <span>El ESP32 está conectado pero el servo no está midiendo.</span>
+              <button type="button" className="tecla ambar" onClick={() => escaner.enviar('S')}>▶ Continuar barrido</button>
+            </div>
+          )}
           {!u && (
             <div className="aviso">
               <strong>Sin señal</strong>
