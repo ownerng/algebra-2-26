@@ -47,37 +47,41 @@ fallos.
 
 \subsection{Interfaz web}
 
-La Figura~\ref{fig:interfaz} muestra la interfaz después de un escaneo
-automático de la taza en simulación. La guía marca los pasos completados; la
-figura 3D se puede girar con el mouse; abajo, la cuadrícula muestra la altura
-medida en cada casilla y las casillas del borde usadas para el plano de la
-mesa (Figura~\ref{fig:cuadricula}).
+La Figura~\ref{fig:escaneando} muestra la interfaz durante un escaneo continuo
+de la taza en simulación. A la izquierda, la marca avanza por la tercera fila y
+la flecha indica hacia dónde deslizar la caja; las casillas ya recorridas
+muestran la altura medida. A la derecha, la figura 3D se construye al mismo
+tiempo y muestra la caja sobre la casilla actual. La
+Figura~\ref{fig:interfaz} muestra el resultado al terminar las ocho filas.
 
 \begin{figure}[htbp]
-\caption{Interfaz web del escáner 3D}
+\caption{Escaneo continuo en curso}
+\label{fig:escaneando}
+\centering
+\includegraphics[width=\linewidth]{interfaz_escaneando.jpg}
+\figurenote{Tercera fila del escaneo de la taza en el modo de simulación.
+Elaboración propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Interfaz web al terminar el escaneo}
 \label{fig:interfaz}
 \centering
 \includegraphics[width=\linewidth]{interfaz_general.jpg}
-\figurenote{Escaneo automático de la taza en el modo de simulación. Elaboración propia.}
-\end{figure}
-
-\begin{figure}[htbp]
-\caption{Panel de la cuadrícula}
-\label{fig:cuadricula}
-\centering
-\includegraphics[width=0.55\linewidth]{interfaz_cuadricula.png}
-\figurenote{El número de cada casilla es la altura medida en mm; el borde
-celeste marca las casillas usadas para el plano de la mesa. Elaboración propia.}
+\figurenote{Taza escaneada en el modo de simulación. El número de cada casilla
+es la altura medida en mm; el borde celeste marca las casillas usadas para el
+plano de la mesa. Elaboración propia.}
 \end{figure}
 
 La Figura~\ref{fig:cuaderno} muestra el cuaderno con el cálculo congelado en la
-casilla $(5,4)$, en el borde de la taza. Con $r = 53{,}3$ mm y $H = 151$ mm,
-el producto por $A$ da $z = -53{,}3 + 151 = 97{,}7$ mm. El plano de la mesa,
-ajustado con 32 casillas del borde, vale $2{,}75$ mm en ese punto, de modo que
-la altura del objeto es $h = 97{,}7 - 2{,}75 = 94{,}9$ mm. El cuaderno también
-muestra la matriz de vista con los ángulos del momento, la proyección del
-punto en la pantalla y el producto vectorial
-$(20;\,0;\,-4{,}5)\times(0;\,20;\,-3{,}9) = (89{,}8;\,78{,}3;\,400{,}0)$, que da
+casilla $(5,4)$, en el borde de la taza, donde se promediaron 13 lecturas del
+escaneo continuo. Con $r = 52{,}8$ mm y $H = 150$ mm, el producto por $A$ da
+$z = -52{,}8 + 150 = 97{,}2$ mm. El plano de la mesa, ajustado con 32 casillas
+del borde, vale $1{,}63$ mm en ese punto, de modo que la altura del objeto es
+$h = 97{,}2 - 1{,}63 = 95{,}5$ mm. El cuaderno también muestra la matriz de
+vista con los ángulos del momento, la proyección del punto en la pantalla y el
+producto vectorial
+$(20;\,0;\,-6{,}0)\times(0;\,20;\,-5{,}7) = (120{,}0;\,114{,}6;\,400{,}0)$, que da
 la normal del triángulo y, con el producto punto, su brillo.
 
 \begin{figure}[htbp]
@@ -85,16 +89,19 @@ la normal del triángulo y, con el producto punto, su brillo.
 \label{fig:cuaderno}
 \centering
 \includegraphics[width=0.48\linewidth]{interfaz_cuaderno.png}
-\figurenote{Casilla $(5,4)$ del escaneo simulado de la taza. Elaboración propia.}
+\figurenote{Casilla $(5,4)$ del escaneo continuo simulado de la taza. Elaboración propia.}
 \end{figure}
 
 \subsection{Mediciones con el sensor real}
 
-El firmware se cargó en el ESP32 con el sensor conectado. Al principio, una
-de cada dos lecturas en el modo de alta precisión llegaba marcada como
-inválida; con el filtro por código de estado y los reintentos, las lecturas
-inválidas desaparecieron. Para medir la repetibilidad se tomaron \repN{}
-mediciones promediadas seguidas con la caja quieta. Su media fue de
+El firmware se cargó en el ESP32 con el sensor conectado. En una primera
+prueba, en el modo de alta precisión del sensor, una de cada dos lecturas
+llegaba marcada como inválida; con el filtro por código de estado y los
+reintentos, las lecturas inválidas desaparecieron. Con el firmware final, en
+el modo por defecto, la interfaz recibió \repTasa{} lecturas por segundo a
+través del puente USB, sin lecturas inválidas. A 20 mm/s, eso equivale a unas
+24 lecturas por cada 20 mm de recorrido. Para medir la repetibilidad se tomaron
+\repN{} mediciones promediadas seguidas con la caja quieta. Su media fue de
 \repMedia{} mm, con valores entre \repMin{} y \repMax{} mm y una desviación
 estándar de \repDesv{} mm entre mediciones. Dentro de cada medición, la
 desviación de las diez lecturas fue en promedio de \repInterna{} mm. La interfaz

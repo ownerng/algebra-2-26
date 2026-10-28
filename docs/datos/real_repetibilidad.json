@@ -1,67 +1,69 @@
 {
+ "modo": "por defecto (~33 ms)",
  "medidas": [
   {
-   "medida": 33,
-   "desv": 0.9,
+   "medida": 25.6,
+   "desv": 1.6,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 32.6,
-   "desv": 0.8,
+   "medida": 25,
+   "desv": 1.2,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 33.6,
-   "desv": 1.3,
+   "medida": 25.2,
+   "desv": 1.6,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 32.2,
-   "desv": 0.4,
+   "medida": 25.7,
+   "desv": 1.9,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 32.6,
-   "desv": 1.1,
+   "medida": 25.2,
+   "desv": 1.5,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 33.2,
-   "desv": 0.8,
+   "medida": 25.7,
+   "desv": 1.5,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 32.8,
-   "desv": 0.4,
+   "medida": 24.1,
+   "desv": 1.7,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 32.8,
-   "desv": 0.4,
+   "medida": 25.4,
+   "desv": 2,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 34,
-   "desv": 0.7,
+   "medida": 24.5,
+   "desv": 2.3,
    "n": 10,
    "origen": "web"
   },
   {
-   "medida": 32.6,
-   "desv": 1.1,
+   "medida": 24.7,
+   "desv": 2.7,
    "n": 10,
    "origen": "web"
   }
  ],
- "media": 32.940000000000005,
- "desv_entre": 0.5337498373666156,
- "desv_interna_media": 0.79
+ "media": 25.11,
+ "desv_entre": 0.5384133067531749,
+ "desv_interna_media": 1.8,
+ "lecturas_por_segundo": 24.333333333333332
 }

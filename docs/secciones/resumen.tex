@@ -2,8 +2,9 @@
 Este trabajo presenta un escáner 3D de bajo costo construido solo con un
 microcontrolador ESP32 y un sensor láser de tiempo de vuelo VL53L0X. El sensor
 va dentro de una caja que mira hacia abajo y se desliza a una altura fija
-sobre una cuadrícula dibujada en la mesa; en cada casilla se toma una medición
-promediada de la distancia al objeto. Una única matriz homogénea de $4\times4$
+sobre una cuadrícula dibujada en la mesa. Con un solo botón, una marca recorre
+cada fila a velocidad constante y la persona desliza la caja siguiéndola; cada
+lectura se ubica con una función afín del tiempo y se promedia en su casilla. Una única matriz homogénea de $4\times4$
 convierte cada casilla y su distancia en un punto del espacio, combinando un
 escalamiento, una reflexión y una traslación. La inclinación de la mesa se
 estima ajustando un plano por mínimos cuadrados a las casillas del borde, y la

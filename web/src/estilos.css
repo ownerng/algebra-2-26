@@ -350,3 +350,20 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
   .fila-inferior { grid-template-columns: minmax(0, 1fr); }
   .cuadricula-cuerpo { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- Escaneo continuo ---------- */
+.marca-caja rect { fill: rgba(255,178,56,.28); stroke: var(--ambar); stroke-width: 2.5; filter: drop-shadow(0 0 6px var(--ambar)); }
+.marca-caja path { fill: var(--ambar); }
+.casilla .fila-activa { stroke: rgba(255,178,56,.55); }
+.velocidades { display: inline-flex; border: 1px solid var(--borde); border-radius: 6px; overflow: hidden; margin-top: 4px; }
+.velocidades .alcance:disabled { opacity: .5; cursor: not-allowed; }
+.enlace { all: unset; cursor: pointer; color: var(--ambar); text-decoration: underline; }
+.enlace:disabled { color: var(--tenue); cursor: not-allowed; }
+.enlace:focus-visible { outline: 2px solid var(--ambar); }
+
+/* La cuadrícula (con la marca a seguir) junto a la figura 3D, siempre visibles */
+.fila-superior { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr); gap: 14px; align-items: stretch; }
+.fila-superior .pantalla { height: auto; min-height: 520px; }
+.fila-superior .cuadricula-cuerpo { grid-template-columns: minmax(0, 1fr); }
+.ajustes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; align-items: start; }
+@media (max-width: 1100px) { .fila-superior { grid-template-columns: minmax(0, 1fr); } }

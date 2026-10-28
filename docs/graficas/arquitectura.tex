@@ -8,11 +8,11 @@
 \begin{tikzpicture}[
   bloque/.style={draw, rounded corners, align=center, minimum height=1.3cm, text width=3.2cm, font=\small},
   flecha/.style={-{Stealth[length=2.5mm]}, thick}]
-\node[bloque] (caja) {Caja con el VL53L0X\\ en la casilla $(i,j)$\\ mide $r$ hacia abajo};
-\node[bloque, right=1.3cm of caja] (esp) {ESP32\\ promedia 10 lecturas\\ (botón BOOT o M)};
-\node[bloque, right=1.3cm of esp] (web) {Interfaz web\\ $A\,[i,j,r,1]^T$, mesa,\\ vista $\Pi V$ y sombreado};
+\node[bloque] (caja) {Caja con el VL53L0X\\ se desliza por la fila $j$\\ mide $r$ hacia abajo};
+\node[bloque, right=1.3cm of caja] (esp) {ESP32\\ envía unas 24\\ lecturas por segundo};
+\node[bloque, right=1.3cm of esp] (web) {Interfaz web\\ $x = v(t-t_0)$, $A\,[i,j,r,1]^T$,\\ mesa, vista y sombreado};
 \draw[flecha] (caja) -- node[above, font=\footnotesize]{I\textsuperscript{2}C} (esp);
 \draw[flecha] (esp) -- node[above, font=\footnotesize]{USB, JSON} (web);
-\draw[flecha, dashed] (web.south) -- ++(0,-0.7) -| node[below, pos=0.25, font=\footnotesize]{la página indica la siguiente casilla; la persona mueve la caja} (caja.south);
+\draw[flecha, dashed] (web.south) -- ++(0,-0.7) -| node[below, pos=0.25, font=\footnotesize]{una marca recorre la fila en la pantalla; la persona desliza la caja siguiéndola} (caja.south);
 \end{tikzpicture}
 \end{document}

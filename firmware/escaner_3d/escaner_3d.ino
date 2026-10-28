@@ -2,17 +2,18 @@
   Escáner 3D por cuadrícula — ESP32 + VL53L0X
   Proyecto de Álgebra Lineal
 
-  El sensor va dentro de una caja, mirando hacia abajo. La persona mueve la
-  caja casilla por casilla sobre una cuadrícula dibujada en la mesa y en cada
-  casilla pide una medición (botón BOOT de la placa o botón "Medir" de la
-  página). La página convierte cada medición en un punto 3D.
+  El sensor va dentro de una caja, mirando hacia abajo. En el escaneo continuo
+  la persona desliza la caja por cada fila de la cuadrícula siguiendo una marca
+  que avanza en la página; el firmware envía unas 20 lecturas por segundo y la
+  página ubica cada una según dónde va la marca. También se puede pedir una
+  medición promediada en una casilla (botón BOOT o comando M).
 
   Conexiones:
     VL53L0X : VIN -> 3V3, GND -> GND, SDA -> GPIO 21, SCL -> GPIO 22
     Botón   : BOOT de la placa (GPIO 0), no necesita cables
 
   Salida por Serial (115200 baudios), una línea JSON por mensaje:
-    {"r":143}                                  lectura en vivo, ~8 por segundo (-1 = sin eco)
+    {"r":143}                                  lectura en vivo, ~20 por segundo (-1 = sin eco)
     {"medida":143.2,"desv":1.1,"n":10,"origen":"boton"}   medición promediada
     {"estado":"listo"} {"estado":"sensor listo"} {"error":"..."}
 
@@ -27,7 +28,7 @@ const int SDA_PIN    = 21;
 const int SCL_PIN    = 22;
 const int BOTON_PIN  = 0;     // botón BOOT, activo en bajo
 const int MUESTRAS   = 10;    // lecturas que se promedian en cada medición
-const int VIVO_MS    = 120;   // cada cuánto se envía la lectura en vivo
+const int VIVO_MS    = 40;    // cada cuánto se envía la lectura en vivo (~20 por segundo)
 
 Adafruit_VL53L0X lidar;
 bool sensorListo = false;
@@ -42,8 +43,9 @@ void estado(const char *texto) {
 void iniciarSensor() {
   sensorListo = lidar.begin();
   if (sensorListo) {
-    // Modo de alta precisión: más lento (~200 ms) pero con menos ruido
-    lidar.configSensor(Adafruit_VL53L0X::VL53L0X_SENSE_HIGH_ACCURACY);
+    // Modo por defecto (~33 ms por lectura): lo bastante rápido para el
+    // escaneo continuo, en el que la caja se mueve mientras mide
+    lidar.configSensor(Adafruit_VL53L0X::VL53L0X_SENSE_DEFAULT);
     estado("sensor listo");
   } else {
     Serial.println("{\"error\":\"VL53L0X no encontrado: revisa SDA (GPIO 21), SCL (GPIO 22), VIN (3V3) y GND\"}");

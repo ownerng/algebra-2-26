@@ -48,10 +48,10 @@ export function Ajustes() {
   return (
     <section className="ajustes" aria-label="Ajustes y archivos">
       <div className="mando">
-        <h3 className="placa-titulo">1 · Altura de la caja sobre la mesa</h3>
+        <h3 className="placa-titulo">Altura de la caja sobre la mesa (opcional)</h3>
         <p className="ayuda">
-          Pon la caja en su soporte sobre la mesa <b>vacía</b> y pulsa <b>Medir la mesa</b>: esa distancia es H. La
-          altura de cada punto es H − r.
+          La altura de cada punto es H − r. No hace falta medir H: el plano de la mesa, ajustado por mínimos cuadrados,
+          corrige la altura. Si quieres el valor exacto, pon la caja sobre la mesa <b>vacía</b> y pulsa <b>Medir la mesa</b>.
         </p>
         <Numero id="altura" etiqueta="Altura H" ayuda={e.alturaMedida ? 'medida con el sensor' : 'escrita a mano'} unidad="mm" min={20}
           valor={e.config.altura} alCambiar={(v) => escaneo.cambiarConfig({ altura: v })} />
@@ -61,7 +61,7 @@ export function Ajustes() {
       </div>
 
       <div className="mando">
-        <h3 className="placa-titulo">2 · Tamaño de la cuadrícula</h3>
+        <h3 className="placa-titulo">Tamaño de la cuadrícula</h3>
         <Numero id="nx" etiqueta="Columnas" ayuda="casillas en x (i)" unidad="" min={2} valor={e.config.nx} alCambiar={(v) => escaneo.cambiarConfig({ nx: Math.min(30, v) })} />
         <Numero id="ny" etiqueta="Filas" ayuda="casillas en y (j)" unidad="" min={2} valor={e.config.ny} alCambiar={(v) => escaneo.cambiarConfig({ ny: Math.min(30, v) })} />
         <Numero id="paso" etiqueta="Lado del cuadro" ayuda="Δ, igual al dibujado" unidad="mm" min={5} valor={e.config.paso} alCambiar={(v) => escaneo.cambiarConfig({ paso: v })} />
@@ -78,15 +78,12 @@ export function Ajustes() {
               {Object.entries(OBJETOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </label>
-          <button type="button" className="tecla chica" onClick={() => escaneo.escanearAutomatico()}>
-            {e.automatico ? '❚❚ Detener escaneo automático' : '▶ Escaneo automático'}
-          </button>
-          <p className="ayuda">En la simulación la caja puede recorrer la cuadrícula sola para ver cómo se arma la figura.</p>
+          <p className="ayuda">En la simulación, la caja virtual sigue la marca sola: pulsa <b>▶ Escanear</b> y mira cómo se arma la figura.</p>
         </div>
       )}
 
       <details className="mando plegable">
-        <summary className="placa-titulo">3 · Guardar y exportar la figura</summary>
+        <summary className="placa-titulo">Guardar y exportar la figura</summary>
         <div className="fila-botones">
           <input id="nombre" className="texto" value={nombre} onChange={(ev) => setNombre(ev.target.value)} aria-label="Nombre del escaneo" />
           <button type="button" className="tecla chica" disabled={!e.medidas.size} onClick={() => escaneo.guardarComo(nombre || 'Escaneo')}>Guardar aquí</button>

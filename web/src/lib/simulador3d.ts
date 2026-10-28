@@ -68,7 +68,7 @@ export class Simulador3D implements Fuente {
     this.temporizador = setInterval(() => {
       const [x, y] = this.opciones.posicionCaja();
       this.emitir({ r: Math.round(distanciaSimulada(this.opciones.objeto(), x, y)) });
-    }, 120);
+    }, 40);
   }
 
   async enviar(comando: string) {

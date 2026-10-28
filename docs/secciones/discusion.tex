@@ -26,11 +26,15 @@ cono en los bordes. Esto indica que el límite del prototipo es la resolución
 lateral del sensor y no su ruido. Que el sensor marcara como inválida una de
 cada dos lecturas en el modo de alta precisión es un comportamiento observado
 en este prototipo; el filtro por código de estado evita que esas lecturas
-contaminen el promedio.
+contaminen el promedio, y el modo por defecto da las lecturas por segundo que
+necesita el escaneo continuo.
 
 El trabajo tiene limitaciones que conviene precisar. La posición de cada
-medición la da la cuadrícula, así que la exactitud en $x$ y en $y$ depende de
-qué tan bien se coloque la caja en cada casilla. El sensor solo ve la parte de
+lectura no se mide: en $y$ la da la fila de la cuadrícula y en $x$, el tiempo
+según la ecuación~\eqref{eq:tiempo}. Si la caja va adelante o atrás de la
+marca, las lecturas se asignan a casillas desplazadas en $x$; seguir la marca
+con calma y promediar varias lecturas por casilla reduce este efecto, y la
+velocidad de la marca se puede bajar. El sensor solo ve la parte de
 arriba del objeto: las zonas bajo un saliente o el interior de una taza
 estrecha no se miden, y la figura es una superficie de alturas, no un modelo
 cerrado. Las superficies negras, brillantes o transparentes devuelven poca luz

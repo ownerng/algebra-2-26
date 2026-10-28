@@ -18,10 +18,11 @@ estas operaciones se escriben con matrices y vectores
 Este trabajo construye un escáner 3D con los mismos componentes de un primer
 prototipo: un microcontrolador ESP32 \citep{espressif2023} y un sensor láser
 de tiempo de vuelo VL53L0X \citep{st2018}. El sensor va dentro de una caja que
-mira hacia abajo; la persona la mueve casilla por casilla sobre una cuadrícula
-dibujada en la mesa, y en cada casilla el sensor mide la distancia a la
-superficie que tiene debajo. La posición de cada medición la da la
-cuadrícula, de modo que no se necesitan motores ni sensores adicionales.
+mira hacia abajo; con un solo botón, una marca recorre en la pantalla cada fila
+de una cuadrícula dibujada en la mesa, y la persona desliza la caja
+siguiéndola mientras el sensor mide la distancia a la superficie que tiene
+debajo. La posición de cada lectura la dan la fila y el tiempo, de modo que no
+se necesitan motores ni sensores adicionales.
 
 El aporte del proyecto es mostrar el álgebra lineal de cada paso con los datos
 reales: la matriz homogénea que lleva cada casilla al espacio, el ajuste por

@@ -20,6 +20,7 @@ let cifras = `% Generado por experimentos/generar_reales3d.ts. No editar a mano.
 \\newcommand{\\repInterna}{${coma(rep.desv_interna_media, 2)}}
 \\newcommand{\\repMin}{${coma(Math.min(...m))}}
 \\newcommand{\\repMax}{${coma(Math.max(...m))}}
+\\newcommand{\\repTasa}{${coma(rep.lecturas_por_segundo ?? 0)}}
 `;
 
 // Escaneo real (si ya se hizo): resumen y CSV para la figura

@@ -5,6 +5,7 @@ import { escaneo, useEscaneo } from '../lib/escaneo.ts';
 export function Guia() {
   const e = useEscaneo(300);
   const conectado = e.tipoFuente !== 'ninguna';
+  const b = e.barrido;
   const pasos = [
     {
       titulo: 'Conectar',
@@ -13,16 +14,16 @@ export function Guia() {
       accion: !conectado ? { texto: 'Simular', fn: () => escaneo.conectar('simulacion') } : null,
     },
     {
-      titulo: 'Medir la mesa',
-      texto: 'Con la mesa vacía, mide la altura H de la caja.',
-      hecho: e.alturaMedida,
-      accion: conectado && !e.alturaMedida ? { texto: 'Medir la mesa', fn: () => escaneo.medirMesa() } : null,
+      titulo: 'Poner el objeto',
+      texto: 'En el centro de la cuadrícula, con el borde libre.',
+      hecho: !!b || e.medidas.size > 0,
+      accion: null,
     },
     {
-      titulo: 'Recorrer la cuadrícula',
-      texto: `Pon el objeto y mide casilla por casilla (${e.medidas.size}/${e.total}).`,
-      hecho: e.medidas.size >= e.total,
-      accion: conectado && e.medidas.size < e.total ? { texto: 'Medir', fn: () => escaneo.medir() } : null,
+      titulo: 'Escanear',
+      texto: b && b.fase !== 'fin' ? `Desliza la caja siguiendo la marca (fila ${b.fila + 1} de ${e.config.ny}).` : 'Un botón: la marca recorre las filas y la figura se arma sola.',
+      hecho: b?.fase === 'fin' || e.medidas.size >= e.total,
+      accion: conectado && !b ? { texto: '▶ Escanear', fn: () => escaneo.escanearContinuo() } : null,
     },
     {
       titulo: 'Ver y guardar',

@@ -41,14 +41,16 @@ export function App() {
   useEffect(() => {
     const tecla = (ev: KeyboardEvent) => {
       if ((ev.target as HTMLElement).matches('input, select, textarea')) return;
-      if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); escaneo.medir(); }
+      if (ev.key === ' ') { ev.preventDefault(); escaneo.escanearContinuo(); }
+      if (ev.key === 'Enter') { ev.preventDefault(); escaneo.medir(); }
       if (ev.key === 'Backspace' || (ev.key === 'z' && ev.ctrlKey)) { ev.preventDefault(); escaneo.deshacer(); }
     };
     document.addEventListener('keydown', tecla);
-    // #demo arranca la simulación; #demo-auto además recorre la cuadrícula sola
+    // #demo arranca la simulación; #demo-auto además hace el escaneo continuo
+    // (en la simulación la caja sigue la marca sola)
     if (location.hash.startsWith('#demo')) {
       void escaneo.conectar('simulacion').then(() => {
-        if (location.hash === '#demo-auto') { escaneo.medirMesa(); setTimeout(() => escaneo.escanearAutomatico(), 900); }
+        if (location.hash === '#demo-auto') escaneo.escanearContinuo();
       });
     }
     return () => document.removeEventListener('keydown', tecla);
@@ -60,6 +62,8 @@ export function App() {
       <Guia />
       <main className="cuerpo">
         <div className="columna-principal">
+          <div className="fila-superior">
+          <Cuadricula />
           <section className="pantalla" aria-label="Vista 3D">
             <div className="bisel">
               <div className="modos">
@@ -69,10 +73,8 @@ export function App() {
               <div className="cristal"><Vista3D /></div>
             </div>
           </section>
-          <div className="fila-inferior">
-            <Cuadricula />
-            <Ajustes />
           </div>
+          <Ajustes />
         </div>
         <Cuaderno />
       </main>

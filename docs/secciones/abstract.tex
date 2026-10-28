@@ -4,7 +4,9 @@
 This work presents a low-cost 3D scanner built only with an ESP32
 microcontroller and a VL53L0X time-of-flight laser sensor. The sensor sits
 inside a box that looks downward and slides at a fixed height over a grid
-drawn on the table; at each cell, an averaged distance to the object is taken.
+drawn on the table. With a single button, a marker sweeps each row at constant
+speed and the user slides the box after it; each reading is located with an
+affine function of time and averaged in its cell.
 A single $4\times4$ homogeneous matrix turns each cell and its distance into a
 point in space, combining a scaling, a reflection and a translation. The tilt
 of the table is estimated by fitting a plane with least squares to the border

@@ -2,9 +2,11 @@
 
 Se construyó un escáner 3D con un ESP32 y un sensor VL53L0X dentro de una caja
 de cartón, sin motores ni componentes adicionales, con un costo de entre
-50.000 y 78.000 pesos colombianos. El firmware entrega en cada casilla una
-medición promediada de diez lecturas válidas, y con el sensor real diez
-mediciones en la misma posición variaron con una desviación de \repDesv{} mm.
+50.000 y 78.000 pesos colombianos. El escaneo se inicia con un solo botón: una
+marca recorre cada fila y la persona desliza la caja siguiéndola, mientras el
+firmware envía unas \repTasa{} lecturas válidas por segundo. Con el sensor
+real, diez mediciones en la misma posición variaron con una desviación de
+\repDesv{} mm.
 
 La conversión de cada casilla y su distancia en un punto 3D se implementó con
 una sola matriz homogénea $A = T\,F\,E$, compuesta por un escalamiento, una
@@ -13,8 +15,8 @@ plano ajustado por mínimos cuadrados. Las propiedades de estas matrices se
 verificaron numéricamente, y en simulación el ajuste del plano redujo el error
 de altura de la mesa vacía de \simMesaSin{} mm a \simMesaCon{} mm.
 
-La interfaz web guía el recorrido de la cuadrícula, construye la figura 3D
-mientras se escanea y la dibuja con rotaciones, proyección ortogonal y
+La interfaz web guía el recorrido de la cuadrícula, ubica cada lectura con una
+función afín del tiempo, construye la figura 3D mientras se escanea y la dibuja con rotaciones, proyección ortogonal y
 sombreado programados con matrices propias. Su cuaderno desglosa con los
 números de cada medición el producto por $A$, las ecuaciones normales del
 plano, la matriz de vista y el producto vectorial y el producto punto del

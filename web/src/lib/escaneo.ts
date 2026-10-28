@@ -10,6 +10,14 @@ export interface Medida { r: number; desv: number; n: number; t: number }
 export interface Punto3D { i: number; j: number; r: number; x: number; y: number; z: number; h: number; mesa: boolean }
 export interface Config { nx: number; ny: number; paso: number; altura: number }
 
+// Escaneo continuo: una marca recorre cada fila a velocidad constante y la
+// persona desliza la caja siguiéndola. La posición de cada lectura es
+//   x = v·(t − t₀)   (o el largo de la fila menos eso, en las filas de regreso)
+//   y = Δ·j
+export type FaseBarrido = 'cuenta' | 'fila' | 'fin';
+export interface Barrido { fila: number; fase: FaseBarrido; tFase: number }
+export const CUENTA_MS = 3000;
+
 export interface EscaneoGuardado {
   formato: 'escaner-3d-v1';
   nombre: string;
@@ -41,6 +49,10 @@ class Escaneo extends EventTarget {
   midiendo = false;
   calibrando = false;
   automatico = false;
+  velocidad = 20;                  // mm/s de la marca en el escaneo continuo
+  barrido: Barrido | null = null;
+  private acumulado = new Map<string, { suma: number; suma2: number; n: number }>();
+  private reloj: ReturnType<typeof setInterval> | undefined;
   version = 0;
   // Ángulos de la vista 3D (los mueve el lienzo sin avisar en cada cuadro)
   vista = { theta: -35, phi: 58, zoom: 1, girar: true };
@@ -74,8 +86,77 @@ class Escaneo extends EventTarget {
   get casillaActual(): [number, number] { return this.casilla(Math.min(this.cursor, this.total - 1)); }
 
   posicionCaja(): [number, number] {
+    if (this.barrido) return this.posicionMarca();
     const [i, j] = this.casillaActual;
     return [i * this.config.paso, j * this.config.paso];
+  }
+
+  get largoFila() { return (this.config.nx - 1) * this.config.paso; }
+
+  // Recorrido de la marca en la fila actual (0 durante la cuenta regresiva)
+  recorrido(): number {
+    const b = this.barrido;
+    if (!b || b.fase !== 'fila') return 0;
+    return Math.min(this.largoFila, (this.velocidad * (performance.now() - b.tFase)) / 1000);
+  }
+
+  posicionMarca(): [number, number] {
+    const b = this.barrido!;
+    const s = this.recorrido();
+    const x = b.fila % 2 === 0 ? s : this.largoFila - s;
+    return [x, b.fila * this.config.paso];
+  }
+
+  // ---------- Escaneo continuo ----------
+  escanearContinuo() {
+    if (this.barrido) return this.detenerContinuo();
+    if (!this.fuente) return;
+    this.reiniciar();
+    this.barrido = { fila: 0, fase: 'cuenta', tFase: performance.now() };
+    clearInterval(this.reloj);
+    this.reloj = setInterval(() => this.avanzarBarrido(), 50);
+    this.avisar();
+  }
+
+  detenerContinuo() {
+    clearInterval(this.reloj);
+    this.barrido = null;
+    this.avisar();
+  }
+
+  private avanzarBarrido() {
+    const b = this.barrido;
+    if (!b) return;
+    const ahora = performance.now();
+    if (b.fase === 'cuenta' && ahora - b.tFase >= CUENTA_MS) {
+      this.barrido = { ...b, fase: 'fila', tFase: ahora };
+    } else if (b.fase === 'fila' && this.velocidad * (ahora - b.tFase) / 1000 >= this.largoFila + this.config.paso * 0.4) {
+      if (b.fila >= this.config.ny - 1) {
+        clearInterval(this.reloj);
+        this.barrido = { ...b, fase: 'fin', tFase: ahora };
+        this.cursor = this.total;
+      } else {
+        this.barrido = { fila: b.fila + 1, fase: 'cuenta', tFase: ahora };
+      }
+    }
+    this.avisar();
+  }
+
+  // Cada lectura en vivo durante una fila se suma a la casilla más cercana a la marca
+  private acumular(r: number) {
+    const [x, y] = this.posicionMarca();
+    const i = Math.round(x / this.config.paso), j = Math.round(y / this.config.paso);
+    if (i < 0 || i >= this.config.nx) return;
+    const k = clave(i, j);
+    const a = this.acumulado.get(k) ?? { suma: 0, suma2: 0, n: 0 };
+    a.suma += r; a.suma2 += r * r; a.n++;
+    this.acumulado.set(k, a);
+    const media = a.suma / a.n;
+    const desv = a.n > 1 ? Math.sqrt(Math.max(0, (a.suma2 - a.n * media * media) / (a.n - 1))) : 0;
+    if (!this.medidas.has(k)) this.historial.push(k);
+    this.medidas.set(k, { r: media, desv, n: a.n, t: performance.now() });
+    this.ultima = { i, j };
+    this.version++;
   }
 
   private siguienteLibre(desde: number) {
@@ -107,6 +188,7 @@ class Escaneo extends EventTarget {
     if (typeof dato.r === 'number') {
       this.vivo = { r: dato.r, t: performance.now() };
       this.sensorListo = true;
+      if (this.barrido?.fase === 'fila' && dato.r > 0) this.acumular(dato.r);
       this.avisar();
     }
   };
@@ -193,6 +275,7 @@ class Escaneo extends EventTarget {
 
   async desconectar() {
     this.automatico = false;
+    this.detenerContinuo();
     await this.fuente?.desconectar();
   }
 
@@ -229,6 +312,7 @@ class Escaneo extends EventTarget {
 
   reiniciar() {
     this.automatico = false;
+    this.acumulado.clear();
     this.medidas.clear();
     this.historial = [];
     this.cursor = 0;
@@ -246,7 +330,7 @@ class Escaneo extends EventTarget {
     this.avisar();
   }
 
-  cambiar(cambios: Partial<Pick<Escaneo, 'objeto' | 'corregirMesa'>>) {
+  cambiar(cambios: Partial<Pick<Escaneo, 'objeto' | 'corregirMesa' | 'velocidad'>>) {
     Object.assign(this, cambios);
     this.version++;
     this.avisar();

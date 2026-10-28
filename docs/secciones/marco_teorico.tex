@@ -61,6 +61,27 @@ distancia crece en el sentido de $-z$. Su determinante es $-1$, como el de toda
 reflexión, a diferencia de las rotaciones, cuyo determinante es $+1$. $T$ es la
 traslación que sube el origen del haz a la altura $H$.
 
+\subsection{La posición a partir del tiempo}
+
+En el escaneo continuo la caja no se detiene en cada casilla: una marca recorre
+cada fila de la cuadrícula a velocidad constante $v$ y la persona desliza la
+caja siguiéndola. Si la fila $j$ empieza en el instante $t_0$ y tiene largo
+$L = (n_x - 1)\Delta$, la posición de una lectura tomada en el instante $t$ es
+una función afín del tiempo:
+\begin{equation}
+x(t) =
+\begin{cases}
+v\,(t - t_0) & \text{en las filas pares (de izquierda a derecha)},\\
+L - v\,(t - t_0) & \text{en las filas impares (de regreso)},
+\end{cases}
+\qquad y = \Delta\, j .
+\label{eq:tiempo}
+\end{equation}
+Cada lectura se asigna a la casilla más cercana, $i = \operatorname{round}(x/\Delta)$,
+y la distancia de cada casilla es el promedio de todas las lecturas que caen
+en ella. Así, una sola pasada por la fila produce varias lecturas por casilla
+sin que haya que detenerse.
+
 \subsection{Mínimos cuadrados: el plano de la mesa}
 
 Una mesa real no está perfectamente nivelada, ni la caja se desliza siempre a

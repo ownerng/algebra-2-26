@@ -6,7 +6,7 @@ El sistema tiene tres partes (Figura~\ref{fig:arquitectura}): el prototipo
 físico, que mide; el firmware del ESP32, que promedia las lecturas y las envía,
 y una interfaz web, que guía el recorrido, hace los cálculos matriciales y
 dibuja la figura. Las mediciones viajan por el cable USB como texto en formato
-JSON, por ejemplo \verb|{"medida":143.2,"desv":1.1,"n":10}|.
+JSON, una línea por lectura, por ejemplo \verb|{"r":143}|.
 
 \begin{figure}[htbp]
 \caption{Arquitectura del escáner 3D}
@@ -25,9 +25,8 @@ van soldados a los pines del ESP32. El sensor va dentro de una caja de cartón,
 pegado al fondo con el lente asomando por un orificio, de modo que mide hacia
 abajo. La caja se apoya sobre un soporte a una altura fija $H$ sobre la mesa,
 y debajo se coloca una cartulina con una cuadrícula de cuadros de lado
-$\Delta$ dibujada con regla (Figura~\ref{fig:montaje}). El botón BOOT del ESP32,
-que la placa trae de fábrica, sirve como botón de medición, así que el
-prototipo no necesita componentes adicionales.
+$\Delta$ dibujada con regla (Figura~\ref{fig:montaje}). El prototipo no
+necesita componentes adicionales.
 
 \begin{table}[htbp]
 \caption{Materiales del prototipo y costo aproximado}
@@ -60,29 +59,33 @@ la altura de la superficie es $H - r$. Elaboración propia.}
 \subsection{Firmware}
 
 El firmware, escrito en C++ con el entorno de Arduino, configura el VL53L0X en
-su modo de alta precisión. Cuando recibe el comando \texttt{M} desde la
-interfaz, o cuando se presiona el botón BOOT, toma diez lecturas y envía su
-media y su desviación estándar. El sensor marca cada lectura con un código de
-estado; solo se aceptan las que tienen estado 0 (medición válida), y si una
-lectura falla se repite hasta tres veces. Además, cada 120 ms envía una lectura
-individual para que la interfaz muestre en vivo lo que hay debajo de la caja.
+su modo por defecto, en el que cada lectura tarda unos 33 ms, y envía lecturas
+de forma continua mientras la caja se mueve. El sensor marca cada lectura con un
+código de estado; solo se aceptan las que tienen estado 0 (medición válida), y
+si una lectura falla se repite hasta tres veces. Para repetir una sola casilla,
+el comando \texttt{M} o el botón BOOT del ESP32 toman diez lecturas seguidas y
+envían su media y su desviación estándar.
 
 \subsection{Procedimiento de escaneo}
 
 Se usó una cuadrícula de \simNX{} columnas por \simNY{} filas con cuadros de
-\simPaso{} mm. El procedimiento es el siguiente:
+\simPaso{} mm. El escaneo se inicia con un solo botón:
 \begin{enumerate}
-\item Con la mesa vacía, se pone la caja en el soporte y se mide la distancia a
-la mesa; ese valor es $H$.
 \item Se coloca el objeto en el centro de la cuadrícula, dejando libres las
-casillas del borde.
-\item La interfaz indica la casilla en la que debe ponerse la caja. Se pulsa
-\textit{Medir} y la interfaz guarda la medición y señala la siguiente casilla.
+casillas del borde, y la caja en la esquina $(0,0)$.
+\item Se pulsa \textit{Escanear}. Después de una cuenta regresiva de tres
+segundos, una marca recorre la fila a velocidad constante (20 mm/s por
+defecto) y la persona desliza la caja siguiéndola. La posición de cada lectura
+se obtiene con la ecuación~\eqref{eq:tiempo}.
+\item Al final de la fila hay otra cuenta regresiva para pasar a la siguiente.
 El recorrido sigue un zigzag (la fila 0 de izquierda a derecha, la fila 1 de
 derecha a izquierda, y así sucesivamente) para que la caja siempre pase a una
-casilla vecina.
-\item Al completar la cuadrícula, la figura se guarda o se exporta.
+fila vecina.
+\item Al terminar la última fila, la figura se guarda o se exporta.
 \end{enumerate}
+No hace falta medir la altura $H$ de antemano: un error en $H$ desplaza todas
+las alturas por igual, y el plano de la mesa ajustado por mínimos cuadrados lo
+absorbe en su término independiente $c$.
 
 \subsection{Procesamiento matemático}
 
@@ -111,8 +114,9 @@ Chrome. Tiene cinco partes:
 \begin{itemize}
 \item Una guía de cuatro pasos (conectar, medir la mesa, recorrer la cuadrícula
 y ver y guardar) que se marca sola a medida que se avanza.
-\item La cuadrícula vista desde arriba, que indica en qué casilla poner la caja,
-colorea las casillas medidas según su altura y muestra la lectura en vivo.
+\item La cuadrícula vista desde arriba, con el botón \textit{Escanear}, la
+marca que la caja debe seguir, la cuenta regresiva entre filas y la lectura en
+vivo. Las casillas se colorean según su altura a medida que se miden.
 \item La figura 3D, que se construye mientras se escanea y se gira arrastrando
 con el mouse.
 \item Un cuaderno que desglosa, con KaTeX y con los números de una medición, los
@@ -126,8 +130,8 @@ Cada escaneo se puede guardar en el navegador o exportar como malla 3D
 (\texttt{.json}).
 \end{itemize}
 El botón \textit{Simular prototipo} reemplaza el sensor por un simulador que
-se describe a continuación. En la simulación, la caja puede recorrer la
-cuadrícula sola, para mostrar cómo se construye la figura. El código del
+se describe a continuación; en la simulación, la caja virtual sigue la marca
+sola, así que se ve cómo se construye la figura sin mover nada. El código del
 proyecto (firmware, interfaz, pruebas y este informe) está en
 \url{https://github.com/ownerng/algebra-2-26}.
 
@@ -142,10 +146,13 @@ superficies cercanas, porque devuelven más luz. A cada lectura se le suma un
 ruido uniforme de $\pm 2$ mm, y el generador de números aleatorios usa una
 semilla fija para que los resultados se puedan reproducir. Se escanearon tres
 objetos de forma conocida (una taza cilíndrica, una caja y unos libros
-escalonados) y la mesa vacía. Para los objetos se calculó el error de la altura
+escalonados) y la mesa vacía; en estos experimentos cada casilla se midió con
+diez lecturas en su centro, lo que equivale a seguir la marca sin error. Para
+los objetos se calculó el error de la altura
 en todas las casillas; para la mesa vacía, con y sin la corrección del plano.
 
-Con el sensor real se midió la repetibilidad: se tomaron \repN{} mediciones
-promediadas seguidas con la caja quieta en la misma posición. Además, se
+Con el sensor real se midieron el número de lecturas por segundo que llegan a
+la interfaz y la repetibilidad: se tomaron \repN{} mediciones promediadas
+seguidas con la caja quieta en la misma posición. Además, se
 verificaron numéricamente las propiedades de las matrices y se escribieron
 pruebas automáticas para las funciones de álgebra lineal y el simulador.
