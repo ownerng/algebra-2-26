@@ -5,8 +5,9 @@
 web:            ## Abre la interfaz en http://localhost:3000 (Bun)
 	./iniciar-web.sh
 
-datos:          ## Regenera las cifras, tablas y CSV del informe desde el simulador
+datos:          ## Regenera las cifras, tablas y CSV del informe (simulador y mediciones reales)
 	bun experimentos/generar.mjs
+	bun experimentos/generar_reales.ts
 
 test:           ## Pruebas de la matemática
 	bun test tests/

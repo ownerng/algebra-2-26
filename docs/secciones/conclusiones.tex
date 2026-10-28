@@ -1,12 +1,12 @@
 \section{Conclusiones}
 
-Se diseñó el prototipo con un ESP32, un sensor VL53L0X y un servomotor SG90,
-con un costo total de entre 62.000 y 97.000 pesos colombianos, y se armó su
-circuito de control. El firmware realiza barridos de $0^\circ$ a $180^\circ$ en
-pasos de $2^\circ$ y envía cada lectura $(r,\theta)$ en formato JSON. El servo
-y su alimentación se validaron sobre el circuito real sin reinicios del
-microcontrolador; la medición con el sensor queda pendiente de que se suelden
-sus pines.
+Se construyó el prototipo con un ESP32, un sensor VL53L0X y un servomotor
+SG90, con un costo total de entre 62.000 y 97.000 pesos colombianos. Su
+firmware realiza barridos de $0^\circ$ a $180^\circ$ en pasos de $2^\circ$ y
+envía cada lectura $(r,\theta)$ en formato JSON. Con el prototipo real se
+capturaron \realBarridos{} barridos completos con \realLecturas{} lecturas con
+eco; la distancia medida en un mismo ángulo varió en promedio \realRepMedia{} mm
+entre barridos.
 
 La conversión de coordenadas se implementó como el producto
 $R(\theta)\,[r+d,\;0]^{T}$ y la fusión de escaneos como el producto por una

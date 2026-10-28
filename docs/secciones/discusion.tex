@@ -31,8 +31,17 @@ El trabajo tiene limitaciones que conviene precisar. El sensor mide en un solo
 plano, por lo que el mapa es bidimensional y un objeto que no corte ese plano
 no aparece; la vista 3D de la interfaz es una ayuda visual. El alcance práctico
 es de unos 1,2 m y las superficies oscuras o brillantes devuelven menos luz.
-El servo SG90 tiene una precisión angular del orden de uno o dos grados, que se
-suma al error de orientación ya discutido. Por último, los resultados
-cuantitativos provienen de un entorno simulado; el prototipo físico validó el
-barrido del servo y su alimentación, y la medición con el sensor real queda
-pendiente.
+El servo SG90 es un servo de bajo costo y su posición real puede diferir
+algunos grados de la ordenada, lo que se suma al error de orientación ya
+discutido. Por último, los resultados cuantitativos de la fusión provienen de
+un entorno simulado.
+
+Las mediciones con el prototipo real muestran que el sistema completo
+funciona: el sensor entrega una distancia en cada ángulo del barrido y la
+interfaz la convierte y la dibuja. La diferencia media de \realRepMedia{} mm
+entre dos barridos en el mismo ángulo es mayor que el ruido supuesto en la
+simulación. Además, en varios tramos la diferencia depende del sentido de
+giro, lo que sugiere que el servo todavía no llega al ángulo ordenado cuando
+el sensor mide; aumentar la espera de 35 ms después de cada paso permitiría
+comprobarlo. Queda pendiente comparar las distancias del sensor con
+distancias medidas con cinta para estimar su exactitud.

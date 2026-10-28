@@ -116,13 +116,41 @@ propia.}
 
 \subsection{Validación con el prototipo físico}
 
-Se armó el circuito del servo en la protoboard según la
-Figura~\ref{fig:protoboard} y se cargó el programa de prueba
-\texttt{firmware/prueba\_servo}, que lleva el servo a $0^\circ$, $90^\circ$ y
-$180^\circ$ y luego hace barridos continuos. El servo recorrió las tres
-posiciones y los barridos, y el monitor serial no registró reinicios del ESP32
-por caída de tensión, lo que indica que la alimentación desde el pin VIN, con
-el condensador de 1000 µF, es suficiente. Al cierre de este informe, los pines
-del sensor VL53L0X estaban pendientes de soldadura, por lo que las mediciones
-de distancia con el sensor real y la comparación con distancias medidas con
-cinta quedan como siguiente paso de la validación.
+Se armó el circuito en la protoboard según la Figura~\ref{fig:protoboard} y se
+cargó primero el programa de prueba \texttt{firmware/prueba\_servo}, que lleva
+el servo a $0^\circ$, $90^\circ$ y $180^\circ$ y luego hace barridos continuos.
+El servo recorrió las tres posiciones y los barridos, y el monitor serial no
+registró reinicios del ESP32 por caída de tensión, lo que indica que la
+alimentación desde el pin VIN, con el condensador de 1000 µF, es suficiente.
+
+Después se conectó el sensor y se cargó el firmware del escáner. El programa
+\texttt{firmware/diagnostico\_i2c} sirvió para comprobar la conexión: con el
+sensor bien soldado, las líneas SDA y SCL quedan en nivel alto y el VL53L0X
+responde en la dirección 0x29 del bus I\textsuperscript{2}C.
+
+Con el sensor montado sobre el servo, se capturaron \realBarridos{} barridos
+completos a través del puente USB con \texttt{experimentos/capturar.ts}. Se
+obtuvieron \realLecturas{} lecturas con eco, en \realAngulos{} de los 91
+ángulos del barrido, con distancias entre \realMin{} y \realMax{} mm
+(Tabla~\ref{tab:real}). La Figura~\ref{fig:real} muestra esas lecturas
+convertidas a coordenadas cartesianas con $R(\theta)\,[r+d,\;0]^{T}$, el mismo
+cálculo que hace la interfaz.
+
+Como no se contaba con una referencia externa para cada ángulo, la
+repetibilidad se estimó comparando la distancia medida en el mismo ángulo en
+los dos barridos. La diferencia media fue de \realRepMedia{} mm y la mediana,
+de \realRepMediana{} mm. Las diferencias no son simétricas: en varios tramos,
+el barrido que avanza hacia $180^\circ$ mide sistemáticamente distinto del que
+regresa hacia $0^\circ$.
+
+\input{tablas/reales}
+
+\begin{figure}[htbp]
+\caption{Escaneo real con el prototipo, en el sistema local del aparato}
+\label{fig:real}
+\centering
+\includegraphics[width=0.85\linewidth]{real_escaneo.pdf}
+\figurenote{Dos barridos consecutivos del VL53L0X sobre el servo, convertidos
+con $R(\theta)$ y $d=15$ mm. El triángulo marca el eje del servo. Elaboración
+propia.}
+\end{figure}
