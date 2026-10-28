@@ -77,7 +77,20 @@ class Escaner extends EventTarget {
   }
 
   // ---------- Conexión ----------
+  private conectando = false;
+
   async conectar(tipo: 'serial' | 'simulacion') {
+    // Un doble clic no debe arrancar dos fuentes a la vez
+    if (this.conectando) return;
+    this.conectando = true;
+    try {
+      await this.abrir(tipo);
+    } finally {
+      this.conectando = false;
+    }
+  }
+
+  private async abrir(tipo: 'serial' | 'simulacion') {
     await this.fuente?.desconectar();
     const opciones = { alDato: this.alDato, alEstado: this.alEstado, posicionActiva: () => this.posicionActiva };
     const fuente = tipo === 'serial' ? new ConexionSerial(opciones) : new Simulador(opciones);
