@@ -25,6 +25,7 @@ export function Gemelo() {
           {e.tipoFuente === 'simulacion' ? 'simulado' : e.tipoFuente === 'serial' ? 'en vivo' : 'sin señal'}
         </span>
       </header>
+      <p className="ayuda">Lo que está haciendo el aparato en este momento: hacia dónde apunta el sensor y qué distancia mide.</p>
 
       <svg viewBox="-14 0 348 214" role="img" aria-label={`Servo en ${theta} grados${r ? `, objeto a ${r} milímetros` : ''}`}>
         {/* Base de MDF y protoboard */}

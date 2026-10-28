@@ -5,6 +5,7 @@ import { Vista3D } from './componentes/Vista3D.tsx';
 import { Gemelo } from './componentes/Gemelo.tsx';
 import { Cuaderno } from './componentes/Cuaderno.tsx';
 import { Controles } from './componentes/Controles.tsx';
+import { Guia } from './componentes/Guia.tsx';
 
 function Cabecera() {
   const e = useEscaner(100);
@@ -122,6 +123,7 @@ export function App() {
   return (
     <div className="instrumento">
       <Cabecera />
+      <Guia />
       <main className="cuerpo">
         <div className="columna-principal">
           <Pantalla />

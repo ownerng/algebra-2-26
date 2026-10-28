@@ -33,6 +33,7 @@ class Escaner extends EventTarget {
   escaneos: Record<Posicion, Map<number, { r: number; t: number }>> = { 1: new Map(), 2: new Map() };
   ultima: Lectura | null = null;
   ultimaValida: Lectura | null = null;
+  resaltada: Lectura | null = null; // lectura congelada en el cuaderno
   direccion = 1;
   version = 0;
   private marcas: number[] = [];
@@ -149,6 +150,11 @@ class Escaner extends EventTarget {
   cambiarPose2(pose: Partial<Pose>) {
     this.poses = { ...this.poses, 2: { ...this.poses[2], ...pose } };
     this.version++;
+    this.avisar();
+  }
+
+  resaltar(lectura: Lectura | null) {
+    this.resaltada = lectura;
     this.avisar();
   }
 

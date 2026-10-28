@@ -2,7 +2,7 @@
 // dibujado como un tubo de fósforo ámbar.
 
 import { useEffect, useRef } from 'react';
-import { aRad, type Pose } from '../lib/matematica.ts';
+import { aRad, procesarLectura, type Pose } from '../lib/matematica.ts';
 import { COLORES, escaner, type Posicion, type PuntoMapa } from '../lib/escaner.ts';
 import { CIRCULOS, SEGMENTOS } from '../lib/simulador.ts';
 
@@ -113,6 +113,7 @@ class PantallaRadar {
     this.haz(ahora);
     const puntos = escaner.puntos();
     for (const id of [1, 2] as Posicion[]) this.puntos(puntos[id], COLORES[id], ahora);
+    this.resaltada(ahora);
     this.escalaGrafica();
   }
 
@@ -296,6 +297,29 @@ class PantallaRadar {
     }
     g.globalAlpha = 1;
     g.globalCompositeOperation = 'source-over';
+  }
+
+  // Anillo sobre la lectura congelada en el cuaderno
+  private resaltada(ahora: number) {
+    const l = escaner.resaltada;
+    if (!l) return;
+    const c = procesarLectura({ r: l.r, thetaServo: l.thetaServo, d: escaner.d, invertir: escaner.invertir, pose: escaner.poses[l.posicion] });
+    const [sx, sy] = this.aPantalla(c.global[0]!, c.global[1]!);
+    const [ox, oy] = this.aPantalla(escaner.poses[l.posicion].dx, escaner.poses[l.posicion].dy);
+    const g = this.g;
+    g.save();
+    g.setLineDash([4, 4]);
+    g.strokeStyle = 'rgba(255,250,240,0.7)';
+    g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(ox, oy); g.lineTo(sx, sy); g.stroke();
+    g.setLineDash([]);
+    g.strokeStyle = '#fffaf0';
+    g.lineWidth = 2;
+    g.beginPath(); g.arc(sx, sy, 11 + Math.sin(ahora / 200) * 2, 0, Math.PI * 2); g.stroke();
+    g.fillStyle = '#fffaf0';
+    g.font = '600 12px "Barlow Condensed", sans-serif';
+    g.fillText('lectura congelada', sx + 16, sy - 10);
+    g.restore();
   }
 
   private escalaGrafica() {

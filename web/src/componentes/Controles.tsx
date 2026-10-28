@@ -1,4 +1,5 @@
-// Panel de mandos: posición activa, pose de P2, calibración y archivos.
+// Mandos: desde qué posición se mide, cuánto se movió el aparato entre las
+// dos posiciones y, plegados, los ajustes y archivos.
 
 import { useRef } from 'react';
 import { escaner, useEscaner, type Posicion } from '../lib/escaner.ts';
@@ -21,13 +22,15 @@ function exportarCSV() {
   descargar('escaneo-lidar.csv', filas.join('\n'), 'text/csv');
 }
 
-function Numero({ id, etiqueta, unidad, valor, paso, alCambiar }:
-  { id: string; etiqueta: string; unidad: string; valor: number; paso: number; alCambiar: (v: number) => void }) {
+function Numero({ id, etiqueta, ayuda, unidad, valor, paso, alCambiar }:
+  { id: string; etiqueta: string; ayuda: string; unidad: string; valor: number; paso: number; alCambiar: (v: number) => void }) {
   return (
-    <label className="campo" htmlFor={id}>
-      <span>{etiqueta}</span>
-      <input id={id} type="number" step={paso} value={valor} onChange={(ev) => alCambiar(Number(ev.target.value) || 0)} />
-      <span className="unidad">{unidad}</span>
+    <label className="campo-fila" htmlFor={id}>
+      <span className="campo-nombre">{etiqueta}<small>{ayuda}</small></span>
+      <span className="campo-valor">
+        <input id={id} type="number" step={paso} value={valor} onChange={(ev) => alCambiar(Number(ev.target.value) || 0)} />
+        <span className="unidad">{unidad}</span>
+      </span>
     </label>
   );
 }
@@ -54,54 +57,53 @@ export function Controles() {
   return (
     <section className="controles" aria-label="Mandos">
       <div className="mando">
-        <h3 className="placa-titulo">Posición del aparato</h3>
+        <h3 className="placa-titulo">¿Desde dónde mides?</h3>
         <div className="selector" role="radiogroup" aria-label="Posición activa">
           {([1, 2] as Posicion[]).map((id) => (
             <button key={id} type="button" role="radio" aria-checked={e.posicionActiva === id}
               className={'opcion p' + id + (e.posicionActiva === id ? ' activa' : '')}
               onClick={() => escaner.cambiar({ posicionActiva: id })}>
               <span className="led" />P{id}
-              <small>{puntos[id].length} pts</small>
+              <small>{puntos[id].length} puntos</small>
             </button>
           ))}
         </div>
-        <p className="ayuda">P1 es el origen del mapa. Mueve el aparato, mide cuánto se desplazó y giró, y escanea en P2.</p>
+        <p className="ayuda">
+          <b>P1</b> es el primer lugar donde pones el aparato: ahí está el origen del mapa. <b>P2</b> es el segundo
+          lugar, después de moverlo. Cada lectura se guarda en la posición elegida.
+        </p>
       </div>
 
       <div className="mando">
-        <h3 className="placa-titulo">Pose de P2</h3>
-        <div className="campos">
-          <Numero id="dx" etiqueta="dx" unidad="mm" paso={10} valor={pose2.dx} alCambiar={(v) => escaner.cambiarPose2({ dx: v })} />
-          <Numero id="dy" etiqueta="dy" unidad="mm" paso={10} valor={pose2.dy} alCambiar={(v) => escaner.cambiarPose2({ dy: v })} />
-          <Numero id="alpha" etiqueta="α" unidad="°" paso={1} valor={pose2.alpha} alCambiar={(v) => escaner.cambiarPose2({ alpha: v })} />
-        </div>
-        <input type="range" min={-180} max={180} step={1} value={pose2.alpha} aria-label="Ángulo α de P2"
+        <h3 className="placa-titulo">¿Cuánto moviste el aparato? (de P1 a P2)</h3>
+        <Numero id="dx" etiqueta="A la derecha" ayuda="dx" unidad="mm" paso={10} valor={pose2.dx} alCambiar={(v) => escaner.cambiarPose2({ dx: v })} />
+        <Numero id="dy" etiqueta="Hacia adelante" ayuda="dy" unidad="mm" paso={10} valor={pose2.dy} alCambiar={(v) => escaner.cambiarPose2({ dy: v })} />
+        <Numero id="alpha" etiqueta="Giro" ayuda="α, antihorario" unidad="°" paso={1} valor={pose2.alpha} alCambiar={(v) => escaner.cambiarPose2({ alpha: v })} />
+        <input type="range" min={-180} max={180} step={1} value={pose2.alpha} aria-label="Giro α de P2"
           onChange={(ev) => escaner.cambiarPose2({ alpha: Number(ev.target.value) })} />
+        <p className="ayuda">
+          Mide con cinta desde donde estaba el eje del servo en P1 hasta donde quedó en P2. Estos tres números arman la
+          matriz T. Si el mapa de P2 no encaja con el de P1, alguno está mal medido.
+        </p>
       </div>
 
-      <div className="mando">
-        <h3 className="placa-titulo">Calibración</h3>
-        <div className="campos">
-          <Numero id="desfase" etiqueta="d" unidad="mm" paso={1} valor={e.d} alCambiar={(v) => escaner.cambiar({ d: v })} />
-        </div>
-        <label className="casilla"><input type="checkbox" checked={e.invertir} onChange={(ev) => escaner.cambiar({ invertir: ev.target.checked })} /> invertir ángulo (180° − θ)</label>
-        <label className="casilla"><input type="checkbox" checked={e.grabando} onChange={(ev) => escaner.cambiar({ grabando: ev.target.checked })} /> guardar puntos</label>
+      <details className="mando plegable">
+        <summary className="placa-titulo">Ajustes y archivos</summary>
+        <Numero id="desfase" etiqueta="Del eje al lente" ayuda="d, se suma a cada lectura" unidad="mm" paso={1} valor={e.d} alCambiar={(v) => escaner.cambiar({ d: v })} />
+        <label className="casilla"><input type="checkbox" checked={e.invertir} onChange={(ev) => escaner.cambiar({ invertir: ev.target.checked })} /> El servo gira al revés (usar 180° − θ)</label>
+        <label className="casilla"><input type="checkbox" checked={e.grabando} onChange={(ev) => escaner.cambiar({ grabando: ev.target.checked })} /> Guardar los puntos en el mapa</label>
         {e.tipoFuente === 'simulacion' && (
-          <label className="casilla"><input type="checkbox" checked={e.verHabitacion} onChange={(ev) => escaner.cambiar({ verHabitacion: ev.target.checked })} /> ver habitación real</label>
+          <label className="casilla"><input type="checkbox" checked={e.verHabitacion} onChange={(ev) => escaner.cambiar({ verHabitacion: ev.target.checked })} /> Mostrar la habitación real de la simulación</label>
         )}
-      </div>
-
-      <div className="mando">
-        <h3 className="placa-titulo">Datos</h3>
         <div className="fila-botones">
-          <button type="button" className="tecla" onClick={() => escaner.borrar(e.posicionActiva)}>Borrar P{e.posicionActiva}</button>
-          <button type="button" className="tecla" onClick={exportarCSV}>CSV</button>
-          <button type="button" className="tecla" onClick={() => descargar('sesion-lidar.json', JSON.stringify(escaner.sesion(), null, 2), 'application/json')}>Guardar</button>
-          <button type="button" className="tecla" onClick={() => archivo.current?.click()}>Cargar</button>
+          <button type="button" className="tecla chica" onClick={() => escaner.borrar(e.posicionActiva)}>Borrar puntos de P{e.posicionActiva}</button>
+          <button type="button" className="tecla chica" onClick={exportarCSV}>Exportar CSV</button>
+          <button type="button" className="tecla chica" onClick={() => descargar('sesion-lidar.json', JSON.stringify(escaner.sesion(), null, 2), 'application/json')}>Guardar sesión</button>
+          <button type="button" className="tecla chica" onClick={() => archivo.current?.click()}>Abrir sesión</button>
           <input ref={archivo} type="file" accept="application/json,.json" hidden onChange={(ev) => cargar(ev.target.files)} />
         </div>
-        <p className="ayuda">Teclas: <kbd>1</kbd> <kbd>2</kbd> posición · <kbd>espacio</kbd> pausa</p>
-      </div>
+        <p className="ayuda">Teclas: <kbd>1</kbd> <kbd>2</kbd> cambian de posición · <kbd>espacio</kbd> pausa el barrido</p>
+      </details>
     </section>
   );
 }

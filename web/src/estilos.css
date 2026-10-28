@@ -36,7 +36,7 @@ button, input { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px solid var(--borde); border-bottom-width: 2px; border-radius: 3px; background: var(--grafito-2); }
 
-.instrumento { min-height: 100%; display: grid; grid-template-rows: auto 1fr; }
+.instrumento { min-height: 100%; display: grid; grid-template-rows: auto auto 1fr; }
 
 /* ---------- Cabecera: placa grabada y botonera ---------- */
 .cabecera {
@@ -95,7 +95,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px s
 .columna-principal { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 14px; }
 
 /* El radar nunca baja de 420 px: en pantallas bajas la página hace scroll */
-.pantalla { flex: 1 0 420px; display: flex; }
+.pantalla { flex: 1 0 470px; display: flex; }
 .bisel {
   flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 10px;
   border-radius: 14px; overflow: hidden;
@@ -189,7 +189,7 @@ kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px s
 .boton-simular:active { transform: translate(-50%, calc(-50% + 2px)); border-bottom-width: 1px; }
 
 /* ---------- Mandos ---------- */
-.controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; align-content: start; }
+.controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; align-content: start; }
 .mando { display: flex; flex-direction: column; gap: 9px; padding: 12px; border-radius: 10px; background: var(--grafito-1); border: 1px solid var(--borde); min-width: 0; }
 .selector { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .opcion {
@@ -229,6 +229,7 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
   background-size: 26px 26px, 18px 18px, 18px 18px;
   background-position: 6px 7px, 0 0, 0 0;
   background-repeat: repeat-x, repeat, repeat;
+  background-attachment: local; /* la espiral y la cuadrícula se desplazan con el texto */
   box-shadow: 0 10px 30px rgba(0,0,0,.5);
   display: flex; flex-direction: column; gap: 18px;
 }
@@ -251,7 +252,7 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
 
 /* En pantallas altas todo cabe sin scroll y el cuaderno se desplaza por dentro */
 @media (min-height: 860px) and (min-width: 1241px) {
-  .instrumento { height: 100%; grid-template-rows: auto minmax(0, 1fr); }
+  .instrumento { height: 100%; grid-template-rows: auto auto minmax(0, 1fr); }
   .pantalla { flex: 1 1 0; min-height: 0; }
 }
 @media (max-width: 1240px) {
@@ -265,3 +266,47 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
 @media (prefers-reduced-motion: reduce) {
   .gemelo .giro { transition: none; }
 }
+
+/* ---------- Guía de pasos ---------- */
+.guia { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 10px 14px 0; }
+.guia-paso {
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+  padding: 8px 12px; border-radius: 8px; border: 1px solid var(--borde); background: var(--grafito-1);
+  color: var(--tenue);
+}
+.guia-paso div { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.guia-paso strong { font-family: var(--rotulo); font-weight: 600; font-size: 15px; letter-spacing: .05em; text-transform: uppercase; color: var(--serigrafia); }
+.guia-paso span:not(.guia-num) { font-size: 11.5px; line-height: 1.35; }
+.guia-num {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--borde); font-family: var(--rotulo); font-weight: 700; font-size: 15px;
+}
+.guia-paso.actual { border-color: var(--ambar); box-shadow: 0 0 14px rgba(255,178,56,.15); }
+.guia-paso.actual .guia-num { border-color: var(--ambar); color: var(--ambar); }
+.guia-paso.hecho { opacity: .7; }
+.guia-paso.hecho .guia-num { background: #7dff6a22; border-color: #7dff6a; color: #9dff8f; }
+
+/* ---------- Cuaderno: botón congelar ---------- */
+.congelar {
+  cursor: pointer; padding: 5px 10px; border-radius: 4px; border: 1.5px solid var(--tinta); background: transparent;
+  font-family: var(--rotulo); font-weight: 700; font-size: 14px; letter-spacing: .05em; text-transform: uppercase; color: var(--tinta);
+}
+.congelar.activo { background: var(--tinta); color: var(--papel); }
+.congelar:focus-visible { outline: 2px solid #b5452a; outline-offset: 2px; }
+.nota b { color: var(--tinta); font-style: normal; }
+
+/* ---------- Mandos con nombres ---------- */
+.campo-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.campo-nombre { display: flex; flex-direction: column; font-family: var(--rotulo); font-weight: 600; font-size: 15px; color: var(--serigrafia); }
+.campo-nombre small { font-family: var(--mono); font-weight: 400; font-size: 11px; color: var(--tenue); }
+.campo-valor { display: inline-flex; align-items: center; gap: 5px; color: var(--tenue); }
+.campo-valor input { width: 76px; padding: 4px 6px; border-radius: 4px; border: 1px solid #2a2218; background: #0d0a06; color: var(--ambar); font-variant-numeric: tabular-nums; }
+.ayuda b { color: var(--serigrafia); }
+.plegable summary { cursor: pointer; list-style: none; display: block; }
+.plegable summary::-webkit-details-marker { display: none; }
+.plegable summary::before { content: "▸ "; }
+.plegable[open] summary::before { content: "▾ "; }
+.plegable[open] { gap: 10px; }
+
+@media (max-width: 980px) { .guia { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .guia { grid-template-columns: minmax(0, 1fr); } }
