@@ -82,26 +82,39 @@ se ejecutaron sin fallos.
 \subsection{Interfaz web}
 
 La Figura~\ref{fig:interfaz} muestra la interfaz durante una simulación en la
-que ya se escaneó desde las dos posiciones. Los puntos ámbar son los de la
-posición 1, los celestes los de la posición 2, y las líneas punteadas, la
-habitación real del simulador. El cuaderno de la derecha presenta los dos
-productos matriciales de la lectura actual, tomada desde la posición 2 con
-$\theta=52^\circ$, $r=715$ mm y $d=15$ mm. El primer producto da el punto
-local $(449{,}4;\;575{,}2)$ mm, cuya norma es $730$ mm $= r+d$, como predice la
-ecuación~\eqref{eq:norma}. El segundo lo lleva al mapa global: con
-$\alpha=180^\circ$, $d_x=250$ mm y $d_y=1100$ mm, el punto queda en
-$(-199{,}4;\;524{,}8)$ mm, junto a los puntos medidos desde la posición 1. El
-panel inferior izquierdo dibuja el prototipo con el servo en el ángulo de la
-lectura.
+que ya se escaneó desde las dos posiciones: la guía marca los cuatro pasos
+como completos, los puntos ámbar son los de la posición 1, los celestes los de
+la posición 2 y las líneas punteadas, la habitación real del simulador. El
+cálculo está congelado en una lectura tomada desde la posición 2, marcada en el
+radar con un círculo.
+
+La Figura~\ref{fig:cuaderno} muestra el cuaderno completo para esa lectura.
+Con $\theta=12^\circ$, $r=1173$ mm y $d=15$ mm se tiene $r+d=1188$ mm. El
+producto por $R(12^\circ)$ da el punto local $(1162{,}0;\;247{,}0)$ mm, cuya
+norma vuelve a ser $1188$ mm, como predice la ecuación~\eqref{eq:norma}. El
+producto por $T$, con $\alpha=180^\circ$, $d_x=250$ mm y $d_y=1100$ mm, lleva el
+punto al mapa global en $(-912{,}0;\;853{,}0)$ mm. Cada fila de las matrices y
+la coordenada que produce tienen el mismo color, para seguir el producto fila
+por columna. La Figura~\ref{fig:interfaz-3d} muestra la vista 3D del mismo
+mapa.
 
 \begin{figure}[htbp]
-\caption{Interfaz web: radar 2D, prototipo simulado y cuaderno de cálculo}
+\caption{Interfaz web: guía de pasos, radar, prototipo, mandos y cuaderno}
 \label{fig:interfaz}
 \centering
 \includegraphics[width=\linewidth]{interfaz_2d.jpg}
 \figurenote{Las flechas roja y verde en cada posición son las columnas de
 $R(\alpha)$, es decir, los ejes locales vistos en la base global. Captura del
 modo de simulación. Elaboración propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Cuaderno de la interfaz: cálculo desglosado de una lectura}
+\label{fig:cuaderno}
+\centering
+\includegraphics[width=0.48\linewidth]{interfaz_cuaderno.png}
+\figurenote{Lectura congelada desde la posición 2, en modo de simulación.
+Elaboración propia.}
 \end{figure}
 
 \begin{figure}[htbp]

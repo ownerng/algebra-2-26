@@ -136,23 +136,37 @@ cálculo, para que el código refleje las ecuaciones del marco teórico.
 \subsection{Interfaz web}
 
 La interfaz se construyó con React y TypeScript, se empaqueta con Bun y se
-ejecuta en el navegador, donde recibe los datos con la API Web Serial. Tiene
-una vista de radar 2D dibujada con Canvas y una vista 3D hecha con la
-biblioteca Three.js, en la que el mapa del plano se levanta en altura para
-facilitar su lectura. Esta vista 3D es una visualización: el sensor mide en un
-solo plano. Junto al mapa, un panel con forma de hoja de cuaderno muestra,
-escrita con KaTeX, la multiplicación de matrices de la lectura más reciente con
-sus valores numéricos, la matriz homogénea de la posición activa y las columnas
-de $R(\alpha)$ como ejes de la segunda posición. Al modificar $d_x$, $d_y$ o
-$\alpha$, el mapa se recalcula al instante, lo que permite ver cómo una pose mal
-medida desarma el mapa.
+ejecuta en el navegador. Recibe los datos del ESP32 a través de un puente USB
+(\texttt{web/puente.ts}) que reenvía cada línea del puerto serie por WebSocket,
+lo que permite usarla en cualquier navegador; si el puente no está activo,
+usa la API Web Serial de Chrome. Está organizada para que quien la mira sepa
+qué se está calculando y por qué:
 
-Un panel adicional dibuja el prototipo en vista superior: el servo, el sensor y
-el haz giran con cada lectura. Con el ESP32 conectado refleja lo que hace el
-aparato real; con el botón \textit{Simular prototipo}, la interfaz usa el
-simulador descrito en el protocolo experimental y superpone en el radar la
-habitación real, para comparar lo que mide el escáner con lo que debería medir.
-El código del proyecto (firmware, interfaz, pruebas y este informe) está en
+\begin{itemize}
+\item Una guía de cuatro pasos en la parte superior (conectar, escanear desde
+la posición 1, mover el aparato y escanear desde la posición 2) que se marca
+sola a medida que se completa cada paso.
+\item El radar 2D, dibujado con Canvas, con escala de 30~cm, 60~cm o 1,2~m, y
+una vista 3D hecha con Three.js en la que el mapa del plano se levanta en
+altura para facilitar su lectura. Esta vista 3D es una visualización: el
+sensor mide en un solo plano.
+\item Un panel del prototipo que dibuja en vista superior el servo, el sensor y
+el haz, y gira con cada lectura.
+\item Un panel donde se indica desde qué posición se mide y cuánto se movió el
+aparato entre las dos posiciones ($d_x$, $d_y$ y $\alpha$). Esos tres números
+forman la matriz $T$; al cambiarlos, el mapa se recalcula al instante, lo que
+permite ver cómo una pose mal medida desarma el mapa.
+\item Un cuaderno, escrito con KaTeX, que desglosa el cálculo de una lectura en
+cinco pasos: la suma $r+d$, la matriz $R(\theta)$ con sus valores, el producto
+fila por columna con la comprobación de la norma, el producto por $T$ y el
+punto resultante. Un botón permite congelar el cálculo en una lectura para
+explicarla con calma; esa lectura queda marcada en el radar.
+\end{itemize}
+
+Con el botón \textit{Simular prototipo}, la interfaz usa el simulador descrito
+en el protocolo experimental y superpone en el radar la habitación real, para
+comparar lo que mide el escáner con lo que debería medir. El código del
+proyecto (firmware, interfaz, pruebas y este informe) está en
 \url{https://github.com/ownerng/algebra-2-26}.
 
 \subsection{Protocolo experimental}
