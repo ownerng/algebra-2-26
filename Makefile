@@ -1,6 +1,6 @@
 # Escáner LIDAR 2D: tareas frecuentes
 
-.PHONY: web datos test informe limpiar
+.PHONY: web datos test graficas informe limpiar
 
 web:            ## Abre la interfaz en http://localhost:8000
 	./iniciar-web.sh
@@ -11,8 +11,11 @@ datos:          ## Regenera las cifras, tablas y CSV del informe desde el simula
 test:           ## Pruebas de la matemática
 	node --test tests/matematica.test.mjs
 
-informe: datos  ## Compila docs/informe.pdf (requiere TeX Live con apa7 y biber)
+graficas: datos ## Compila las figuras de docs/graficas/*.tex a PDF
+	cd docs && for f in graficas/*.tex; do pdflatex -output-directory graficas $$f; done
+
+informe: graficas  ## Compila docs/informe.pdf (requiere TeX Live con apa7 y biber)
 	cd docs && pdflatex informe.tex && biber informe && pdflatex informe.tex && pdflatex informe.tex
 
 limpiar:
-	cd docs && rm -f *.aux *.log *.bbl *.bcf *.blg *.out *.run.xml
+	cd docs && rm -f *.aux *.log *.bbl *.bcf *.blg *.out *.run.xml graficas/*.aux graficas/*.log

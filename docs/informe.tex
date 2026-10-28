@@ -8,16 +8,14 @@
 \usepackage{booktabs}
 \usepackage{csquotes}
 \usepackage{url}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,calc}
-\usepackage{pgfplots}
-\pgfplotsset{compat=1.18}
 
 \usepackage[style=apa,backend=biber]{biblatex}
 \DeclareLanguageMapping{spanish}{spanish-apa}
 \addbibresource{referencias.bib}
 
-\graphicspath{{figuras/}}
+% Las gráficas se compilan aparte desde graficas/*.tex (make graficas) para que
+% el informe compile rápido; aquí solo se insertan los PDF resultantes.
+\graphicspath{{figuras/}{graficas/}}
 
 % Cifras del texto: las genera experimentos/generar.mjs a partir del simulador.
 \input{tablas/cifras}
