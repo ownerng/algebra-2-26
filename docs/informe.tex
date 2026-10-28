@@ -21,15 +21,6 @@
 % Cifras del texto: las genera experimentos/generar.mjs a partir del simulador.
 \input{tablas/cifras}
 
-% Fotos del prototipo: mientras no existan, se dibuja un marcador con el
-% nombre del archivo que falta y el documento sigue compilando.
-\newcommand{\figurapendiente}[2]{%
-  \IfFileExists{figuras/#1}%
-    {\includegraphics[width=#2]{#1}}%
-    {\fbox{\parbox[c][4cm][c]{#2}{\centering\ttfamily
-       foto pendiente\\\detokenize{#1}}}}%
-}
-
 % Notacion
 \newcommand{\vect}[1]{\mathbf{#1}}
 
@@ -42,8 +33,7 @@
 \author{Jhonatan Méndez}
 \affiliation{Facultad de Ingeniería, Universidad Cooperativa de Colombia}
 \course{Álgebra Lineal}
-% TODO: reemplazar por el nombre completo del docente.
-\professor{Nombre del docente}
+\professor{Daniel Bejarano}
 % TODO: reemplazar por la fecha de entrega.
 \duedate{Fecha de entrega}
 

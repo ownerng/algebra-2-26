@@ -49,7 +49,7 @@ function Cabecera() {
 }
 
 function Pantalla() {
-  const [modo, setModo] = useState<'2d' | '3d'>('2d');
+  const [modo, setModo] = useState<'2d' | '3d'>(() => (location.hash === '#demo-3d' ? '3d' : '2d'));
   const [encuadre, setEncuadre] = useState(0);
   const [girar, setGirar] = useState(true);
   const e = useEscaner(150);
@@ -97,9 +97,11 @@ export function App() {
       }
     };
     document.addEventListener('keydown', tecla);
-    // index.html#demo arranca la simulación sin tocar nada (para ensayar la presentación)
+    // #demo arranca la simulación sin tocar nada (para ensayar la presentación);
+    // #demo-fusion además pasa sola a P2 después de dos barridos desde P1.
     if (location.hash.startsWith('#demo')) void escaner.conectar('simulacion');
-    return () => document.removeEventListener('keydown', tecla);
+    const paso = location.hash === '#demo-fusion' ? setTimeout(() => escaner.cambiar({ posicionActiva: 2 }), 8500) : undefined;
+    return () => { document.removeEventListener('keydown', tecla); clearTimeout(paso); };
   }, []);
 
   return (

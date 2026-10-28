@@ -19,15 +19,24 @@ texto en formato JSON, una línea por medición, por ejemplo
 
 \subsection{Prototipo físico}
 
-El prototipo usa los componentes de la Tabla~\ref{tab:materiales}. El sensor
-se alimenta con 3,3 V y se comunica por el bus I\textsuperscript{2}C (GPIO 21
-para SDA y GPIO 22 para SCL). El servomotor se alimenta con los 5 V del pin VIN
-y recibe la señal de control por el GPIO 13. Entre las líneas de 5 V y tierra
-se conectó un condensador electrolítico de 1000 µF para absorber los picos de
-corriente del servo, que de otro modo pueden reiniciar el microcontrolador.
-El sensor va fijado sobre el brazo del servo con un soporte en L, con el lente
-lo más cerca posible del eje de giro. La distancia $d$ entre el eje y el lente
-se midió y se suma a cada lectura (Figura~\ref{fig:geometria}).
+El prototipo usa los componentes de la Tabla~\ref{tab:materiales}, montados
+sobre una protoboard de 400 puntos según la Figura~\ref{fig:protoboard}. El
+sensor se alimenta con 3,3 V y se comunica por el bus I\textsuperscript{2}C
+(GPIO 21 para SDA y GPIO 22 para SCL); sus cuatro cables van directo a los pines
+del ESP32. El servomotor se alimenta con los 5 V del pin VIN a través del riel
+inferior de la protoboard y recibe la señal de control por el GPIO 13. Entre
+ese riel de 5 V y tierra se conecta un condensador electrolítico de 1000 µF
+para absorber los picos de corriente del servo, que de otro modo pueden
+reiniciar el microcontrolador. La Figura~\ref{fig:esquematico} muestra el mismo
+circuito como esquemático.
+
+En el diseño mecánico (Figura~\ref{fig:mecanico}), el servo va fijo a una base
+rígida y el sensor se monta sobre el brazo del servo con un soporte en L, con
+el lente lo más cerca posible del eje de giro y a la altura de los objetos que
+se quieren detectar. La distancia $d$ entre el eje y el lente se suma a cada
+lectura (Figura~\ref{fig:geometria}); en la simulación se usó $d = 15$ mm. La
+guía de armado completa, con la lista de pasos y el color de cada cable, está
+en el archivo \texttt{docs/montaje-lidar.html} del repositorio del proyecto.
 
 \begin{table}[htbp]
 \caption{Materiales del prototipo y costo aproximado}
@@ -51,6 +60,34 @@ Total & & 62.000 -- 97.000 \\
 Los cables macho--macho del servo pueden reemplazarse por alambre de cable
 UTP. Elaboración propia.}
 \end{table}
+
+\begin{figure}[htbp]
+\caption{Conexiones en la protoboard (vista superior)}
+\label{fig:protoboard}
+\centering
+\includegraphics[width=0.9\linewidth]{montaje_protoboard.png}
+\figurenote{El ESP32 ocupa las filas B e I, columnas 6 a 20. Los cables del
+sensor son macho--hembra; los del servo y el riel de 5 V, macho--macho.
+Elaboración propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Esquemático del circuito}
+\label{fig:esquematico}
+\centering
+\includegraphics[width=\linewidth]{montaje_esquematico.png}
+\figurenote{Elaboración propia.}
+\end{figure}
+
+\begin{figure}[htbp]
+\caption{Montaje mecánico del sensor sobre el servo}
+\label{fig:mecanico}
+\centering
+\includegraphics[width=\linewidth]{montaje_mecanico.png}
+\figurenote{Izquierda: vista superior con el eje del servo como origen del
+sistema local. Derecha: vista lateral con el lente sobre el eje de giro.
+Elaboración propia.}
+\end{figure}
 
 \begin{figure}[htbp]
 \caption{Geometría de una lectura en el sistema local del aparato}
@@ -93,20 +130,30 @@ usar $180^\circ-\theta$ en lugar de $\theta$, lo que equivale a una reflexión
 del sistema local.
 
 Las funciones de álgebra lineal (rotación, matriz homogénea, inversa y
-productos) se programaron directamente en JavaScript, sin bibliotecas de
+productos) se programaron directamente en TypeScript, sin bibliotecas de
 cálculo, para que el código refleje las ecuaciones del marco teórico.
 
 \subsection{Interfaz web}
 
-La interfaz se ejecuta en el navegador y recibe los datos con la API Web
-Serial. Tiene una vista de radar 2D dibujada con Canvas y una vista 3D hecha con
-la biblioteca Three.js, en la que el mapa del plano se levanta en altura para
+La interfaz se construyó con React y TypeScript, se empaqueta con Bun y se
+ejecuta en el navegador, donde recibe los datos con la API Web Serial. Tiene
+una vista de radar 2D dibujada con Canvas y una vista 3D hecha con la
+biblioteca Three.js, en la que el mapa del plano se levanta en altura para
 facilitar su lectura. Esta vista 3D es una visualización: el sensor mide en un
-solo plano. Junto al mapa, un panel muestra la multiplicación de matrices de la
-lectura más reciente con sus valores numéricos, la matriz homogénea de la
-posición activa y las columnas de $R(\alpha)$ como ejes de la segunda
-posición. Al modificar $d_x$, $d_y$ o $\alpha$, el mapa se recalcula al
-instante, lo que permite ver cómo una pose mal medida desarma el mapa.
+solo plano. Junto al mapa, un panel con forma de hoja de cuaderno muestra,
+escrita con KaTeX, la multiplicación de matrices de la lectura más reciente con
+sus valores numéricos, la matriz homogénea de la posición activa y las columnas
+de $R(\alpha)$ como ejes de la segunda posición. Al modificar $d_x$, $d_y$ o
+$\alpha$, el mapa se recalcula al instante, lo que permite ver cómo una pose mal
+medida desarma el mapa.
+
+Un panel adicional dibuja el prototipo en vista superior: el servo, el sensor y
+el haz giran con cada lectura. Con el ESP32 conectado refleja lo que hace el
+aparato real; con el botón \textit{Simular prototipo}, la interfaz usa el
+simulador descrito en el protocolo experimental y superpone en el radar la
+habitación real, para comparar lo que mide el escáner con lo que debería medir.
+El código del proyecto (firmware, interfaz, pruebas y este informe) está en
+\url{https://github.com/ownerng/algebra-2-26}.
 
 \subsection{Protocolo experimental}
 
@@ -129,5 +176,5 @@ $d_x$), para observar el efecto en el mapa.
 sensor, comparando el error medio de registro con la predicción teórica.
 \end{enumerate}
 Además, se verificaron numéricamente las propiedades de las matrices
-implementadas y se escribieron pruebas automáticas para cada función de
-álgebra lineal.
+implementadas y se escribieron siete pruebas automáticas para las funciones
+de álgebra lineal y su concordancia con el simulador.

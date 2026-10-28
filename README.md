@@ -36,7 +36,7 @@ Necesita [Bun](https://bun.sh). Usa **Chrome, Chromium o Edge**: Firefox no
 tiene Web Serial. Pulsa **Conectar ESP32** y elige el puerto. Sin el sensor,
 pulsa **Simular prototipo**: el panel del prototipo muestra lo que debería
 hacer el aparato y el radar superpone la habitación real para comparar.
-`localhost:3000/#demo` arranca la simulación directamente.
+`localhost:3000/#demo` arranca la simulación directamente; `#demo-fusion` además pasa sola a P2, y `#demo-3d` abre la vista 3D.
 
 ## 3. Hacer el mapa con dos posiciones
 
@@ -60,4 +60,4 @@ Paso 2   [xG]   [cos α  −sin α  dx] [xL]
          [1 ]   [  0       0     1] [1 ]
 ```
 
-Código: `web/js/matematica.js`.
+Código: `web/src/lib/matematica.ts`.

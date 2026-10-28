@@ -81,21 +81,27 @@ se ejecutaron sin fallos.
 
 \subsection{Interfaz web}
 
-La Figura~\ref{fig:interfaz} muestra la interfaz durante un escaneo. El panel
-derecho presenta los dos productos matriciales con los valores de la lectura
-actual. En el caso mostrado, $\theta=38^\circ$ y $r+d=1200$ mm producen el
-punto $(945{,}6;\;738{,}8)$ mm, cuya norma es de nuevo 1200 mm, como predice la
-ecuación~\eqref{eq:norma}. En la primera posición la matriz homogénea es la
-identidad y el punto global coincide con el local.
+La Figura~\ref{fig:interfaz} muestra la interfaz durante una simulación en la
+que ya se escaneó desde las dos posiciones. Los puntos ámbar son los de la
+posición 1, los celestes los de la posición 2, y las líneas punteadas, la
+habitación real del simulador. El cuaderno de la derecha presenta los dos
+productos matriciales de la lectura actual, tomada desde la posición 2 con
+$\theta=52^\circ$, $r=715$ mm y $d=15$ mm. El primer producto da el punto
+local $(449{,}4;\;575{,}2)$ mm, cuya norma es $730$ mm $= r+d$, como predice la
+ecuación~\eqref{eq:norma}. El segundo lo lleva al mapa global: con
+$\alpha=180^\circ$, $d_x=250$ mm y $d_y=1100$ mm, el punto queda en
+$(-199{,}4;\;524{,}8)$ mm, junto a los puntos medidos desde la posición 1. El
+panel inferior izquierdo dibuja el prototipo con el servo en el ángulo de la
+lectura.
 
 \begin{figure}[htbp]
-\caption{Interfaz web: radar 2D y panel de cálculo en vivo}
+\caption{Interfaz web: radar 2D, prototipo simulado y cuaderno de cálculo}
 \label{fig:interfaz}
 \centering
 \includegraphics[width=\linewidth]{interfaz_2d.jpg}
 \figurenote{Las flechas roja y verde en cada posición son las columnas de
-$R(\alpha)$, es decir, los ejes locales vistos en la base global. Elaboración
-propia.}
+$R(\alpha)$, es decir, los ejes locales vistos en la base global. Captura del
+modo de simulación. Elaboración propia.}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -104,27 +110,19 @@ propia.}
 \centering
 \includegraphics[width=\linewidth]{interfaz_3d.jpg}
 \figurenote{Cada punto del plano se levanta como una pared para facilitar la
-lectura. La altura es solo visual. Elaboración propia.}
+lectura. La altura es solo visual. Captura del modo de simulación. Elaboración
+propia.}
 \end{figure}
 
 \subsection{Validación con el prototipo físico}
 
-Se armó el circuito en la protoboard y se cargó un programa de prueba que
-lleva el servo a $0^\circ$, $90^\circ$ y $180^\circ$ y luego hace barridos
-continuos. El servo recorrió las tres posiciones y los barridos sin que el
-ESP32 se reiniciara por caída de tensión, lo que confirma que la alimentación
-desde el pin VIN, con el condensador de 1000 µF, es suficiente. La conexión del
-sensor estaba pendiente de soldadura al cierre de este informe.
-
-% TODO: cuando el sensor esté soldado, completar con mediciones reales.
-% Sugerencia: ubicar una caja a 30, 60 y 90 cm medidos con cinta, registrar
-% la lectura del escáner a 90 grados y reportar el error en esta tabla.
-% Agregar también la foto del prototipo en docs/figuras/foto_prototipo.jpg.
-
-\begin{figure}[htbp]
-\caption{Prototipo armado}
-\label{fig:prototipo}
-\centering
-\figurapendiente{foto_prototipo.jpg}{0.7\linewidth}
-\figurenote{Elaboración propia.}
-\end{figure}
+Se armó el circuito del servo en la protoboard según la
+Figura~\ref{fig:protoboard} y se cargó el programa de prueba
+\texttt{firmware/prueba\_servo}, que lleva el servo a $0^\circ$, $90^\circ$ y
+$180^\circ$ y luego hace barridos continuos. El servo recorrió las tres
+posiciones y los barridos, y el monitor serial no registró reinicios del ESP32
+por caída de tensión, lo que indica que la alimentación desde el pin VIN, con
+el condensador de 1000 µF, es suficiente. Al cierre de este informe, los pines
+del sensor VL53L0X estaban pendientes de soldadura, por lo que las mediciones
+de distancia con el sensor real y la comparación con distancias medidas con
+cinta quedan como siguiente paso de la validación.
