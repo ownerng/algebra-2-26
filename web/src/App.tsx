@@ -4,8 +4,9 @@ import { Vista3D } from './componentes/Vista3D.tsx';
 import { Control } from './componentes/Control.tsx';
 import { Ajustes } from './componentes/Ajustes.tsx';
 import { Cuaderno } from './componentes/Cuaderno.tsx';
+import { Camara } from './componentes/Camara.tsx';
 
-type Cajon = 'calculos' | 'ajustes' | null;
+type Cajon = 'calculos' | 'ajustes' | 'camara' | null;
 
 function Barra({ cajon, abrir }: { cajon: Cajon; abrir: (c: Cajon) => void }) {
   const e = useEscaneo(200);
@@ -15,6 +16,7 @@ function Barra({ cajon, abrir }: { cajon: Cajon; abrir: (c: Cajon) => void }) {
       <span className="marca">LIDAR-3D</span>
       <span className={'piloto ' + e.estadoConexion} role="status"><i aria-hidden="true" />{e.mensaje}</span>
       <div className="barra-derecha">
+        <button type="button" className={'pestana' + (cajon === 'camara' ? ' activa' : '')} onClick={() => abrir(cajon === 'camara' ? null : 'camara')}>Cámara</button>
         <button type="button" className={'pestana' + (cajon === 'calculos' ? ' activa' : '')} onClick={() => abrir(cajon === 'calculos' ? null : 'calculos')}>Cálculos</button>
         <button type="button" className={'pestana' + (cajon === 'ajustes' ? ' activa' : '')} onClick={() => abrir(cajon === 'ajustes' ? null : 'ajustes')}>Ajustes</button>
         {conectado && <button type="button" className="pestana" onClick={() => escaneo.desconectar()}>Desconectar</button>}
@@ -50,9 +52,9 @@ export function App() {
         <Vista3D />
         <Control />
         {cajon && (
-          <aside className={'cajon ' + cajon} aria-label={cajon === 'calculos' ? 'Cálculos' : 'Ajustes'}>
+          <aside className={'cajon ' + cajon} aria-label={cajon === 'calculos' ? 'Cálculos' : cajon === 'camara' ? 'Cámara' : 'Ajustes'}>
             <button type="button" className="cajon-cerrar" onClick={() => setCajon(null)} aria-label="Cerrar">✕</button>
-            {cajon === 'calculos' ? <Cuaderno /> : <Ajustes />}
+            {cajon === 'calculos' ? <Cuaderno /> : cajon === 'camara' ? <Camara /> : <Ajustes />}
           </aside>
         )}
       </main>

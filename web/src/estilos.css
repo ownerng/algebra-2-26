@@ -439,3 +439,17 @@ input[type="range"] { width: 100%; accent-color: var(--hielo); }
 .ajustes-panel select, .ajustes-panel .texto { padding: 5px 7px; border-radius: 4px; border: 1px solid #2a2218; background: #0d0a06; color: var(--ambar); }
 .ajustes-panel .velocidades { flex-wrap: wrap; align-self: flex-start; }
 @media (max-width: 640px) { .minimapa { width: 130px; } .distancia { font-size: 40px; } }
+
+/* ---------- Cámara ---------- */
+.cajon.camara { background: var(--grafito-1); border-left: 1px solid var(--borde); width: min(560px, 100%); }
+.video-marco { position: relative; border-radius: 8px; overflow: hidden; background: #000; cursor: crosshair; aspect-ratio: 16 / 9; }
+.video-marco video, .video-marco img, .video-marco svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.video-marco video { object-fit: fill; }
+.video-vacio { position: absolute; inset: 0; display: grid; place-items: center; color: var(--tenue); font-family: var(--rotulo); letter-spacing: .1em; text-transform: uppercase; }
+.cuadro { fill: rgba(255,178,56,.08); stroke: var(--ambar); stroke-width: 3; stroke-dasharray: 10 8; }
+.cuadro-listo { fill: rgba(125,255,106,.08); stroke: #7dff6a; stroke-width: 3; }
+.esquina { fill: var(--ambar); stroke: #000; stroke-width: 2; }
+.esquina-texto { fill: var(--ambar); font-family: var(--rotulo); font-weight: 700; paint-order: stroke; stroke: #000; stroke-width: 4px; }
+.silueta canvas { width: 100%; height: auto; image-rendering: pixelated; border-radius: 6px; border: 1px solid var(--borde); }
+.tecla.hecho { border-color: #7dff6a; }
+.camara-panel select { max-width: 320px; }

@@ -1,4 +1,4 @@
-// Puente USB → WebSocket.
+// Puente USB → WebSocket (y la cámara del celular por WiFi).
 // Lee el puerto serie del ESP32 y reenvía cada línea JSON a la página por
 // ws://localhost:3001. Así la interfaz funciona en cualquier navegador,
 // incluido Firefox, que no tiene Web Serial.
@@ -78,10 +78,89 @@ async function bucle() {
   }
 }
 
+// ---------- Cámara del celular (DroidCam por WiFi) ----------
+// DroidCam transmite MJPEG en http://IP:4747/video y acepta una sola conexión,
+// así que el puente abre una y reparte el último cuadro: /droidcam/video
+// (MJPEG para ver en vivo) y /droidcam/foto (un JPEG para capturar).
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' };
+interface Flujo { ultimo: Uint8Array | null; clientes: Set<ReadableStreamDefaultController<Uint8Array>>; error: string }
+const flujos = new Map<string, Flujo>();
+
+function buscar(buf: Uint8Array, a: number, b: number, desde: number) {
+  for (let k = desde; k < buf.length - 1; k++) if (buf[k] === a && buf[k + 1] === b) return k;
+  return -1;
+}
+
+async function seguirCamara(origen: string, f: Flujo) {
+  const sep = new TextEncoder().encode('--cuadro\r\nContent-Type: image/jpeg\r\n\r\n');
+  while (true) {
+    try {
+      const r = await fetch(origen);
+      if (!r.ok || !r.body) throw new Error(`respuesta ${r.status}`);
+      f.error = '';
+      const lector = r.body.getReader();
+      let buf = new Uint8Array(0);
+      while (true) {
+        const { value, done } = await lector.read();
+        if (done) break;
+        const nuevo = new Uint8Array(buf.length + value.length);
+        nuevo.set(buf); nuevo.set(value, buf.length); buf = nuevo;
+        // Cada JPEG va de FF D8 a FF D9
+        let ini = buscar(buf, 0xff, 0xd8, 0);
+        let fin = ini >= 0 ? buscar(buf, 0xff, 0xd9, ini + 2) : -1;
+        while (ini >= 0 && fin >= 0) {
+          const cuadro = buf.slice(ini, fin + 2);
+          f.ultimo = cuadro;
+          for (const c of f.clientes) {
+            try { c.enqueue(sep); c.enqueue(cuadro); c.enqueue(new TextEncoder().encode('\r\n')); } catch { f.clientes.delete(c); }
+          }
+          buf = buf.slice(fin + 2);
+          ini = buscar(buf, 0xff, 0xd8, 0);
+          fin = ini >= 0 ? buscar(buf, 0xff, 0xd9, ini + 2) : -1;
+        }
+        if (buf.length > 4_000_000) buf = new Uint8Array(0);
+      }
+    } catch (error) {
+      f.error = (error as Error).message;
+    }
+    await Bun.sleep(1500);
+  }
+}
+
+function flujo(origen: string): Flujo {
+  let f = flujos.get(origen);
+  if (!f) {
+    f = { ultimo: null, clientes: new Set(), error: '' };
+    flujos.set(origen, f);
+    void seguirCamara(origen, f);
+  }
+  return f;
+}
+
+async function camaraHttp(url: URL): Promise<Response> {
+  const origen = url.searchParams.get('url') ?? '';
+  if (!/^http:\/\/[\w.-]+(:\d+)?\/[\w./-]*$/.test(origen)) return new Response('URL de cámara inválida', { status: 400, headers: CORS });
+  const f = flujo(origen);
+  if (url.pathname === '/droidcam/foto') {
+    for (let k = 0; k < 50 && !f.ultimo; k++) await Bun.sleep(100);
+    if (!f.ultimo) return new Response(`Sin imagen de la cámara${f.error ? ': ' + f.error : ''}`, { status: 504, headers: CORS });
+    return new Response(f.ultimo, { headers: { ...CORS, 'Content-Type': 'image/jpeg' } });
+  }
+  let control: ReadableStreamDefaultController<Uint8Array>;
+  const cuerpo = new ReadableStream<Uint8Array>({
+    start(c) { control = c; f.clientes.add(c); },
+    cancel() { f.clientes.delete(control); },
+  });
+  return new Response(cuerpo, { headers: { ...CORS, 'Content-Type': 'multipart/x-mixed-replace; boundary=cuadro' } });
+}
+
 Bun.serve({
   port: PUERTO_WS,
   hostname: '127.0.0.1',
+  idleTimeout: 0,
   fetch(req, server) {
+    const url = new URL(req.url);
+    if (url.pathname.startsWith('/droidcam/')) return camaraHttp(url);
     if (server.upgrade(req)) return;
     return new Response(`Puente del escáner: ${estado}\n`);
   },
