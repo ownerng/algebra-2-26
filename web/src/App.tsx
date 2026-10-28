@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ConexionSerial } from './lib/conexion.ts';
 import { escaner, useEscaner } from './lib/escaner.ts';
 import { Radar } from './componentes/Radar.tsx';
 import { Vista3D } from './componentes/Vista3D.tsx';
 import { Gemelo } from './componentes/Gemelo.tsx';
 import { Cuaderno } from './componentes/Cuaderno.tsx';
 import { Controles } from './componentes/Controles.tsx';
-
-const SERIAL = ConexionSerial.disponible();
 
 function Cabecera() {
   const e = useEscaner(100);
@@ -25,8 +22,8 @@ function Cabecera() {
       <div className="botonera">
         {!conectado ? (
           <>
-            <button type="button" className="tecla grande" disabled={!SERIAL} onClick={() => escaner.conectar('serial')}
-              title={SERIAL ? 'Elegir el puerto del ESP32' : 'Este navegador no tiene Web Serial. Usa Chrome, Chromium o Edge.'}>
+            <button type="button" className="tecla grande" onClick={() => escaner.conectar('serial')}
+              title="Usa el puente USB; sin puente, Web Serial (Chrome, Chromium o Edge)">
               Conectar ESP32
             </button>
             <button type="button" className="tecla grande ambar" onClick={() => escaner.conectar('simulacion')}>▶ Simular prototipo</button>

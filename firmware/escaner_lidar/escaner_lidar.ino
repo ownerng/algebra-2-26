@@ -10,7 +10,10 @@
     {"r":523,"theta":84}     r en mm, theta en grados del servo
     {"r":-1,"theta":86}      sin objeto dentro del alcance (~1,2 m)
   Mensajes de estado:
-    {"estado":"listo"} {"estado":"pausado"} {"estado":"escaneando"} {"error":"..."}
+    {"estado":"listo"} {"estado":"sensor listo"} {"estado":"pausado"}
+    {"estado":"escaneando"} {"error":"..."}
+  Si el sensor no responde, el servo sigue barriendo con r = -1 y el firmware
+  vuelve a buscarlo al final de cada barrido.
 
   Comandos que acepta (un carácter, desde la interfaz web o el monitor serial):
     S = iniciar / continuar el barrido
@@ -36,6 +39,7 @@ Servo servo;
 Adafruit_VL53L0X lidar;
 
 bool escaneando = true;
+bool sensorListo = false;
 int angulo = ANG_MIN;
 int direccion = 1;
 
@@ -61,9 +65,22 @@ void leerComandos() {
   }
 }
 
+// Busca el sensor en el bus I2C. Si no responde, el servo sigue barriendo
+// y cada lectura sale con r = -1, para poder diagnosticar el cableado.
+void iniciarSensor() {
+  sensorListo = lidar.begin();
+  if (sensorListo) estado("sensor listo");
+  else Serial.println("{\"error\":\"VL53L0X no encontrado: revisa SDA (GPIO 21), SCL (GPIO 22), VIN (3V3) y GND\"}");
+}
+
 void medir() {
   servo.write(angulo);
   delay(ESPERA_MS);
+
+  if (!sensorListo) {
+    Serial.printf("{\"r\":-1,\"theta\":%d}\n", angulo);
+    return;
+  }
 
   VL53L0X_RangingMeasurementData_t m;
   lidar.rangingTest(&m, false);
@@ -76,17 +93,13 @@ void setup() {
   Serial.begin(115200);
   delay(300);
 
-  Wire.begin(SDA_PIN, SCL_PIN);
-  if (!lidar.begin()) {
-    Serial.println("{\"error\":\"VL53L0X no encontrado: revisa SDA, SCL y 3.3 V\"}");
-    while (true) delay(1000);
-  }
-
   servo.setPeriodHertz(50);
   servo.attach(SERVO_PIN, PULSO_MIN, PULSO_MAX);
   servo.write(angulo);
   delay(400);
 
+  Wire.begin(SDA_PIN, SCL_PIN);
+  iniciarSensor();
   estado("listo");
 }
 
@@ -102,4 +115,6 @@ void loop() {
   angulo += direccion * PASO;
   if (angulo >= ANG_MAX) { angulo = ANG_MAX; direccion = -1; }
   if (angulo <= ANG_MIN) { angulo = ANG_MIN; direccion = 1; }
+  // Al final de cada barrido, vuelve a buscar el sensor si no estaba
+  if (!sensorListo && (angulo == ANG_MIN || angulo == ANG_MAX)) iniciarSensor();
 }

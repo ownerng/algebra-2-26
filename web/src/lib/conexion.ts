@@ -103,3 +103,47 @@ export class ConexionSerial implements Fuente {
     this.opciones.alEstado('desconectado', 'Sin conexión');
   }
 }
+
+// Conexión a través del puente USB (web/puente.ts). Funciona en cualquier
+// navegador, incluido Firefox.
+export const URL_PUENTE = 'ws://localhost:3001';
+
+export class ConexionPuente implements Fuente {
+  private ws: WebSocket | null = null;
+  private cerrando = false;
+
+  constructor(private opciones: OpcionesFuente) {}
+
+  conectar() {
+    return new Promise<void>((resolver, rechazar) => {
+      const ws = new WebSocket(URL_PUENTE);
+      this.ws = ws;
+      const espera = setTimeout(() => { this.cerrando = true; ws.close(); rechazar(new Error('puente')); }, 2000);
+      ws.onopen = () => { clearTimeout(espera); resolver(); };
+      ws.onerror = () => { clearTimeout(espera); this.cerrando = true; rechazar(new Error('puente')); };
+      ws.onmessage = (ev) => {
+        const dato = interpretarLinea(String(ev.data)) as (Dato & { puente?: string }) | null;
+        if (!dato) return;
+        if (dato.puente) {
+          const listo = dato.puente.startsWith('conectado');
+          this.opciones.alEstado(listo ? 'conectado' : 'error', listo ? 'ESP32 conectado' : `Puente: ${dato.puente}`);
+          return;
+        }
+        this.opciones.alDato(dato);
+      };
+      ws.onclose = () => {
+        if (!this.cerrando) this.opciones.alEstado('desconectado', 'Se cerró el puente USB');
+      };
+    });
+  }
+
+  async enviar(comando: string) {
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(comando);
+  }
+
+  async desconectar() {
+    this.cerrando = true;
+    this.ws?.close();
+    this.opciones.alEstado('desconectado', 'Sin conexión');
+  }
+}

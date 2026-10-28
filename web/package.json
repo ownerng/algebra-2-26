@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "bun --hot ./index.html",
+    "puente": "bun puente.ts",
     "build": "bun build ./index.html --outdir=dist --minify",
     "test": "bun test ../tests"
   },

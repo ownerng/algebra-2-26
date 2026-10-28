@@ -3,7 +3,7 @@
 // muestra (con un ritmo limitado para el panel de matrices).
 
 import { useEffect, useReducer } from 'react';
-import { ConexionSerial, type Dato, type Fuente, type TipoEstado } from './conexion.ts';
+import { ConexionPuente, ConexionSerial, type Dato, type Fuente, type TipoEstado } from './conexion.ts';
 import { procesarLectura, type Pose } from './matematica.ts';
 import { Simulador } from './simulador.ts';
 
@@ -93,11 +93,32 @@ class Escaner extends EventTarget {
   private async abrir(tipo: 'serial' | 'simulacion') {
     await this.fuente?.desconectar();
     const opciones = { alDato: this.alDato, alEstado: this.alEstado, posicionActiva: () => this.posicionActiva };
-    const fuente = tipo === 'serial' ? new ConexionSerial(opciones) : new Simulador(opciones);
-    this.fuente = fuente;
-    this.tipoFuente = tipo;
+    if (tipo === 'simulacion') {
+      this.fuente = new Simulador(opciones);
+      this.tipoFuente = 'simulacion';
+      await this.fuente.conectar();
+      return;
+    }
+    // ESP32: primero el puente USB (cualquier navegador); si no está corriendo,
+    // Web Serial (solo Chrome, Chromium o Edge).
+    this.tipoFuente = 'serial';
     try {
-      await fuente.conectar();
+      const puente = new ConexionPuente(opciones);
+      this.fuente = puente;
+      await puente.conectar();
+      return;
+    } catch {
+      this.fuente = null;
+    }
+    if (!ConexionSerial.disponible()) {
+      this.tipoFuente = 'ninguna';
+      this.alEstado('error', 'No encontré el puente USB. Ábrelo con ./iniciar-web.sh');
+      return;
+    }
+    const serial = new ConexionSerial(opciones);
+    this.fuente = serial;
+    try {
+      await serial.conectar();
     } catch (error) {
       this.fuente = null;
       this.tipoFuente = 'ninguna';
