@@ -48,19 +48,18 @@ fallos.
 \subsection{Interfaz web}
 
 La Figura~\ref{fig:escaneando} muestra la interfaz durante un escaneo continuo
-de la taza en simulación. A la izquierda, la marca avanza por la tercera fila y
-la flecha indica hacia dónde deslizar la caja; las casillas ya recorridas
-muestran la altura medida. A la derecha, la figura 3D se construye al mismo
-tiempo y muestra la caja sobre la casilla actual. La
-Figura~\ref{fig:interfaz} muestra el resultado al terminar las ocho filas.
+de la taza en simulación, con la cuadrícula por defecto de 11 $\times$ 8
+cuadros de 30 mm. Abajo, la barra indica dónde debe ir la caja en la fila; en
+la esquina, el mapa de la cuadrícula muestra las filas ya recorridas; detrás,
+la figura 3D se construye al mismo tiempo. La Figura~\ref{fig:interfaz} muestra
+el resultado al terminar las ocho filas.
 
 \begin{figure}[htbp]
 \caption{Escaneo continuo en curso}
 \label{fig:escaneando}
 \centering
 \includegraphics[width=\linewidth]{interfaz_escaneando.jpg}
-\figurenote{Tercera fila del escaneo de la taza en el modo de simulación.
-Elaboración propia.}
+\figurenote{Escaneo de la taza en el modo de simulación. Elaboración propia.}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -68,28 +67,28 @@ Elaboración propia.}
 \label{fig:interfaz}
 \centering
 \includegraphics[width=\linewidth]{interfaz_general.jpg}
-\figurenote{Taza escaneada en el modo de simulación. El número de cada casilla
-es la altura medida en mm; el borde celeste marca las casillas usadas para el
-plano de la mesa. Elaboración propia.}
+\figurenote{Taza escaneada en el modo de simulación. En el mapa de la esquina,
+el color de cada casilla indica su altura. Elaboración propia.}
 \end{figure}
 
-La Figura~\ref{fig:cuaderno} muestra el cuaderno con el cálculo congelado en la
-casilla $(5,4)$, en el borde de la taza, donde se promediaron 13 lecturas del
-escaneo continuo. Con $r = 52{,}8$ mm y $H = 150$ mm, el producto por $A$ da
-$z = -52{,}8 + 150 = 97{,}2$ mm. El plano de la mesa, ajustado con 32 casillas
-del borde, vale $1{,}63$ mm en ese punto, de modo que la altura del objeto es
-$h = 97{,}2 - 1{,}63 = 95{,}5$ mm. El cuaderno también muestra la matriz de
-vista con los ángulos del momento, la proyección del punto en la pantalla y el
-producto vectorial
-$(20;\,0;\,-6{,}0)\times(0;\,20;\,-5{,}7) = (120{,}0;\,114{,}6;\,400{,}0)$, que da
-la normal del triángulo y, con el producto punto, su brillo.
+La Figura~\ref{fig:cuaderno} muestra el panel de cálculos congelado en la
+casilla $(5,3)$, sobre la parte superior de la taza, donde se promediaron 25
+lecturas del escaneo continuo. Con $r = 51{,}9$ mm y $H = 150$ mm, el producto
+por $A$ da $z = -51{,}9 + 150 = 98{,}1$ mm. El plano de la mesa, ajustado con 34
+casillas del borde, vale $3{,}10$ mm en ese punto, de modo que la altura del
+objeto es $h = 98{,}1 - 3{,}10 = 95{,}0$ mm, igual a la altura de la taza
+simulada. El panel también muestra la matriz de vista con los ángulos del
+momento, la proyección del punto en la pantalla y la normal del triángulo,
+$(255{,}1;\;1{,}7;\;900{,}0)$, obtenida con el producto vectorial; con el
+producto punto, ese triángulo tiene un brillo de $0{,}725$.
 
 \begin{figure}[htbp]
-\caption{Cuaderno de la interfaz: cálculo desglosado de una medición}
+\caption{Panel de cálculos: cálculo desglosado de una medición}
 \label{fig:cuaderno}
 \centering
 \includegraphics[width=0.48\linewidth]{interfaz_cuaderno.png}
-\figurenote{Casilla $(5,4)$ del escaneo continuo simulado de la taza. Elaboración propia.}
+\figurenote{Casilla $(5,3)$ del escaneo continuo simulado de la taza. Los
+vectores se muestran redondeados a una cifra decimal. Elaboración propia.}
 \end{figure}
 
 \subsection{Mediciones con el sensor real}
@@ -99,8 +98,9 @@ prueba, en el modo de alta precisión del sensor, una de cada dos lecturas
 llegaba marcada como inválida; con el filtro por código de estado y los
 reintentos, las lecturas inválidas desaparecieron. Con el firmware final, en
 el modo por defecto, la interfaz recibió \repTasa{} lecturas por segundo a
-través del puente USB, sin lecturas inválidas. A 20 mm/s, eso equivale a unas
-24 lecturas por cada 20 mm de recorrido. Para medir la repetibilidad se tomaron
+través del puente USB, sin lecturas inválidas. Con la marca a 30 mm/s, la caja
+tarda un segundo en cruzar cada cuadro de 30 mm, así que cada casilla recibe
+unas 24 lecturas. Para medir la repetibilidad se tomaron
 \repN{} mediciones promediadas seguidas con la caja quieta. Su media fue de
 \repMedia{} mm, con valores entre \repMin{} y \repMax{} mm y una desviación
 estándar de \repDesv{} mm entre mediciones. Dentro de cada medición, la

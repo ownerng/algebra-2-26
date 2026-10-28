@@ -23,10 +23,14 @@ VL53L0X se alimenta con 3,3 V y se comunica con el ESP32 por el bus
 I\textsuperscript{2}C (GPIO 21 para SDA y GPIO 22 para SCL); sus cuatro cables
 van soldados a los pines del ESP32. El sensor va dentro de una caja de cartón,
 pegado al fondo con el lente asomando por un orificio, de modo que mide hacia
-abajo. La caja se apoya sobre un soporte a una altura fija $H$ sobre la mesa,
-y debajo se coloca una cartulina con una cuadrícula de cuadros de lado
-$\Delta$ dibujada con regla (Figura~\ref{fig:montaje}). El prototipo no
-necesita componentes adicionales.
+abajo. Para mantener una altura fija $H$ sobre la mesa, la caja va sujeta a
+una regla apoyada sobre dos pilas de libros de unos 15 cm, una a cada lado de
+un octavo de cartulina en el que se dibuja una cuadrícula de cuadros de lado
+$\Delta$ (Figura~\ref{fig:montaje}). En cada fila la caja se desliza a lo largo
+de la regla, en la dirección $x$; para pasar a la fila siguiente, la regla se
+corre un cuadro hacia adelante, en la dirección $y$. La altura importa porque
+el VL53L0X no mide bien a menos de unos 3 cm y porque la caja debe pasar por
+encima del objeto. El prototipo no necesita componentes adicionales.
 
 \begin{table}[htbp]
 \caption{Materiales del prototipo y costo aproximado}
@@ -68,14 +72,15 @@ envían su media y su desviación estándar.
 
 \subsection{Procedimiento de escaneo}
 
-Se usó una cuadrícula de \simNX{} columnas por \simNY{} filas con cuadros de
-\simPaso{} mm. El escaneo se inicia con un solo botón:
+Por defecto, la interfaz usa una cuadrícula de 11 columnas por 8 filas con
+cuadros de 30 mm (33 $\times$ 24 cm, el tamaño de un octavo de cartulina) y una
+marca que avanza a 30 mm/s. El escaneo se inicia con un solo botón:
 \begin{enumerate}
 \item Se coloca el objeto en el centro de la cuadrícula, dejando libres las
 casillas del borde, y la caja en la esquina $(0,0)$.
 \item Se pulsa \textit{Escanear}. Después de una cuenta regresiva de tres
-segundos, una marca recorre la fila a velocidad constante (20 mm/s por
-defecto) y la persona desliza la caja siguiéndola. La posición de cada lectura
+segundos, una marca recorre la fila a velocidad constante y la persona
+desliza la caja siguiéndola. La posición de cada lectura
 se obtiene con la ecuación~\eqref{eq:tiempo}.
 \item Al final de la fila hay otra cuenta regresiva para pasar a la siguiente.
 El recorrido sigue un zigzag (la fila 0 de izquierda a derecha, la fila 1 de
@@ -110,23 +115,25 @@ La interfaz se construyó con React y TypeScript, se empaqueta con Bun y se
 ejecuta en el navegador. Recibe los datos del ESP32 por un puente USB
 (\texttt{web/puente.ts}) que reenvía el puerto serie por WebSocket, lo que
 permite usarla en cualquier navegador; sin el puente, usa la API Web Serial de
-Chrome. Tiene cinco partes:
+Chrome. Su diseño es minimalista: la figura 3D ocupa la pantalla y, encima, un
+solo control cambia según el momento.
 \begin{itemize}
-\item Una guía de cuatro pasos (conectar, medir la mesa, recorrer la cuadrícula
-y ver y guardar) que se marca sola a medida que se avanza.
-\item La cuadrícula vista desde arriba, con el botón \textit{Escanear}, la
-marca que la caja debe seguir, la cuenta regresiva entre filas y la lectura en
-vivo. Las casillas se colorean según su altura a medida que se miden.
-\item La figura 3D, que se construye mientras se escanea y se gira arrastrando
-con el mouse.
-\item Un cuaderno que desglosa, con KaTeX y con los números de una medición, los
+\item En reposo muestra en grande la distancia que mide el sensor y el botón
+\textit{Escanear}. Si la caja está a menos de 6 cm de la mesa, avisa que hay
+que subirla.
+\item Durante el escaneo muestra la fila actual, la cuenta regresiva y una
+barra con la marca que la caja debe seguir. Un mapa pequeño de la cuadrícula,
+en una esquina, se colorea según la altura a medida que se mide.
+\item La figura 3D se construye mientras se escanea y se gira arrastrando con
+el mouse.
+\item Un botón \textit{Cálculos} abre un cuaderno que desglosa, con KaTeX y con los números de una medición, los
 cinco pasos del cálculo: la medición, el producto por $A$, el plano de la mesa
 con sus ecuaciones normales, la rotación y la proyección de la vista, y el
 producto vectorial y el producto punto del sombreado. Se puede congelar en una
-casilla o elegir una casilla medida para ver su cálculo.
-\item Los ajustes: la altura $H$, el tamaño de la cuadrícula y los archivos.
-Cada escaneo se puede guardar en el navegador o exportar como malla 3D
-(\texttt{.obj}), como tabla (\texttt{.csv}) o como archivo de la página
+casilla o elegir una casilla en el mapa para ver su cálculo.
+\item Un botón \textit{Ajustes} abre el tamaño de la cuadrícula, la velocidad
+de la marca y los archivos. Cada escaneo se puede guardar en el navegador o
+exportar como malla 3D (\texttt{.obj}) o como archivo de la página
 (\texttt{.json}).
 \end{itemize}
 El botón \textit{Simular prototipo} reemplaza el sensor por un simulador que
@@ -146,7 +153,8 @@ superficies cercanas, porque devuelven más luz. A cada lectura se le suma un
 ruido uniforme de $\pm 2$ mm, y el generador de números aleatorios usa una
 semilla fija para que los resultados se puedan reproducir. Se escanearon tres
 objetos de forma conocida (una taza cilíndrica, una caja y unos libros
-escalonados) y la mesa vacía; en estos experimentos cada casilla se midió con
+escalonados) y la mesa vacía, con una cuadrícula de \simNX{} $\times$ \simNY{}
+cuadros de \simPaso{} mm; en estos experimentos cada casilla se midió con
 diez lecturas en su centro, lo que equivale a seguir la marca sin error. Para
 los objetos se calculó el error de la altura
 en todas las casillas; para la mesa vacía, con y sin la corrección del plano.
