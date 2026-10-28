@@ -33,7 +33,7 @@ export function Escaner() {
               {m.zDelSensor
                 ? <>Tamaño real: el sensor midió el objeto a {coma(m.Z)} mm.</>
                 : <>Tamaño aproximado: sin sensor se supone que el objeto está a {coma(m.Z)} mm (cámbialo en Ajustes).</>}
-              {' '}El volumen es una estimación a partir de la silueta.
+              {' '}{m.conIA ? 'La profundidad la estimó una red neuronal (Depth Anything V2).' : 'El volumen es una estimación a partir de la silueta.'}
             </p>
             <button type="button" className="tecla grande ambar" onClick={() => camara.cambiar({ vista: 'camara' })}>📷 Tomar otra foto</button>
           </div>
@@ -74,10 +74,11 @@ export function Escaner() {
         <div className="control">
           <div className="control-centro">
             {c.error && <p className="aviso-cerca">{c.error}</p>}
-            <p className="control-ayuda">Pon el objeto en el centro, sobre un fondo liso de otro color.</p>
+            <p className="control-ayuda">Apunta al objeto para que quede en el centro y ocupe buena parte de la imagen.</p>
             <button type="button" className="tecla enorme ambar" disabled={c.capturando} onClick={() => void camara.tomarFoto()}>
               {c.capturando ? 'Procesando…' : '📷 Tomar foto'}
             </button>
+            {c.estadoTexto && <p className="control-ayuda">{c.estadoTexto}</p>}
           </div>
         </div>
       )}

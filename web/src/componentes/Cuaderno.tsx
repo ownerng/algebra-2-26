@@ -86,14 +86,29 @@ export function Cuaderno() {
         <Formula tex={`\\vec p = ${col(p, 0)}`} />
       </Paso>
 
-      <Paso numero={2} titulo="Separar el objeto del fondo">
-        <p className="nota">El color del fondo es la mediana de los píxeles del borde de la foto. Qué tan distinto es el píxel del fondo lo dice la norma de la resta:</p>
-        <Formula tex={`\\|\\vec p - \\vec f\\| = \\left\\| ${col(p, 0)} - ${col(m.fondo, 0)} \\right\\| = ${n(d, 1)}`} />
-        <p className="nota">
-          El umbral de Otsu, que separa mejor los dos grupos del histograma, salió en {m.umbral}. Como {n(d, 1).replace('{,}', ',')} {d > m.umbral ? '>' : '≤'} {m.umbral},
-          el píxel es del objeto. La silueta tiene {m.areaPx} píxeles.
-        </p>
-      </Paso>
+      {m.conIA && m.profundidad && m.planoFondo ? (
+        <Paso numero={2} titulo="Profundidad y plano del fondo">
+          <p className="nota">
+            Una red neuronal (Depth Anything V2) estima para cada píxel una profundidad relativa d(u, v) entre 0 (lejos) y
+            255 (cerca). En este píxel, d = {m.profundidad[ref]}. La mesa o el piso también tienen profundidad, así que con los
+            píxeles del borde se ajusta un plano por mínimos cuadrados, resolviendo (MᵀM)·[a b c]ᵀ = Mᵀd:
+          </p>
+          <Formula tex={`${mat(m.planoFondo.MtM, 0)}\\begin{bmatrix} a \\\\ b \\\\ c \\end{bmatrix} = ${col(m.planoFondo.Mtz, 0)}`} />
+          <Formula tex={`a = ${n(m.planoFondo.a, 4)},\\quad b = ${n(m.planoFondo.b, 4)},\\quad c = ${n(m.planoFondo.c, 2)}`} />
+          <p className="nota">Lo que sobresale del fondo en este píxel:</p>
+          <Formula tex={`r = d - (a u + b v + c) = ${m.profundidad[ref]} - (${n(m.planoFondo.a * u + m.planoFondo.b * v + m.planoFondo.c, 1)}) = ${n(m.profundidad[ref]! - (m.planoFondo.a * u + m.planoFondo.b * v + m.planoFondo.c), 1)}`} />
+          <p className="nota">El umbral de Otsu sobre r salió en {m.umbral}: lo que supera ese valor es el objeto ({m.areaPx} píxeles).</p>
+        </Paso>
+      ) : (
+        <Paso numero={2} titulo="Separar el objeto del fondo">
+          <p className="nota">El color del fondo es la mediana de los píxeles del borde de la foto. Qué tan distinto es el píxel del fondo lo dice la norma de la resta:</p>
+          <Formula tex={`\\|\\vec p - \\vec f\\| = \\left\\| ${col(p, 0)} - ${col(m.fondo, 0)} \\right\\| = ${n(d, 1)}`} />
+          <p className="nota">
+            El umbral de Otsu, que separa mejor los dos grupos del histograma, salió en {m.umbral}. Como {n(d, 1).replace('{,}', ',')} {d > m.umbral ? '>' : '≤'} {m.umbral},
+            el píxel es del objeto. La silueta tiene {m.areaPx} píxeles.
+          </p>
+        </Paso>
+      )}
 
       <Paso numero={3} titulo="Tamaño real: matriz de la cámara">
         <p className="nota">
@@ -108,12 +123,18 @@ export function Cuaderno() {
         <Formula tex={`\\text{ancho} = X_1 - X_0 = \\frac{${du}\\cdot ${n(m.Z, 0)}}{${n(f, 1)}} = ${n(X1 - X0, 1)}\\ \\text{mm}`} />
       </Paso>
 
-      <Paso numero={4} titulo="Volumen estimado">
-        <p className="nota">
-          Una foto no trae profundidad, así que el volumen se estima: la altura crece con la distancia al borde de la
-          silueta. En el centro del objeto, con base de {c.grosor} mm:
-        </p>
-        <Formula tex={`h = ${n(c.grosor, 1)} + h_{\\max}\\sqrt{d/d_{\\max}} = ${n(h, 1)}\\ \\text{mm}`} />
+      <Paso numero={4} titulo="Altura en milímetros">
+        {m.conIA ? (
+          <p className="nota">
+            La profundidad de la red es relativa: se lleva a milímetros con una escala proporcional al tamaño real del objeto
+            (paso 3). En el centro del objeto, con base de {c.grosor} mm, la altura es {n(h, 1).replace('{,}', ',')} mm.
+          </p>
+        ) : (
+          <>
+            <p className="nota">Sin la red, el volumen se estima: la altura crece con la distancia al borde de la silueta. En el centro, con base de {c.grosor} mm:</p>
+            <Formula tex={`h = ${n(c.grosor, 1)} + h_{\\max}\\sqrt{d/d_{\\max}} = ${n(h, 1)}\\ \\text{mm}`} />
+          </>
+        )}
       </Paso>
 
       <Paso numero={5} titulo="Girar y proyectar la vista 3D">

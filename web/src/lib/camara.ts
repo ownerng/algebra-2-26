@@ -1,12 +1,17 @@
-// Cámara del celular (DroidCam por WiFi) o webcam. Con una sola foto se
-// obtiene la silueta del objeto; con la distancia que mide el VL53L0X y el
-// modelo de cámara estenopeica, su tamaño real; y con la distancia al borde de
-// la silueta, un relieve 3D estimado.
+// Cámara del celular (DroidCam por WiFi) o webcam. De una sola foto:
+//  - una red neuronal estima la profundidad relativa de cada píxel;
+//  - el objeto es lo más cercano (umbral de Otsu sobre la profundidad);
+//  - el VL53L0X mide la distancia real Z y, con la matriz K de la cámara,
+//    cada píxel se convierte en milímetros.
+// Si la red no está disponible, se usa la silueta por color y un relieve
+// estimado a partir de la distancia al borde.
 
 import { useEffect, useReducer } from 'react';
 import type { Matriz } from './matematica.ts';
 import { colorFondo, componenteMayor, distanciaAlBorde, distanciaColor, matrizK, umbralOtsu } from './vision.ts';
 import { escaneo } from './escaneo.ts';
+import { estimarProfundidad } from './profundidad.ts';
+import { ajustarPlano, type Plano, type Vec3 } from './algebra3d.ts';
 
 const CLAVE_IP = 'escaner-3d-droidcam-ip';
 export const PUENTE_HTTP = 'http://localhost:3001';
@@ -21,6 +26,9 @@ export interface ModeloCamara {
   K: Matriz;
   Z: number;                             // distancia al objeto (mm)
   zDelSensor: boolean;
+  conIA: boolean;                        // la profundidad la estimó la red neuronal
+  planoFondo: Plano | null;              // d = a·u + b·v + c ajustado al borde de la foto
+  profundidad: Uint8Array | null;        // profundidad relativa de la red (0 lejos, 255 cerca)
   mmPorPx: number;
   fondo: [number, number, number];
   umbral: number;
@@ -40,6 +48,8 @@ class Camara extends EventTarget {
   grosor = 3;             // mm, base de la figura
   relieve = 0.5;          // 0 = figura plana; 1 = relieve alto
   capturando = false;
+  estadoTexto = '';
+  ultimaProfundidad: Uint8Array | null = null;
   modelo: ModeloCamara | null = null;
   vista: 'camara' | '3d' = 'camara';
   version = 0;
@@ -82,7 +92,9 @@ class Camara extends EventTarget {
 
   cambiar(c: Partial<Pick<Camara, 'anguloVision' | 'distanciaManual' | 'grosor' | 'relieve' | 'vista'>>) {
     Object.assign(this, c);
-    if (this.ultimaFoto && ('anguloVision' in c || 'distanciaManual' in c || 'grosor' in c || 'relieve' in c)) this.procesar(this.ultimaFoto, this.modelo?.Z);
+    if (this.ultimaFoto && ('anguloVision' in c || 'distanciaManual' in c || 'grosor' in c || 'relieve' in c)) {
+      this.procesar(this.ultimaFoto, this.modelo?.zDelSensor ? this.modelo.Z : undefined, this.ultimaProfundidad ?? undefined);
+    }
     this.avisar();
   }
 
@@ -119,7 +131,14 @@ class Camara extends EventTarget {
       this.ultimaFoto = foto;
       // Distancia al objeto: la del sensor si está conectado y midiendo
       const vivo = escaneo.vivo && performance.now() - escaneo.vivo.t < 1500 && escaneo.vivo.r > 0 ? escaneo.vivo.r : null;
-      this.procesar(foto, vivo ?? undefined);
+      try {
+        this.ultimaProfundidad = await estimarProfundidad(foto, (t) => { this.estadoTexto = t; this.avisar(); });
+      } catch (e) {
+        this.ultimaProfundidad = null;
+        console.warn('Sin red de profundidad:', e);
+      }
+      this.estadoTexto = '';
+      this.procesar(foto, vivo ?? undefined, this.ultimaProfundidad ?? undefined);
       if (this.modelo) this.vista = '3d';
     } catch (e) {
       this.error = 'No se pudo tomar la foto: ' + (e as Error).message;
@@ -128,13 +147,35 @@ class Camara extends EventTarget {
     this.avisar();
   }
 
-  procesar(foto: ImageData, zSensor?: number) {
+  procesar(foto: ImageData, zSensor?: number, prof?: Uint8Array) {
     const { width: ancho, height: alto, data: rgb } = foto;
     const fondo = colorFondo(rgb, ancho, alto);
-    const dif = distanciaColor(rgb, fondo);
-    const umbral = Math.max(25, umbralOtsu(dif));
-    let mascara: Uint8Array = new Uint8Array(dif.length);
-    for (let k = 0; k < dif.length; k++) mascara[k] = dif[k]! > umbral ? 1 : 0;
+    // Objeto: con la red, lo que está más cerca que el umbral de Otsu de la
+    // profundidad; sin la red, lo que es de otro color que el fondo.
+    // La mesa o el piso también tienen profundidad (más cerca abajo de la foto).
+    // Se ajusta un plano d = a·u + b·v + c a la profundidad del borde de la foto
+    // por mínimos cuadrados y se resta: queda solo lo que sobresale del fondo.
+    let planoFondo: Plano | null = null;
+    let relieve: Uint8Array | null = null;
+    if (prof) {
+      const marco = Math.round(0.06 * Math.min(ancho, alto));
+      const borde: Vec3[] = [];
+      for (let v = 0; v < alto; v += 3) for (let u = 0; u < ancho; u += 3) {
+        if (u >= marco && u < ancho - marco && v >= marco && v < alto - marco) continue;
+        borde.push([u, v, prof[v * ancho + u]!]);
+      }
+      planoFondo = ajustarPlano(borde);
+      relieve = new Uint8Array(prof.length);
+      for (let v = 0; v < alto; v++) for (let u = 0; u < ancho; u++) {
+        const k = v * ancho + u;
+        const base = planoFondo ? planoFondo.a * u + planoFondo.b * v + planoFondo.c : 0;
+        relieve[k] = Math.max(0, Math.min(255, prof[k]! - base));
+      }
+    }
+    const separar = relieve ?? distanciaColor(rgb, fondo);
+    const umbral = Math.max(relieve ? 8 : 25, umbralOtsu(separar));
+    let mascara: Uint8Array = new Uint8Array(separar.length);
+    for (let k = 0; k < separar.length; k++) mascara[k] = separar[k]! > umbral ? 1 : 0;
     mascara = componenteMayor(mascara, ancho, alto);
     let areaPx = 0, u0 = ancho, u1 = 0, v0 = alto, v1 = 0;
     for (let v = 0; v < alto; v++) for (let u = 0; u < ancho; u++) {
@@ -143,24 +184,31 @@ class Camara extends EventTarget {
     }
     if (areaPx < 30 || areaPx > 0.9 * ancho * alto) {
       this.modelo = null;
-      this.error = 'No se distinguió el objeto del fondo. Pon el objeto en el centro, sobre un fondo liso de otro color, sin que toque los bordes de la imagen.';
+      this.error = 'No se distinguió el objeto. Acerca la cámara para que el objeto ocupe buena parte de la imagen, sin tocar los bordes.';
       return;
     }
     const zDelSensor = zSensor !== undefined;
     const Z = zSensor ?? this.distanciaManual;
     const K = matrizK(ancho, alto, this.anguloVision);
     const mmPorPx = Z / K[0]![0]!;
-    const dist = distanciaAlBorde(mascara, ancho, alto);
-    let dMax = 0;
-    for (const d of dist) dMax = Math.max(dMax, d);
     const anchoMm = (u1 - u0 + 1) * mmPorPx, altoMm = (v1 - v0 + 1) * mmPorPx;
-    // Relieve estimado: más alto en el centro de la silueta, cero en el borde
-    const hMax = this.relieve * 0.5 * Math.min(anchoMm, altoMm);
     const altura = new Float32Array(mascara.length);
-    for (let k = 0; k < altura.length; k++) {
-      if (mascara[k]) altura[k] = this.grosor + (dMax ? hMax * Math.sqrt(dist[k]! / dMax) : 0);
+    if (relieve) {
+      // Relieve de la red (sin el plano del fondo), llevado a mm con una escala
+      // proporcional al tamaño real del objeto
+      let pMax = 1;
+      for (let k = 0; k < relieve.length; k++) if (mascara[k]) pMax = Math.max(pMax, relieve[k]!);
+      const escala = (this.relieve * 1.2 * Math.min(anchoMm, altoMm)) / pMax;
+      for (let k = 0; k < altura.length; k++) if (mascara[k]) altura[k] = this.grosor + relieve[k]! * escala;
+    } else {
+      // Sin red: más alto en el centro de la silueta, cero en el borde
+      const dist = distanciaAlBorde(mascara, ancho, alto);
+      let dMax = 0;
+      for (const d of dist) dMax = Math.max(dMax, d);
+      const hMax = this.relieve * 0.5 * Math.min(anchoMm, altoMm);
+      for (let k = 0; k < altura.length; k++) if (mascara[k]) altura[k] = this.grosor + (dMax ? hMax * Math.sqrt(dist[k]! / dMax) : 0);
     }
-    this.modelo = { ancho, alto, rgb, mascara, altura, K, Z, zDelSensor, mmPorPx, fondo, umbral, areaPx, caja: { u0, u1, v0, v1, anchoMm, altoMm } };
+    this.modelo = { ancho, alto, rgb, mascara, altura, K, Z, zDelSensor, conIA: !!prof, planoFondo, profundidad: prof ?? null, mmPorPx, fondo, umbral, areaPx, caja: { u0, u1, v0, v1, anchoMm, altoMm } };
   }
 }
 
