@@ -17,7 +17,7 @@ from . import profundidad as prof_mod
 from .geometria import inversa_K, matriz_K
 from .segmentacion import segmentar
 
-ANCHO_PROCESO = 640                     # la foto se reduce a este ancho
+ANCHO_PROCESO = 960                     # la foto se reduce a este ancho
 MARCO = (0.2, 0.15, 0.8, 0.85)          # recuadro de encuadre (fracciones), igual que en la web
 
 

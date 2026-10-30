@@ -20,7 +20,7 @@ import numpy as np
 
 from .geometria import inversa_K, retroproyectar
 
-LADO_MAX = 180  # nodos de la rejilla a lo largo del lado mayor del objeto
+LADO_MAX = 300  # nodos de la rejilla a lo largo del lado mayor del objeto
 R_OBJETO = np.diag([1.0, -1.0, -1.0])
 
 

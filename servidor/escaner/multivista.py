@@ -52,7 +52,7 @@ ROTACIONES = {
     "superior": np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]], dtype=np.float64),
 }
 
-LADO_VOXELES = 120   # voxeles a lo largo del lado mayor de la caja
+LADO_VOXELES = 180   # voxeles a lo largo del lado mayor de la caja
 MARGEN = 1.3         # la caja de voxeles es un 30 % más grande que el objeto
 
 
