@@ -66,6 +66,16 @@ fotos, **+ Vista extra** añade más vistas desde cualquier ángulo (8–12 foto
 dan un tallado bastante más fino). La hoja se quita de la silueta comparando
 cada píxel con lo que se vería del tablero (homografía del plano); un objeto
 blanco o negro puede confundirse con la parte de la hoja de su mismo color.
+No recortes el borde blanco de la hoja: los marcadores lo necesitan.
+
+### Calibrar la cámara (una vez por cámara y resolución)
+
+Elige **Calibrar**, muestra el tablero a la cámara desde ángulos distintos
+(inclinado, cerca, lejos y que caiga en cada esquina de la imagen) y pulsa
+**Capturar** en cada uno: 10–15 fotos. **Calcular** halla la matriz K real y la
+distorsión del lente y la guarda en `~/.cache/escaner/calibracion.json`; desde
+ahí los dos modos la usan (la ficha del modelo dice «K calibrada») en lugar del
+ángulo de visión supuesto de 65°. Un error por debajo de ~1 px es bueno.
 
 No hace falta un fondo neutro: la segmentación usa rembg (U²-Net), y si no
 está disponible cae a GrabCut de OpenCV, inicializado con el recuadro de
@@ -101,7 +111,12 @@ Con el tablero (16 marcadores ArUco, 4 esquinas Xᵢ conocidas cada uno, en el p
 Pose:             λᵢ·[uᵢ, vᵢ, 1]ᵀ = K·(R·Xᵢ + t)   → solvePnP (IPPE + Levenberg-Marquardt)
 Hoja en la foto:  λ·[u, v, 1]ᵀ = H·[X, Z, 1]ᵀ,   H = K·[r₁ r₃ t]   → se quita de la silueta
 Talla:            gruesa en todo el espacio sobre la hoja → fina en la caja del objeto
+
+Calibración (Zhang): cada foto del tablero da H = K·[r₁ r₂ t]; como r₁ ⊥ r₂ y ‖r₁‖ = ‖r₂‖,
+                  h₁ᵀ·B·h₂ = 0,  h₁ᵀ·B·h₁ = h₂ᵀ·B·h₂,  B = K⁻ᵀK⁻¹   → B por mínimos cuadrados → K
+                  y se refina con la distorsión (cv2.calibrateCamera). Al reducir la foto por s: K' = diag(s, s, 1)·K
 ```
 
-Z₀ (400 mm) y el ángulo de visión (65°) son supuestos, así que el tamaño en
-milímetros es aproximado; la forma no depende de Z₀.
+En el modo de 1 foto, Z₀ (400 mm) es supuesto, así que el tamaño en milímetros
+es aproximado; la forma no depende de Z₀. Sin calibrar, el ángulo de visión
+(65°) también es supuesto. Con el tablero, las medidas salen en mm reales.

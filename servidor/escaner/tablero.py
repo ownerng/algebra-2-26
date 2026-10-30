@@ -23,6 +23,9 @@ LADO_TABLERO = 180.0
 # Si la impresora escala la hoja, mide un marcador con regla y ajusta este valor
 LADO_MARCADOR = float(os.environ.get("ESCANER_MARCADOR_MM", 30.0))
 POR_LADO = 5   # marcadores por lado (las esquinas se comparten): 16 en total
+# Borde blanco alrededor: sin él, los marcadores de la orilla tocan la mesa y
+# sus esquinas se detectan corridas hacia adentro (~0,7 px)
+MARGEN = 8.0
 DICCIONARIO = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 
 
@@ -82,17 +85,18 @@ def svg() -> str:
         bits = DICCIONARIO.generateImageMarker(k, 6)
         for j, i in zip(*np.nonzero(bits == 0)):
             rects.append(f'<rect x="{x + i * celda:.3f}" y="{y + j * celda:.3f}" width="{celda:.3f}" height="{celda:.3f}"/>')
-    m, alto = LADO_TABLERO / 2, LADO_TABLERO + 14
+    m, b = LADO_TABLERO / 2, MARGEN
+    ancho, alto = LADO_TABLERO + 2 * b, LADO_TABLERO + 2 * b + 12
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{LADO_TABLERO:g}mm" height="{alto:g}mm" '
-        f'viewBox="0 0 {LADO_TABLERO:g} {alto:g}">'
-        f'<rect width="{LADO_TABLERO:g}" height="{alto:g}" fill="#fff"/>'
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{ancho:g}mm" height="{alto:g}mm" '
+        f'viewBox="{-b:g} {-b:g} {ancho:g} {alto:g}">'
+        f'<rect x="{-b:g}" y="{-b:g}" width="{ancho:g}" height="{alto:g}" fill="#fff"/>'
         f'<g fill="#000" shape-rendering="crispEdges">{"".join(rects)}</g>'
         f'<path d="M{m - 4} {m}H{m + 4}M{m} {m - 4}V{m + 4}" stroke="#999" stroke-width="0.3"/>'
-        f'<text x="{m}" y="{LADO_TABLERO + 6}" font-family="sans-serif" font-size="4.5" text-anchor="middle">'
+        f'<text x="{m}" y="{LADO_TABLERO + b + 4}" font-family="sans-serif" font-size="4.5" text-anchor="middle">'
         f'▼ FRENTE ▼ (aquí va la foto frontal)</text>'
-        f'<text x="{m}" y="{LADO_TABLERO + 11.5}" font-family="sans-serif" font-size="3" text-anchor="middle" fill="#555">'
-        f'Imprime al 100 %: cada marcador debe medir {LADO_MARCADOR:g} mm. Pon el objeto en el centro.</text>'
+        f'<text x="{m}" y="{LADO_TABLERO + b + 9}" font-family="sans-serif" font-size="3" text-anchor="middle" fill="#555">'
+        f'Imprime al 100 %: cada marcador debe medir {LADO_MARCADOR:g} mm. No recortes el borde blanco.</text>'
         '</svg>'
     )
 
@@ -101,18 +105,21 @@ PX_MM = 4   # resolución de la hoja rasterizada para compararla con la foto
 
 
 def _hoja() -> np.ndarray:
-    """La hoja impresa en gris (0 negro, 255 blanco), a PX_MM píxeles por mm."""
-    n = round(LADO_TABLERO * PX_MM)
+    """La hoja impresa con su borde blanco, en gris (0 negro, 255 blanco), a PX_MM píxeles por mm."""
+    n = round((LADO_TABLERO + 2 * MARGEN) * PX_MM)
     hoja = np.full((n, n), 255, np.uint8)
     lado = round(LADO_MARCADOR * PX_MM)
     for k, (x, y) in enumerate(_posiciones()):
         bits = cv2.resize(DICCIONARIO.generateImageMarker(k, 6), (lado, lado), interpolation=cv2.INTER_NEAREST)
-        i, j = round(x * PX_MM), round(y * PX_MM)
+        i, j = round((x + MARGEN) * PX_MM), round((y + MARGEN) * PX_MM)
         hoja[j:j + lado, i:i + lado] = bits
     return hoja
 
 
 HOJA = _hoja()
+# Píxel (i, j) de HOJA → (X, Z, 1) del mundo. El centro del píxel i está en el mm (i + ½)/PX_MM de la hoja
+_c = LADO_TABLERO / 2 + MARGEN - 0.5 / PX_MM
+A_HOJA = np.array([[1 / PX_MM, 0, -_c], [0, -1 / PX_MM, _c], [0, 0, 1]])
 
 
 def quitar(bgr: np.ndarray, mascara: np.ndarray, K: np.ndarray, R: np.ndarray, t: np.ndarray) -> np.ndarray:
@@ -126,10 +133,8 @@ def quitar(bgr: np.ndarray, mascara: np.ndarray, K: np.ndarray, R: np.ndarray, t
     color, es hoja. Límite: un objeto blanco o negro sobre la parte de la hoja
     de su mismo color se confunde con ella."""
     alto, ancho = mascara.shape
-    m = LADO_TABLERO / 2
-    A = np.array([[1 / PX_MM, 0, -m], [0, -1 / PX_MM, m], [0, 0, 1]])   # píxel de la hoja → (X, Z, 1)
-    H = K @ np.column_stack([R[:, 0], R[:, 2], t]) @ A
-    esperado = cv2.warpPerspective(HOJA, H, (ancho, alto), flags=cv2.INTER_AREA).astype(np.float32) / 255
+    H = K @ np.column_stack([R[:, 0], R[:, 2], t]) @ A_HOJA
+    esperado = cv2.warpPerspective(HOJA, H, (ancho, alto)).astype(np.float32) / 255
     esperado = cv2.GaussianBlur(esperado, (0, 0), 1.0)   # la cámara desenfoca un poco
     dentro = cv2.warpPerspective(np.full_like(HOJA, 255), H, (ancho, alto)) > 250
     claro, oscuro = dentro & (esperado > 0.9), dentro & (esperado < 0.1)

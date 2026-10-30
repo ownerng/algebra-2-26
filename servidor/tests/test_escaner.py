@@ -147,33 +147,43 @@ def test_borde_subpixel_con_alfa():
     assert fino < 0.15 and fino < escalones / 3
 
 
-def _foto_con_tablero(azimut, elevacion, radio=30.0, dist=420.0, ancho=640, alto=480):
-    """Foto sintética: la hoja impresa en perspectiva y una esfera roja encima."""
+def _foto_con_tablero(azimut, elevacion, radio=30.0, dist=420.0, ancho=640, alto=480, K=None, mira=(0.0, 0.0)):
+    """Foto sintética: la hoja impresa en perspectiva y una esfera roja encima.
+    La cámara apunta al punto (mira[0], −radio, mira[1]): corrido, el tablero
+    sale fuera del centro de la imagen."""
     import cv2
     from escaner import tablero as T
 
     a, e = np.radians(azimut), np.radians(elevacion)
     C = dist * np.array([np.cos(e) * np.sin(a), -np.sin(e), -np.cos(e) * np.cos(a)])
-    z = np.array([0, -radio, 0]) - C
+    z = np.array([mira[0], -radio, mira[1]]) - C
     z /= np.linalg.norm(z)
     x = np.cross(z, [0, -1.0, 0])
     x /= np.linalg.norm(x)
     R = np.stack([x, np.cross(z, x), z])
     t = -R @ C
-    K = matriz_K(ancho, alto, 65)
-    m = T.LADO_TABLERO / 2
-    H = K @ np.column_stack([R[:, 0], R[:, 2], t]) @ np.array([[1 / T.PX_MM, 0, -m], [0, -1 / T.PX_MM, m], [0, 0, 1]])
-    foto = np.full((alto, ancho, 3), 110, np.uint8)
-    hoja = cv2.warpPerspective(cv2.cvtColor(T.HOJA, cv2.COLOR_GRAY2BGR), H, (ancho, alto), flags=cv2.INTER_AREA)
-    sobre = cv2.warpPerspective(np.full_like(T.HOJA, 255), H, (ancho, alto)) > 127
-    foto[sobre] = hoja[sobre]
+    K = matriz_K(ancho, alto, 65) if K is None else K
+    # La hoja se dibuja a 3× y se reduce promediando, como integra la luz un píxel real
+    # (muestrear la hoja directo a la resolución final corre las esquinas detectadas)
+    ss = 3
+    S = np.array([[ss, 0, (ss - 1) / 2], [0, ss, (ss - 1) / 2], [0, 0, 1]])   # píxel → centro de su bloque ss × ss
+    H = S @ K @ np.column_stack([R[:, 0], R[:, 2], t]) @ T.A_HOJA
+    gris = np.full((alto * ss, ancho * ss), 110, np.uint8)
+    hoja = cv2.warpPerspective(T.HOJA, H, (ancho * ss, alto * ss))
+    sobre = cv2.warpPerspective(np.full_like(T.HOJA, 255), H, (ancho * ss, alto * ss)) > 127
+    gris[sobre] = hoja[sobre]
+    foto = cv2.cvtColor(cv2.resize(gris, (ancho, alto), interpolation=cv2.INTER_AREA), cv2.COLOR_GRAY2BGR)
     # La esfera: su contorno proyectado es una elipse; se rellena con sus puntos
     u = np.random.default_rng(0).normal(size=(200_000, 3))
     P = radio * u / np.linalg.norm(u, axis=1, keepdims=True) + [0, -radio, 0]
     q = (P @ R.T + t) @ K.T
     uv = np.round(q[:, :2] / q[:, 2:]).astype(int)
-    foto[uv[:, 1].clip(0, alto - 1), uv[:, 0].clip(0, ancho - 1)] = (40, 50, 210)
-    return cv2.morphologyEx(foto, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)), R, t
+    esfera = np.zeros((alto, ancho), np.uint8)
+    esfera[uv[:, 1].clip(0, alto - 1), uv[:, 0].clip(0, ancho - 1)] = 1
+    # Se cierra solo la esfera: cerrar toda la foto redondearía las esquinas de los marcadores
+    if radio > 0:
+        foto[cv2.morphologyEx(esfera, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)) > 0] = (40, 50, 210)
+    return foto, R, t
 
 
 def test_tablero_da_la_pose_y_la_escala_real(monkeypatch):
@@ -233,3 +243,31 @@ def test_taubin_quita_escalones_sin_encoger():
     radio = lambda P: np.linalg.norm(P, axis=1)  # noqa: E731
     assert radio(S).std() < 0.6 * radio(V).std()        # más redonda (lo que queda es de la voxelización)
     assert abs(volumen(S, F) / volumen(V, F) - 1) < 0.03  # y del mismo tamaño
+
+
+def test_calibracion_recupera_K(tmp_path, monkeypatch):
+    from escaner import calibracion
+
+    monkeypatch.setattr(calibracion, "RUTA", tmp_path / "calibracion.json")
+    # Una cámara que no es la supuesta: focal 560 px y centro corrido
+    K = np.array([[560.0, 0, 300], [0, 560.0, 250], [0, 0, 1]])
+    # Como en una calibración real: inclinado, cerca, lejos y en distintas zonas de la imagen
+    tomas = [(0, 35, 380, (0, 0)), (40, 50, 420, (60, 40)), (-50, 40, 400, (-60, 30)), (120, 30, 450, (40, -60)),
+             (200, 60, 360, (-50, -50)), (300, 45, 400, (70, 0)), (10, 75, 380, (0, 70)), (80, 55, 420, (-70, -20))]
+    for az, el, d, mira in tomas:
+        foto, _, _ = _foto_con_tablero(az, el, radio=0.0, dist=d, K=K, mira=mira)
+        assert calibracion.agregar(foto) >= calibracion.MIN_MARCADORES
+    c = calibracion.calcular()
+    try:
+        assert c["error_px"] < 0.6
+        Kc = np.array(c["K"])
+        # La focal (la que fija la escala) queda al 2 %; el centro óptico es lo
+        # peor condicionado de una calibración: décimas de píxel lo mueven ~10 px
+        assert np.allclose(Kc[[0, 1], [0, 1]], 560, rtol=0.02)
+        assert np.allclose(Kc[[0, 1], [2, 2]], [300, 250], atol=15)
+        # Escala con la foto: a la mitad de tamaño, la mitad de focal
+        assert calibracion.K(320, 240, 65)[0, 0] == pytest.approx(c["K"][0][0] / 2)
+        assert calibracion.K(400, 400, 65)[0, 0] == pytest.approx(matriz_K(400, 400, 65)[0, 0])   # otra proporción
+    finally:
+        calibracion.borrar()
+    assert calibracion.actual is None and not (tmp_path / "calibracion.json").exists()

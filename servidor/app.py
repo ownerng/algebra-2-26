@@ -10,6 +10,10 @@
   POST /api/reconstruir                              → envolvente visual de las vistas
   POST /api/obj                                      → último modelo en .obj
   GET  /api/tablero.svg                              → tablero de marcadores para imprimir
+  GET  /api/calibracion                              → estado de la calibración de la cámara
+  POST /api/calibracion/foto  (foto opcional)        → suma una foto del tablero
+  POST /api/calibracion/calcular                     → calibra (K y distorsión) y la guarda
+  DELETE /api/calibracion                            → borra las fotos y la calibración
 
 Uso:  servidor/.venv/bin/uvicorn app:app --app-dir servidor --port 8000
 """
@@ -25,7 +29,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from escaner import profundidad, segmentacion, tablero
+from escaner import calibracion, profundidad, segmentacion, tablero
 from escaner.camara import CamaraRed, camaras_locales
 from escaner.malla import a_obj
 from escaner.multivista import VISTAS, Vista, es_vista, preparar_vista, reconstruir
@@ -38,6 +42,7 @@ vistas: dict[str, Vista] = {}
 
 @asynccontextmanager
 async def ciclo(_: FastAPI):
+    calibracion.cargar()
     await asyncio.to_thread(segmentacion.precargar)
     await asyncio.to_thread(profundidad.precargar)
     yield
@@ -190,3 +195,32 @@ def descargar_obj() -> PlainTextResponse:
 @app.get("/api/tablero.svg")
 def tablero_svg() -> Response:
     return Response(tablero.svg(), media_type="image/svg+xml")
+
+
+@app.get("/api/calibracion")
+def ver_calibracion() -> dict:
+    return calibracion.estado()
+
+
+@app.post("/api/calibracion/foto")
+async def foto_calibracion(foto: UploadFile | None = File(None)) -> dict:
+    # La foto completa, sin reducir: la calibración vale para la resolución de la cámara
+    marcadores = await asyncio.to_thread(calibracion.agregar, await leer_foto(foto))
+    if not marcadores:
+        raise HTTPException(422, f"no se ve el tablero (hacen falta {calibracion.MIN_MARCADORES} marcadores o más)")
+    return {**calibracion.estado(), "marcadores": marcadores}
+
+
+@app.post("/api/calibracion/calcular")
+async def calcular_calibracion() -> dict:
+    try:
+        await asyncio.to_thread(calibracion.calcular)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+    return calibracion.estado()
+
+
+@app.delete("/api/calibracion")
+def borrar_calibracion() -> dict:
+    calibracion.borrar()
+    return calibracion.estado()

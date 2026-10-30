@@ -45,8 +45,8 @@ import numpy as np
 from scipy.ndimage import gaussian_filter, map_coordinates
 from skimage.measure import marching_cubes
 
-from . import tablero
-from .geometria import inversa_K, matriz_K
+from . import calibracion, tablero
+from .geometria import inversa_K
 from .malla import Malla, R_OBJETO, normales, taubin, volumen
 from .proceso import Parametros, Resultado, SinObjeto, reducir
 from .segmentacion import limpiar, recuadro_px, segmentar
@@ -121,7 +121,7 @@ def preparar_vista(nombre: str, bgr: np.ndarray, marco) -> Vista:
     alto, ancho = mascara.shape
     camara = None
     if (det := tablero.detectar(foto)) is not None:
-        K = matriz_K(ancho, alto, Parametros.fov)
+        K = calibracion.K(ancho, alto, Parametros.fov)
         R, t, _ = tablero.pose(*det, K)
         camara = Camara(K, R, t)
         mascara = limpiar(tablero.quitar(foto, mascara, K, R, t) * 255, recuadro_px(marco, ancho, alto))
@@ -138,7 +138,7 @@ def camaras(vistas: dict[str, Vista], p: Parametros) -> tuple[dict[str, Camara],
     """Calibra cada vista con las medidas compartidas. Devuelve las cámaras y
     las medidas del objeto (ancho, alto, fondo) en mm."""
     fr = vistas["frontal"]
-    K = {n: matriz_K(v.foto.shape[1], v.foto.shape[0], p.fov) for n, v in vistas.items()}
+    K = {n: calibracion.K(v.foto.shape[1], v.foto.shape[0], p.fov) for n, v in vistas.items()}
     f = {n: k[0, 0] for n, k in K.items()}
 
     # La frontal fija la escala: ancho y alto del objeto a la distancia Z₀
@@ -266,9 +266,10 @@ def reconstruir(vistas: dict[str, Vista], p: Parametros | None = None) -> Result
     malla = Malla(V=V, F=F, uv=None, colores=colores, n_frente=len(V), caras={"todas": len(F)}, centro=centro)
     fr = vistas.get("frontal") or next(iter(vistas.values()))
     tam = V.max(axis=0) - V.min(axis=0)
+    calibrada = " · K calibrada" if calibracion.aplica(fr.foto.shape[1], fr.foto.shape[0]) else ""
     return Resultado(
         foto=fr.foto, mascara=fr.mascara, alfa=fr.alfa, K=cams[fr.nombre].K, malla=malla,
-        metodo=f"envolvente visual · {len(vistas)} vistas · {fr.metodo}",
+        metodo=f"envolvente visual · {len(vistas)} vistas · {fr.metodo}{calibrada}",
         tamano_mm=(float(tam[0]), float(tam[1]), float(tam[2])),
         volumen_mm3=volumen(V, F), tiempos=tiempos,
     )

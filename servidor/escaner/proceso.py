@@ -12,9 +12,10 @@ from dataclasses import dataclass, field
 import cv2
 import numpy as np
 
+from . import calibracion
 from . import malla as malla_mod
 from . import profundidad as prof_mod
-from .geometria import inversa_K, matriz_K
+from .geometria import inversa_K
 from .segmentacion import segmentar
 
 ANCHO_PROCESO = 960                     # la foto se reduce a este ancho
@@ -48,11 +49,12 @@ class SinObjeto(Exception):
 
 
 def reducir(bgr: np.ndarray) -> np.ndarray:
+    """Reduce la foto a ANCHO_PROCESO y, si la cámara está calibrada, le quita la distorsión."""
     alto, ancho = bgr.shape[:2]
-    if ancho <= ANCHO_PROCESO:
-        return bgr
-    escala = ANCHO_PROCESO / ancho
-    return cv2.resize(bgr, (ANCHO_PROCESO, round(alto * escala)), interpolation=cv2.INTER_AREA)
+    if ancho > ANCHO_PROCESO:
+        escala = ANCHO_PROCESO / ancho
+        bgr = cv2.resize(bgr, (ANCHO_PROCESO, round(alto * escala)), interpolation=cv2.INTER_AREA)
+    return calibracion.corregir(bgr)
 
 
 def escanear(bgr: np.ndarray, p: Parametros | None = None) -> Resultado:
@@ -75,13 +77,15 @@ def escanear(bgr: np.ndarray, p: Parametros | None = None) -> Resultado:
         raise SinObjeto("no se distinguió el objeto; ponlo dentro del recuadro y que ocupe buena parte de él")
     marca("segmentacion")
 
-    K = matriz_K(ancho, alto, p.fov)
+    K = calibracion.K(ancho, alto, p.fov)
     mm_por_px = p.distancia_mm / K[0, 0]  # un píxel a la distancia Z₀ mide Z₀ / f
     gris = cv2.cvtColor(foto, cv2.COLOR_BGR2GRAY)
     disp = prof_mod.disparidad(foto, mascara)
     prof = prof_mod.estimar(mascara, gris, p.distancia_mm, mm_por_px, relieve=p.relieve, detalle=p.detalle, disparidad=disp)
     if disp is not None:
         metodo += " · Depth Anything V2"
+    if calibracion.aplica(ancho, alto):
+        metodo += " · K calibrada"
     marca("profundidad")
 
     m = malla_mod.construir(mascara, prof.Z_frente, prof.Z_atras, K, p.distancia_mm, alfa)

@@ -2,12 +2,13 @@
 // recuadro central donde el servidor lo busca. Dos modos: una sola foto, o
 // cinco vistas (frontal, laterales, trasera y superior) para la envolvente visual.
 // Si el tablero de marcadores se ve en todas las fotos, se pueden sumar vistas
-// extra desde cualquier ángulo.
+// extra desde cualquier ángulo. El tercer modo calibra la cámara con el tablero.
 
 import { useState } from 'react';
 import { MARCO, URL_TABLERO, VIDEO, VISTAS, type NombreVista } from '../lib/api.ts';
+import { Calibracion } from './Calibracion.tsx';
 
-export type Modo = 'una' | 'vistas';
+export type Modo = 'una' | 'vistas' | 'calibrar';
 
 const FIJAS: Record<NombreVista, string> = {
   frontal: 'Frontal', izquierda: 'Lateral izquierdo', trasera: 'Trasera', derecha: 'Lateral derecho', superior: 'Superior',
@@ -58,6 +59,7 @@ export function Encuadre(p: Props) {
       <div className="selector" role="group" aria-label="Modo de captura">
         <button type="button" aria-pressed={p.modo === 'una'} disabled={ocupado} onClick={() => p.cambiarModo('una')}>1 foto</button>
         <button type="button" aria-pressed={p.modo === 'vistas'} disabled={ocupado} onClick={() => p.cambiarModo('vistas')}>{VISTAS.length} vistas</button>
+        <button type="button" aria-pressed={p.modo === 'calibrar'} disabled={ocupado} onClick={() => p.cambiarModo('calibrar')}>Calibrar</button>
       </div>
 
       <div className="cuadro-caja">
@@ -92,11 +94,12 @@ export function Encuadre(p: Props) {
             ))}
           </div>
         )}
-        {p.error && <p className="aviso" role="alert">{p.error}</p>}
-        <p className="pista">
+        {p.modo === 'calibrar' && <Calibracion />}
+        {p.error && p.modo !== 'calibrar' && <p className="aviso" role="alert">{p.error}</p>}
+        {p.modo !== 'calibrar' && <p className="pista">
           {p.modo === 'una' ? 'Pon el objeto dentro del recuadro'
             : p.paso ? PISTAS[p.paso as NombreVista] ?? PISTA_EXTRA : 'Listo: ya puedes reconstruir (o toca una vista para repetirla).'}
-        </p>
+        </p>}
         {p.modo === 'vistas' && (
           <p className="pista">
             {conTablero ? 'Tablero detectado: poses exactas y medidas reales en mm. ' : 'Más precisión: pon el objeto sobre el '}

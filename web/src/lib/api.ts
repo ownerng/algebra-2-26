@@ -90,3 +90,13 @@ export const reconstruir = async () => aModelo(await pedir('/api/reconstruir', {
 
 export const URL_OBJ = `${API}/api/obj`;
 export const URL_TABLERO = `${API}/api/tablero.svg`;
+
+// Calibración de la cámara con el tablero (servidor/escaner/calibracion.py)
+export interface EstadoCalibracion {
+  fotos: number; minimo: number; calibrada: boolean;
+  f_px: number | null; error_px: number | null; resolucion: string | null;
+}
+export const estadoCalibracion = () => pedir<EstadoCalibracion>('/api/calibracion');
+export const fotoCalibracion = () => pedir<EstadoCalibracion>('/api/calibracion/foto', { method: 'POST' });
+export const calcularCalibracion = () => pedir<EstadoCalibracion>('/api/calibracion/calcular', { method: 'POST' });
+export const borrarCalibracion = () => pedir<EstadoCalibracion>('/api/calibracion', { method: 'DELETE' });
