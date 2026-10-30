@@ -1,16 +1,17 @@
-# Escáner LIDAR 2D: tareas frecuentes
+# Escáner 3D: tareas frecuentes
 
 .PHONY: web datos test graficas informe limpiar
 
-web:            ## Abre la interfaz en http://localhost:3000 (Bun)
+web:            ## Servidor Python (8000) e interfaz en http://localhost:3000
 	./iniciar-web.sh
 
 datos:          ## Regenera las cifras, tablas y CSV del informe (simulador y mediciones reales)
 	bun experimentos/generar3d.ts
 	bun experimentos/generar_reales3d.ts
 
-test:           ## Pruebas de la matemática
+test:           ## Pruebas de la matemática (TypeScript y Python)
 	bun test tests/
+	cd servidor && .venv/bin/pytest -q
 
 graficas: datos ## Compila las figuras de docs/graficas/*.tex a PDF
 	cd docs && for f in graficas/*.tex; do pdflatex -output-directory graficas $$f; done
