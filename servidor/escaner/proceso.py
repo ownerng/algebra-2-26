@@ -84,7 +84,7 @@ def escanear(bgr: np.ndarray, p: Parametros | None = None) -> Resultado:
         metodo += " · Depth Anything V2"
     marca("profundidad")
 
-    m = malla_mod.construir(mascara, prof.Z_frente, prof.Z_atras, K, p.distancia_mm)
+    m = malla_mod.construir(mascara, prof.Z_frente, prof.Z_atras, K, p.distancia_mm, alfa)
     marca("malla")
 
     tam = m.V.max(axis=0) - m.V.min(axis=0)

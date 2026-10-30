@@ -7,6 +7,9 @@
     invertido para mirar hacia afuera.
   • Paredes: las aristas que usa un solo triángulo del frente forman el
     contorno; cada una se une con su copia trasera en un cuadrilátero.
+  • Borde fino: la rejilla va en píxeles enteros y deja el contorno en
+    escalones. Con el alfa suave de la segmentación, cada nodo del contorno da
+    un paso de Newton hacia la curva α = ½:  δ = −(α − ½)·∇α / ‖∇α‖².
 
 Así toda arista queda compartida por exactamente dos caras: un sólido cerrado.
 
@@ -16,6 +19,7 @@ la cámara) con  p = R·(P − c),  R = diag(1, −1, −1)  (giro de 180° en x
 
 from dataclasses import dataclass
 
+import cv2
 import numpy as np
 
 from .geometria import inversa_K, retroproyectar
@@ -35,7 +39,24 @@ class Malla:
     centro: np.ndarray   # c, en ejes de la cámara
 
 
-def construir(mascara: np.ndarray, Z_frente: np.ndarray, Z_atras: np.ndarray, K: np.ndarray, Z0: float) -> Malla:
+def al_borde(u: np.ndarray, v: np.ndarray, alfa: np.ndarray, paso: int) -> tuple[np.ndarray, np.ndarray]:
+    """Un paso de Newton de cada nodo (u, v) hacia la curva α = ½ (α en 0–255).
+    Linealiza α(x + δ) ≈ α(x) + ∇α·δ y toma el δ más corto que lo anula."""
+    a = cv2.GaussianBlur(alfa.astype(np.float32) / 255, (0, 0), 1.0)
+    ax = cv2.Sobel(a, cv2.CV_32F, 1, 0, ksize=3) / 8   # derivadas por píxel
+    ay = cv2.Sobel(a, cv2.CV_32F, 0, 1, ksize=3) / 8
+    gx, gy, r = ax[v, u], ay[v, u], a[v, u] - 0.5
+    g2 = gx * gx + gy * gy
+    k = np.where(g2 > 1e-4, -r / np.maximum(g2, 1e-4), 0)
+    du, dv = k * gx, k * gy
+    # La máscara limpia y el alfa no siempre coinciden: el paso no pasa de una celda
+    largo = np.hypot(du, dv)
+    escala = np.minimum(1, paso / np.maximum(largo, 1e-9))
+    return u + du * escala, v + dv * escala
+
+
+def construir(mascara: np.ndarray, Z_frente: np.ndarray, Z_atras: np.ndarray, K: np.ndarray, Z0: float,
+              alfa: np.ndarray | None = None) -> Malla:
     alto, ancho = mascara.shape
     vs_obj, us_obj = np.nonzero(mascara)
     u0, u1, v0, v1 = us_obj.min(), us_obj.max(), vs_obj.min(), vs_obj.max()
@@ -48,11 +69,6 @@ def construir(mascara: np.ndarray, Z_frente: np.ndarray, Z_atras: np.ndarray, K:
     n = int(dentro.sum())
     indice[dentro] = np.arange(n)
     u, v = U[dentro], Vg[dentro]
-
-    K_inv = inversa_K(K)
-    frente = retroproyectar(K_inv, u, v, Z_frente[v, u])
-    atras = retroproyectar(K_inv, u, v, np.full(n, Z0))
-    atras[:, 2] = Z_atras[v, u]
 
     # Celdas: a b / d e. La v de la foto crece hacia abajo, así que (a, d, b)
     # gira en sentido antihorario visto desde la cámara.
@@ -76,11 +92,22 @@ def construir(mascara: np.ndarray, Z_frente: np.ndarray, Z_atras: np.ndarray, K:
     p, q = borde[:, 0], borde[:, 1]
     F_paredes = np.concatenate([np.stack([q, p, p + n], 1), np.stack([q, p + n, q + n], 1)])
 
+    # Posición de cada nodo en la foto: los del contorno, en el borde fino
+    uf, vf = u.astype(np.float64), v.astype(np.float64)
+    if alfa is not None:
+        b = np.unique(borde)
+        uf[b], vf[b] = al_borde(u[b], v[b], alfa, paso)
+
+    K_inv = inversa_K(K)
+    frente = retroproyectar(K_inv, uf, vf, Z_frente[v, u])
+    atras = retroproyectar(K_inv, uf, vf, np.full(n, Z0))
+    atras[:, 2] = Z_atras[v, u]
+
     P = np.vstack([frente, atras])
     centro = (P.min(axis=0) + P.max(axis=0)) / 2
     V = (P - centro) @ R_OBJETO.T
 
-    uv = np.stack([(u + 0.5) / ancho, 1 - (v + 0.5) / alto], axis=1)
+    uv = np.stack([(uf + 0.5) / ancho, 1 - (vf + 0.5) / alto], axis=1)
     return Malla(
         V=V.astype(np.float32),
         F=np.vstack([F_frente, F_atras, F_paredes]).astype(np.uint32),

@@ -123,3 +123,25 @@ def test_profundidad_con_disparidad():
     # Lo que está más cerca (mayor disparidad) sobresale más
     assert bulto.altura[centro].mean() > 2 * plana.altura[centro].mean()
     assert (bulto.Z_frente[m > 0] <= 400).all()
+
+
+def test_borde_subpixel_con_alfa():
+    # Disco con borde antialias: el contorno exacto está en r = 40,4 px
+    r, ancho, alto = 40.4, 200, 160
+    v, u = np.mgrid[:alto, :ancho]
+    dist = np.hypot(u - 100, v - 80)
+    alfa = (np.clip(r - dist + 0.5, 0, 1) * 255).astype(np.uint8)
+    mascara = (alfa > 127).astype(np.uint8)
+    K = matriz_K(ancho, alto, 60)
+    Z = np.full(mascara.shape, 400, np.float32)
+
+    def error_contorno(malla):
+        # Vértices de las paredes = contorno; su radio en píxeles a 400 mm
+        F = malla.F[-malla.caras["paredes"]:].astype(np.int64)
+        P = malla.V[np.unique(F)]
+        radio = np.hypot(P[:, 0], P[:, 1]) * K[0, 0] / 400
+        return np.abs(radio - r).mean()
+
+    escalones = error_contorno(construir(mascara, Z, Z + 10, K, 400))
+    fino = error_contorno(construir(mascara, Z, Z + 10, K, 400, alfa))
+    assert fino < 0.15 and fino < escalones / 3

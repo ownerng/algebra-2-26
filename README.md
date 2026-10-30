@@ -69,6 +69,7 @@ Cámara:           K = [f 0 cx; 0 f cy; 0 0 1],   K⁻¹ = [1/f 0 −cx/f; 0 1/f
 Retroproyección:  P = Z·K⁻¹·[u, v, 1]ᵀ          (N píxeles a la vez: matriz 3×N)
 Extrusión:        P_atrás = Z₀·K⁻¹·[u, v, 1]ᵀ + (Z_atrás − Z₀)·e₃
 Malla:            F = [frente; frente invertido + N; paredes del contorno]
+Borde fino:       x ← x − (α(x) − ½)·∇α / ‖∇α‖²   (Newton hacia α = ½ en cada nodo del contorno)
 Ejes del objeto:  p = R·(P − c),   R = diag(1, −1, −1)
 Volumen:          V = Σ det[p₀ p₁ p₂] / 6
 
