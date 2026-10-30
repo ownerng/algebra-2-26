@@ -145,3 +145,56 @@ def test_borde_subpixel_con_alfa():
     escalones = error_contorno(construir(mascara, Z, Z + 10, K, 400))
     fino = error_contorno(construir(mascara, Z, Z + 10, K, 400, alfa))
     assert fino < 0.15 and fino < escalones / 3
+
+
+def _foto_con_tablero(azimut, elevacion, radio=30.0, dist=420.0, ancho=640, alto=480):
+    """Foto sintética: la hoja impresa en perspectiva y una esfera roja encima."""
+    import cv2
+    from escaner import tablero as T
+
+    a, e = np.radians(azimut), np.radians(elevacion)
+    C = dist * np.array([np.cos(e) * np.sin(a), -np.sin(e), -np.cos(e) * np.cos(a)])
+    z = np.array([0, -radio, 0]) - C
+    z /= np.linalg.norm(z)
+    x = np.cross(z, [0, -1.0, 0])
+    x /= np.linalg.norm(x)
+    R = np.stack([x, np.cross(z, x), z])
+    t = -R @ C
+    K = matriz_K(ancho, alto, 65)
+    m = T.LADO_TABLERO / 2
+    H = K @ np.column_stack([R[:, 0], R[:, 2], t]) @ np.array([[1 / T.PX_MM, 0, -m], [0, -1 / T.PX_MM, m], [0, 0, 1]])
+    foto = np.full((alto, ancho, 3), 110, np.uint8)
+    hoja = cv2.warpPerspective(cv2.cvtColor(T.HOJA, cv2.COLOR_GRAY2BGR), H, (ancho, alto), flags=cv2.INTER_AREA)
+    sobre = cv2.warpPerspective(np.full_like(T.HOJA, 255), H, (ancho, alto)) > 127
+    foto[sobre] = hoja[sobre]
+    # La esfera: su contorno proyectado es una elipse; se rellena con sus puntos
+    u = np.random.default_rng(0).normal(size=(200_000, 3))
+    P = radio * u / np.linalg.norm(u, axis=1, keepdims=True) + [0, -radio, 0]
+    q = (P @ R.T + t) @ K.T
+    uv = np.round(q[:, :2] / q[:, 2:]).astype(int)
+    foto[uv[:, 1].clip(0, alto - 1), uv[:, 0].clip(0, ancho - 1)] = (40, 50, 210)
+    return cv2.morphologyEx(foto, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8)), R, t
+
+
+def test_tablero_da_la_pose_y_la_escala_real(monkeypatch):
+    from escaner import tablero
+    from escaner.multivista import preparar_vista, reconstruir
+    from escaner.proceso import MARCO
+
+    def sin_rembg(_):
+        raise RuntimeError("prueba sin red")
+
+    monkeypatch.setattr(segmentacion, "con_rembg", sin_rembg)
+    vistas = {}
+    for k, (az, el) in enumerate([(0, 30), (100, 35), (200, 30), (290, 40), (0, 80)]):
+        foto, R, t = _foto_con_tablero(az, el)
+        X, uv = tablero.detectar(foto)
+        R2, t2, error = tablero.pose(X, uv, matriz_K(640, 480, 65))
+        assert error < 2 and np.allclose(R2, R, atol=0.01) and np.allclose(t2, t, atol=3)
+        v = preparar_vista(f"extra-{k}", foto, MARCO)
+        assert v.camara is not None
+        vistas[v.nombre] = v
+    r = reconstruir(vistas)
+    # Esfera de 60 mm: la escala sale del tablero, no de una distancia supuesta
+    assert np.allclose(r.tamano_mm, 60, rtol=0.12)
+    assert r.volumen_mm3 == pytest.approx(4 / 3 * np.pi * 30**3, rel=0.25)

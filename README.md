@@ -52,6 +52,21 @@ repetirla. **Reconstruir 3D** talla el objeto con las siluetas (también sirve
 con la frontal y al menos otra vista). Intenta mantener la misma distancia en
 todas las fotos y el objeto centrado en el recuadro.
 
+### Con el tablero de marcadores (más preciso)
+
+Imprime el tablero (enlace **tablero impreso** en el modo de vistas, o
+`http://localhost:8000/api/tablero.svg`) **al 100 %** y comprueba con una regla
+que cada marcador mida 30 mm (si no, `ESCANER_MARCADOR_MM=<lo que mide>`). Pon
+el objeto en el centro de la hoja, con el lado FRENTE hacia la foto frontal.
+
+Si el tablero se ve en una foto, su casilla muestra ▦: esa foto trae su pose
+exacta (solvePnP), así que ya no hace falta mantener la distancia ni los
+ángulos, el modelo sale en milímetros reales y, con el tablero en todas las
+fotos, **+ Vista extra** añade más vistas desde cualquier ángulo (8–12 fotos
+dan un tallado bastante más fino). La hoja se quita de la silueta comparando
+cada píxel con lo que se vería del tablero (homografía del plano); un objeto
+blanco o negro puede confundirse con la parte de la hoja de su mismo color.
+
 No hace falta un fondo neutro: la segmentación usa rembg (U²-Net), y si no
 está disponible cae a GrabCut de OpenCV, inicializado con el recuadro de
 encuadre. Para otra red: `ESCANER_MODELO=isnet-general-use ./iniciar-web.sh`
@@ -80,6 +95,11 @@ Escala:           d_lateral = f·alto / alto_px,   d_superior = f·ancho / ancho
 Centro:           t_v = d_v·K⁻¹·[u_c, v_c, 1]ᵀ
 Talla:            ocupación(X) = min_v silueta_v(proyección de X)   → marching cubes en 0,5
 Color:            el de la vista con mayor n̂·(C_v − p)/‖C_v − p‖,   C_v = −R_vᵀ·t_v
+
+Con el tablero (16 marcadores ArUco, 4 esquinas Xᵢ conocidas cada uno, en el plano Y = 0):
+Pose:             λᵢ·[uᵢ, vᵢ, 1]ᵀ = K·(R·Xᵢ + t)   → solvePnP (IPPE + Levenberg-Marquardt)
+Hoja en la foto:  λ·[u, v, 1]ᵀ = H·[X, Z, 1]ᵀ,   H = K·[r₁ r₃ t]   → se quita de la silueta
+Talla:            gruesa en todo el espacio sobre la hoja → fina en la caja del objeto
 ```
 
 Z₀ (400 mm) y el ángulo de visión (65°) son supuestos, así que el tamaño en

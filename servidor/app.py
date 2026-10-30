@@ -9,6 +9,7 @@
   DELETE /api/vistas                                 → borra las vistas
   POST /api/reconstruir                              → envolvente visual de las vistas
   POST /api/obj                                      → último modelo en .obj
+  GET  /api/tablero.svg                              → tablero de marcadores para imprimir
 
 Uso:  servidor/.venv/bin/uvicorn app:app --app-dir servidor --port 8000
 """
@@ -21,13 +22,13 @@ import cv2
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from escaner import profundidad, segmentacion
+from escaner import profundidad, segmentacion, tablero
 from escaner.camara import CamaraRed, camaras_locales
 from escaner.malla import a_obj
-from escaner.multivista import VISTAS, Vista, preparar_vista, reconstruir
+from escaner.multivista import VISTAS, Vista, es_vista, preparar_vista, reconstruir
 from escaner.proceso import MARCO, Parametros, Resultado, SinObjeto, escanear
 
 camara = CamaraRed()
@@ -152,15 +153,15 @@ async def escanear_foto(foto: UploadFile | None = File(None), distancia_mm: floa
 
 @app.post("/api/vistas/{nombre}")
 async def tomar_vista(nombre: str, foto: UploadFile | None = File(None)) -> dict:
-    if nombre not in VISTAS:
-        raise HTTPException(404, f"vista desconocida; usa {', '.join(VISTAS)}")
+    if not es_vista(nombre):
+        raise HTTPException(404, f"vista desconocida; usa {', '.join(VISTAS)} o extra-N")
     bgr = await leer_foto(foto)
     try:
         v = await asyncio.to_thread(preparar_vista, nombre, bgr, MARCO)
     except SinObjeto as e:
         raise HTTPException(422, str(e)) from e
     vistas[nombre] = v
-    return {"nombre": nombre, "recorte": recorte_b64(v.foto, v.alfa), "listas": [n for n in VISTAS if n in vistas]}
+    return {"nombre": nombre, "recorte": recorte_b64(v.foto, v.alfa), "tablero": v.camara is not None, "listas": list(vistas)}
 
 
 @app.delete("/api/vistas")
@@ -184,3 +185,8 @@ def descargar_obj() -> PlainTextResponse:
     if ultimo is None:
         raise HTTPException(404, "todavía no hay modelo")
     return PlainTextResponse(a_obj(ultimo.malla), headers={"Content-Disposition": 'attachment; filename="objeto.obj"'})
+
+
+@app.get("/api/tablero.svg")
+def tablero_svg() -> Response:
+    return Response(tablero.svg(), media_type="image/svg+xml")

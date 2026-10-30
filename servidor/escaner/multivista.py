@@ -23,11 +23,18 @@ trasera ambos. El
 centro del objeto está sobre el rayo del centro de su silueta:
 t_v = d_v·K⁻¹·[u_c, v_c, 1]ᵀ.
 
+Con el tablero de marcadores (tablero.py) no hace falta nada de lo anterior:
+cada foto trae su R_v y t_v exactos (solvePnP), en mm reales y desde cualquier
+ángulo, así que se pueden sumar vistas extra. El objeto se busca primero con
+una talla gruesa de todo el espacio sobre el tablero y luego se talla fino
+dentro de su caja.
+
 Un voxel X pertenece al objeto si su proyección cae dentro de la silueta en
 todas las vistas. La superficie se extrae con marching cubes y cada vértice se
 colorea con la foto que lo ve más de frente (mayor n̂·ĉ).
 """
 
+import re
 import time
 from dataclasses import dataclass
 
@@ -36,10 +43,11 @@ import numpy as np
 from scipy.ndimage import gaussian_filter, map_coordinates
 from skimage.measure import marching_cubes
 
+from . import tablero
 from .geometria import inversa_K, matriz_K
 from .malla import Malla, R_OBJETO, volumen
 from .proceso import Parametros, Resultado, SinObjeto, reducir
-from .segmentacion import segmentar
+from .segmentacion import limpiar, recuadro_px, segmentar
 
 # En el orden en que se toman: una vuelta alrededor del objeto y al final desde arriba
 VISTAS = ("frontal", "izquierda", "trasera", "derecha", "superior")
@@ -54,24 +62,14 @@ ROTACIONES = {
 
 LADO_VOXELES = 180   # voxeles a lo largo del lado mayor de la caja
 MARGEN = 1.3         # la caja de voxeles es un 30 % más grande que el objeto
+# Con tablero: espacio (mm) donde se busca el objeto. Y < 0 está sobre la hoja;
+# lo que queda a menos de 1,5 mm de ella no se talla (ahí la silueta toca la hoja)
+ESPACIO = (np.array([-150.0, -250.0, -150.0]), np.array([150.0, -1.5, 150.0]))
 
 
-@dataclass
-class Vista:
-    nombre: str
-    foto: np.ndarray       # BGR reducida
-    mascara: np.ndarray    # 0/1
-    alfa: np.ndarray
-    caja: tuple[int, int, int, int]  # u0, v0, u1, v1 de la silueta
-    metodo: str
-
-    @property
-    def ancho_px(self) -> float:
-        return self.caja[2] - self.caja[0] + 1
-
-    @property
-    def alto_px(self) -> float:
-        return self.caja[3] - self.caja[1] + 1
+def es_vista(nombre: str) -> bool:
+    """Las cinco vistas con nombre o, con el tablero, vistas extra ('extra-1', …)."""
+    return nombre in VISTAS or re.fullmatch(r"extra-\d{1,2}", nombre) is not None
 
 
 @dataclass
@@ -93,17 +91,44 @@ class Camara:
         return q[:, :2] / np.maximum(z, 1e-9)[:, None], z
 
 
+@dataclass
+class Vista:
+    nombre: str
+    foto: np.ndarray       # BGR reducida
+    mascara: np.ndarray    # 0/1
+    alfa: np.ndarray
+    caja: tuple[int, int, int, int]  # u0, v0, u1, v1 de la silueta
+    metodo: str
+    camara: Camara | None = None     # pose exacta, si se vio el tablero
+
+    @property
+    def ancho_px(self) -> float:
+        return self.caja[2] - self.caja[0] + 1
+
+    @property
+    def alto_px(self) -> float:
+        return self.caja[3] - self.caja[1] + 1
+
+
 def preparar_vista(nombre: str, bgr: np.ndarray, marco) -> Vista:
-    if nombre not in VISTAS:
+    if not es_vista(nombre):
         raise ValueError(f"vista desconocida: {nombre}")
     foto = reducir(bgr)
     mascara, alfa, metodo = segmentar(foto, marco)
     alto, ancho = mascara.shape
+    camara = None
+    if (det := tablero.detectar(foto)) is not None:
+        K = matriz_K(ancho, alto, Parametros.fov)
+        R, t, _ = tablero.pose(*det, K)
+        camara = Camara(K, R, t)
+        mascara = limpiar(tablero.quitar(foto, mascara, K, R, t) * 255, recuadro_px(marco, ancho, alto))
+        alfa = alfa * mascara
+        metodo += " · tablero"
     area = int(mascara.sum())
     if area < 0.002 * ancho * alto or area > 0.95 * ancho * alto:
         raise SinObjeto("no se distinguió el objeto; ponlo dentro del recuadro y que ocupe buena parte de él")
     vs, us = np.nonzero(mascara)
-    return Vista(nombre, foto, mascara, alfa, (int(us.min()), int(vs.min()), int(us.max()), int(vs.max())), metodo)
+    return Vista(nombre, foto, mascara, alfa, (int(us.min()), int(vs.min()), int(us.max()), int(vs.max())), metodo, camara)
 
 
 def camaras(vistas: dict[str, Vista], p: Parametros) -> tuple[dict[str, Camara], np.ndarray]:
@@ -137,18 +162,19 @@ def camaras(vistas: dict[str, Vista], p: Parametros) -> tuple[dict[str, Camara],
     return resultado, np.array([ancho, alto, fondo])
 
 
-def tallar(vistas: dict[str, Vista], cams: dict[str, Camara], medidas: np.ndarray):
-    """Rejilla de voxeles y ocupación suave: el mínimo, entre las vistas, del
-    valor de la silueta (0 fuera, 1 dentro) donde se proyecta cada voxel.
-    Usar siluetas suavizadas e interpolación bilineal evita que la superficie
-    quede escalonada."""
-    lado = float(medidas.max()) * MARGEN
-    paso = lado / LADO_VOXELES
-    mitad = medidas * MARGEN / 2
-    ejes = [np.arange(-m, m + paso, paso) for m in mitad]
+def tallar(vistas: dict[str, Vista], cams: dict[str, Camara], minimo: np.ndarray, maximo: np.ndarray,
+           lado_voxeles: int = LADO_VOXELES, min_vistas: int = 0):
+    """Rejilla de voxeles en la caja [minimo, maximo] y ocupación suave: el
+    mínimo, entre las vistas, del valor de la silueta (0 fuera, 1 dentro) donde
+    se proyecta cada voxel. Usar siluetas suavizadas e interpolación bilineal
+    evita que la superficie quede escalonada. Un voxel que ven menos de
+    `min_vistas` fotos queda vacío (sin eso, lo que ninguna foto ve sobrevive)."""
+    paso = float((maximo - minimo).max()) / lado_voxeles
+    ejes = [np.arange(a, b + paso, paso) for a, b in zip(minimo, maximo)]
     X, Y, Z = np.meshgrid(*ejes, indexing="ij")
     centros = np.stack([X.ravel(), Y.ravel(), Z.ravel()], axis=1)
     ocupacion = np.ones(len(centros), dtype=np.float32)
+    vistos = np.zeros(len(centros), dtype=np.int32)
     nucleo = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     for n, v in vistas.items():
         # La silueta se ensancha un poco: tolera que las fotos a pulso no calcen exacto
@@ -157,6 +183,9 @@ def tallar(vistas: dict[str, Vista], cams: dict[str, Camara], medidas: np.ndarra
         # Lo que cae fuera de la foto (o detrás de la cámara) no se descarta con esta vista
         valor = map_coordinates(suave, [uv[:, 1], uv[:, 0]], order=1, mode="constant", cval=1.0)
         ocupacion = np.minimum(ocupacion, np.where(z > 0, valor, 1.0))
+        alto, ancho = v.mascara.shape
+        vistos += (z > 0) & (uv[:, 0] >= 0) & (uv[:, 0] < ancho) & (uv[:, 1] >= 0) & (uv[:, 1] < alto)
+    ocupacion[vistos < min_vistas] = 0
     return ocupacion.reshape(X.shape), np.array([e[0] for e in ejes]), paso
 
 
@@ -181,13 +210,28 @@ def colorear(V: np.ndarray, normales: np.ndarray, vistas: dict[str, Vista], cams
 
 def reconstruir(vistas: dict[str, Vista], p: Parametros | None = None) -> Resultado:
     p = p or Parametros()
-    if "frontal" not in vistas or len(vistas) < 2:
+    con_tablero = len(vistas) >= 2 and all(v.camara is not None for v in vistas.values())
+    if not con_tablero and ("frontal" not in vistas or len(vistas) < 2):
         raise SinObjeto("hacen falta la foto frontal y al menos otra vista")
+    if not con_tablero and any(n not in VISTAS for n in vistas):
+        raise SinObjeto("las vistas extra necesitan que el tablero se vea en todas las fotos")
     tiempos: dict[str, float] = {}
     t0 = time.perf_counter()
 
-    cams, medidas = camaras(vistas, p)
-    ocupacion, origen, paso = tallar(vistas, cams, medidas)
+    if con_tablero:
+        cams = {n: v.camara for n, v in vistas.items()}
+        # Talla gruesa de todo el espacio sobre el tablero para hallar la caja del objeto
+        gruesa, origen, paso = tallar(vistas, cams, *ESPACIO, lado_voxeles=48, min_vistas=2)
+        dentro = np.argwhere(gruesa > 0.5)
+        if len(dentro) == 0:
+            raise SinObjeto("no se encontró el objeto sobre el tablero; ponlo en el centro de la hoja")
+        minimo = np.maximum(origen + (dentro.min(axis=0) - 2) * paso, ESPACIO[0])
+        maximo = np.minimum(origen + (dentro.max(axis=0) + 2) * paso, ESPACIO[1])
+        ocupacion, origen, paso = tallar(vistas, cams, minimo, maximo, min_vistas=2)
+    else:
+        cams, medidas = camaras(vistas, p)
+        mitad = medidas * MARGEN / 2
+        ocupacion, origen, paso = tallar(vistas, cams, -mitad, mitad)
     tiempos["talla"] = round((time.perf_counter() - t0) * 1000)
     if (ocupacion > 0.5).sum() < 50:
         raise SinObjeto("las siluetas no coinciden entre sí; repite las fotos con el objeto centrado")
@@ -209,14 +253,14 @@ def reconstruir(vistas: dict[str, Vista], p: Parametros | None = None) -> Result
     V = ((P - centro) @ R_OBJETO.T).astype(np.float32)
     F = caras.astype(np.uint32)
     malla = Malla(V=V, F=F, uv=None, colores=colores, n_frente=len(V), caras={"todas": len(F)}, centro=centro)
-    fr = vistas["frontal"]
+    fr = vistas.get("frontal") or next(iter(vistas.values()))
     tam = V.max(axis=0) - V.min(axis=0)
     return Resultado(
-        foto=fr.foto, mascara=fr.mascara, alfa=fr.alfa, K=cams["frontal"].K, malla=malla,
+        foto=fr.foto, mascara=fr.mascara, alfa=fr.alfa, K=cams[fr.nombre].K, malla=malla,
         metodo=f"envolvente visual · {len(vistas)} vistas · {fr.metodo}",
         tamano_mm=(float(tam[0]), float(tam[1]), float(tam[2])),
         volumen_mm3=volumen(V, F), tiempos=tiempos,
     )
 
 
-__all__ = ["VISTAS", "Vista", "preparar_vista", "reconstruir", "camaras"]
+__all__ = ["VISTAS", "Vista", "es_vista", "preparar_vista", "reconstruir", "camaras"]

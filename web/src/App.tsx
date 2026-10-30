@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { borrarVistas, escanear, estadoCamara, reconstruir, tomarVista, URL_OBJ, VISTAS, type Modelo, type NombreVista } from './lib/api.ts';
+import { borrarVistas, escanear, estadoCamara, reconstruir, tomarVista, URL_OBJ, VISTAS, type Modelo } from './lib/api.ts';
 import { PanelCamara } from './componentes/PanelCamara.tsx';
 import { Encuadre, NOMBRES, type Modo } from './componentes/Encuadre.tsx';
 import { Escena3D, type Mostrar } from './componentes/Escena3D.tsx';
@@ -15,10 +15,13 @@ export function App() {
   const [mostrar, setMostrar] = useState<Mostrar>('malla');
   const [procesando, setProcesando] = useState('');
   const [error, setError] = useState('');
-  // Modo de varias vistas: recorte de cada vista tomada y la que toca ahora
+  // Modo de varias vistas: recorte de cada vista tomada, si se vio el tablero en
+  // ella, las vistas extra (solo con tablero) y la que toca ahora
   const [modo, setModo] = useState<Modo>('una');
-  const [recortes, setRecortes] = useState<Partial<Record<NombreVista, string>>>({});
-  const [paso, setPaso] = useState<NombreVista | null>('frontal');
+  const [recortes, setRecortes] = useState<Record<string, string>>({});
+  const [tableros, setTableros] = useState<Record<string, boolean>>({});
+  const [extras, setExtras] = useState<string[]>([]);
+  const [paso, setPaso] = useState<string | null>('frontal');
 
   // Estado de la cámara: al abrir la página y cada pocos segundos
   useEffect(() => {
@@ -56,17 +59,23 @@ export function App() {
 
   const tomarFoto = () => trabajar('Segmentando y reconstruyendo…', async () => verModelo(await escanear()));
 
-  const tomarVistaActual = () => trabajar(`Segmentando la vista ${paso ? NOMBRES[paso].toLowerCase() : ''}…`, async () => {
+  const tomarVistaActual = () => trabajar(`Segmentando la vista ${paso ? NOMBRES(paso).toLowerCase() : ''}…`, async () => {
     if (!paso) return;
-    const recorte = await tomarVista(paso);
+    const { recorte, tablero } = await tomarVista(paso);
     const nuevos = { ...recortes, [paso]: recorte };
     setRecortes(nuevos);
-    setPaso(VISTAS.find((n) => !nuevos[n]) ?? null);
+    setTableros({ ...tableros, [paso]: tablero });
+    setPaso([...VISTAS, ...extras].find((n) => !nuevos[n]) ?? null);
   });
+
+  const agregarExtra = () => { const n = `extra-${extras.length + 1}`; setExtras([...extras, n]); setPaso(n); };
 
   const reconstruir3D = () => trabajar('Tallando voxeles con las vistas…', async () => verModelo(await reconstruir()));
 
-  const reiniciarVistas = () => { void borrarVistas().catch(() => {}); setRecortes({}); setPaso('frontal'); setError(''); };
+  const reiniciarVistas = () => {
+    void borrarVistas().catch(() => {});
+    setRecortes({}); setTableros({}); setExtras([]); setPaso('frontal'); setError('');
+  };
 
   const cambiarModo = (m: Modo) => { setModo(m); setError(''); if (m === 'vistas' && !recortes.frontal) reiniciarVistas(); };
 
@@ -83,7 +92,8 @@ export function App() {
 
         {fase === 'encuadre' && (conectada
           ? <Encuadre conexion={conexion} procesando={procesando} error={error} modo={modo} cambiarModo={cambiarModo}
-              tomarFoto={() => void tomarFoto()} recortes={recortes} paso={paso} elegirPaso={setPaso}
+              tomarFoto={() => void tomarFoto()} recortes={recortes} tableros={tableros} extras={extras} agregarExtra={agregarExtra}
+              paso={paso} elegirPaso={setPaso}
               tomarVista={() => void tomarVistaActual()} reconstruir={() => void reconstruir3D()} reiniciar={reiniciarVistas} />
           : <div className="vacio"><p>Conecta la cámara para encuadrar el objeto.</p>
               <button type="button" className="boton primario" onClick={() => setPanel(true)}>Configurar cámara</button></div>)}

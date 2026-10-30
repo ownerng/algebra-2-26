@@ -77,9 +77,11 @@ export const escanear = async () => aModelo(await pedir('/api/escanear', { metho
 export const VISTAS = ['frontal', 'izquierda', 'trasera', 'derecha', 'superior'] as const;
 export type NombreVista = (typeof VISTAS)[number];
 
-export async function tomarVista(nombre: NombreVista): Promise<string> {
-  const d = await pedir<{ recorte: string }>(`/api/vistas/${nombre}`, { method: 'POST' });
-  return `data:image/png;base64,${d.recorte}`;
+// `nombre` es una de VISTAS o, si se ve el tablero en todas, 'extra-N'.
+// `tablero`: se detectó el tablero de marcadores y la pose de la foto es exacta
+export async function tomarVista(nombre: string): Promise<{ recorte: string; tablero: boolean }> {
+  const d = await pedir<{ recorte: string; tablero: boolean }>(`/api/vistas/${nombre}`, { method: 'POST' });
+  return { recorte: `data:image/png;base64,${d.recorte}`, tablero: d.tablero };
 }
 
 export const borrarVistas = () => pedir('/api/vistas', { method: 'DELETE' });
@@ -87,3 +89,4 @@ export const borrarVistas = () => pedir('/api/vistas', { method: 'DELETE' });
 export const reconstruir = async () => aModelo(await pedir('/api/reconstruir', { method: 'POST' }));
 
 export const URL_OBJ = `${API}/api/obj`;
+export const URL_TABLERO = `${API}/api/tablero.svg`;
