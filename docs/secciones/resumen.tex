@@ -1,24 +1,22 @@
-\begin{abstract}
-Este trabajo presenta un escáner 3D de bajo costo construido solo con un
-microcontrolador ESP32 y un sensor láser de tiempo de vuelo VL53L0X. El sensor
-va dentro de una caja que mira hacia abajo y se desliza a una altura fija
-sobre una cuadrícula dibujada en la mesa. Con un solo botón, una marca recorre
-cada fila a velocidad constante y la persona desliza la caja siguiéndola; cada
-lectura se ubica con una función afín del tiempo y se promedia en su casilla. Una única matriz homogénea de $4\times4$
-convierte cada casilla y su distancia en un punto del espacio, combinando un
-escalamiento, una reflexión y una traslación. La inclinación de la mesa se
-estima ajustando un plano por mínimos cuadrados a las casillas del borde, y la
-superficie resultante se dibuja en una interfaz web con rotaciones 3D,
-proyección ortogonal y un sombreado calculado con productos vectoriales y
-productos punto. La interfaz desglosa estos cálculos con los números de cada
-medición. En simulación, con la mesa vacía e inclinada, el ajuste del plano
-redujo el error de altura de \simMesaSin{} mm a \simMesaCon{} mm, y la altura
-de una taza de 95 mm se midió como \simTazaMax{} mm. Con el sensor real, diez
-mediciones en la misma posición variaron con una desviación de \repDesv{} mm.
-El cono de unos $25^\circ$ del sensor suaviza los bordes de los objetos, lo
-que limita la resolución lateral. Los componentes del prototipo cuestan menos
-de ochenta mil pesos colombianos.
-\end{abstract}
+\newpage
+\section*{Resumen}
 
-\keywords{álgebra lineal, matriz homogénea, mínimos cuadrados, rotaciones 3D,
-producto vectorial, escáner 3D}
+Obtener un modelo tridimensional de un objeto real suele exigir escáneres
+costosos o decenas de fotografías y mucho tiempo de cómputo. Este trabajo
+presenta un mapeador 3D de bajo costo que, con la cámara de un celular y un
+computador portátil, convierte una fotografía en un sólido tridimensional en
+alrededor de un segundo. El objeto se separa del fondo sin necesidad de una
+cartulina neutra; a partir de su silueta se estima la profundidad de cada
+píxel, y la inversa de la matriz de la cámara, $K^{-1}$, lleva cada píxel
+$(u,v)$ a un punto $(X,Y,Z)$ del espacio. Con esos puntos se arma una malla:
+una matriz de vértices $V\in\mathbb{R}^{N\times3}$ y una de caras
+$F\in\mathbb{Z}^{M\times3}$, cerrada con una cara trasera y paredes laterales.
+Con cinco fotografías (frontal, laterales, trasera y superior) cada vista se
+describe con una matriz de rotación y el objeto se talla como la intersección
+de los conos que forman sus siluetas. Todo el proceso se reduce a vectores,
+matrices y sistemas de ecuaciones lineales. En las pruebas, una foto se
+procesa en 0,7 a 1,2 segundos y, con cinco vistas, las proporciones de una caja
+de prueba se recuperan con un error menor al 3\,\%.
+
+\textit{Palabras clave:} álgebra lineal, modelo de cámara, matriz inversa,
+reconstrucción 3D, malla de triángulos, envolvente visual.

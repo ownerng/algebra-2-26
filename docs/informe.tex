@@ -8,27 +8,24 @@
 \usepackage{booktabs}
 \usepackage{csquotes}
 \usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning}
 
 % apacite (BibTeX) en lugar de biblatex-apa (biber): el resultado sigue APA y
 % compila bastante más rápido, lo que importa con el límite de 10 s de Overleaf.
 \usepackage[natbibapa]{apacite}
 \bibliographystyle{apacite}
 
-% Las gráficas se compilan aparte desde graficas/*.tex (make graficas) para que
-% el informe compile rápido; aquí solo se insertan los PDF resultantes.
-\graphicspath{{figuras/}{graficas/}}
-
-% Cifras del texto: las genera experimentos/generar.mjs a partir del simulador.
-\input{tablas/cifras3d}
-\input{tablas/cifras_reales3d}
+% Las figuras son capturas de la aplicación (JPEG livianos) para que el
+% informe compile rápido.
+\graphicspath{{figuras/}}
 
 % Notacion
 \newcommand{\vect}[1]{\mathbf{#1}}
 
 % --- Metadatos de portada (clase apa7, opcion stu) ---
-\title{Escáner 3D por cuadrícula de bajo costo:
-       reconstrucción de superficies mediante transformaciones lineales
-       y mínimos cuadrados}
+\title{Mapeador 3D de bajo costo: de una fotografía a un modelo
+       tridimensional con vectores, matrices y sistemas de ecuaciones}
 \AtBeginDocument{\setlength{\headheight}{15.4pt}}
 % Sin título corto: el encabezado de cada página solo lleva el número
 \shorttitle{}
@@ -36,7 +33,7 @@
 \affiliation{Facultad de Ingeniería, Universidad Cooperativa de Colombia}
 \course{Álgebra Lineal}
 \professor{Daniel Bejarano}
-\duedate{28 de octubre de 2026}
+\duedate{29 de octubre de 2026}
 
 \begin{document}
 

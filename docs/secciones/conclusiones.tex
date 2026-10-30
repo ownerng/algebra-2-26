@@ -1,29 +1,22 @@
 \section{Conclusiones}
 
-Se construyó un escáner 3D con un ESP32 y un sensor VL53L0X dentro de una caja
-de cartón, sin motores ni componentes adicionales, con un costo de entre
-50.000 y 78.000 pesos colombianos. El escaneo se inicia con un solo botón: una
-marca recorre cada fila y la persona desliza la caja siguiéndola, mientras el
-firmware envía unas \repTasa{} lecturas válidas por segundo. Con el sensor
-real, diez mediciones en la misma posición variaron con una desviación de
-\repDesv{} mm.
-
-La conversión de cada casilla y su distancia en un punto 3D se implementó con
-una sola matriz homogénea $A = T\,F\,E$, compuesta por un escalamiento, una
-reflexión y una traslación, y la inclinación de la mesa se corrigió con un
-plano ajustado por mínimos cuadrados. Las propiedades de estas matrices se
-verificaron numéricamente, y en simulación el ajuste del plano redujo el error
-de altura de la mesa vacía de \simMesaSin{} mm a \simMesaCon{} mm.
-
-La interfaz web guía el recorrido de la cuadrícula, ubica cada lectura con una
-función afín del tiempo, construye la figura 3D mientras se escanea y la dibuja con rotaciones, proyección ortogonal y
-sombreado programados con matrices propias. Su cuaderno desglosa con los
-números de cada medición el producto por $A$, las ecuaciones normales del
-plano, la matriz de vista y el producto vectorial y el producto punto del
-sombreado. Cada figura se puede guardar o exportar como malla 3D.
-
-En simulación, el escáner midió la altura de una taza de 95 mm como
-\simTazaMax{} mm y la de una caja de 45 mm como \simCajaMax{} mm. El error se
-concentra en los bordes, donde el cono de unos $25^\circ$ del sensor mezcla la
-superficie del objeto con la de la mesa; esa resolución lateral, y no el ruido
-del sensor, es el principal límite del prototipo.
+\begin{itemize}
+  \item Con la cámara de un celular y un portátil se obtuvo un modelo 3D
+        cerrado de un objeto en alrededor de un segundo, sin fondo especial y
+        sin equipo adicional.
+  \item El paso clave, ir de la imagen plana al espacio, se resolvió con la
+        matriz de la cámara $K$ y su inversa: $\vect{P}=Z\,K^{-1}[u,v,1]^{T}$.
+        Como la proyección deja un sistema de dos ecuaciones con tres
+        incógnitas, la profundidad $Z$ tuvo que salir de información adicional:
+        la silueta en el modo de una foto y las otras vistas en el modo de
+        cinco fotos.
+  \item Guardar la malla como dos matrices, $V$ ($N\times3$) y $F$
+        ($M\times3$), permitió construirla, cerrarla, medir su volumen con
+        determinantes y exportarla, todo con operaciones de matrices.
+  \item Las matrices de rotación permitieron combinar cinco fotos tomadas
+        desde lados distintos. Con las cinco vistas, las proporciones de una
+        caja de prueba se recuperaron con menos del 3\,\% de error.
+  \item Los temas básicos del curso (vectores, matrices y sistemas de
+        ecuaciones) alcanzan para explicar y programar todo el proceso
+        matemático de un problema real de visión por computador.
+\end{itemize}

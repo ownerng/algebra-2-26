@@ -1,0 +1,515 @@
+<title>De la foto al sólido</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']] },
+    svg: { fontCache: 'global' },
+    options: { skipHtmlTags: ['script', 'style', 'textarea', 'code'] }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.min.js" defer></script>
+<style>
+/* Layout: cuaderno de estudio de una columna con índice lateral fijo en pantallas anchas;
+   papel cuadriculado tenue, tinta azul para lo central y naranja para los rayos de luz. */
+:root {
+  --papel: #f7f8fb;
+  --hoja: #ffffff;
+  --tinta: #1b2333;
+  --tenue: #5a6478;
+  --linea: #dfe3ec;
+  --cuadricula: rgba(60, 90, 160, 0.06);
+  --acento: #2346b8;
+  --acento-suave: #e6ebfa;
+  --rayo: #d9641c;
+  --rayo-suave: #fcecdf;
+  --ok: #1f8a55;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --cuerpo: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #0f1420; --hoja: #161d2c; --tinta: #e4e8f1; --tenue: #9aa5bb; --linea: #2a3346;
+    --cuadricula: rgba(140, 170, 255, 0.05); --acento: #8aa6ff; --acento-suave: #1f2a48;
+    --rayo: #ff9a57; --rayo-suave: #3a2618; --ok: #5ed39a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #0f1420; --hoja: #161d2c; --tinta: #e4e8f1; --tenue: #9aa5bb; --linea: #2a3346;
+  --cuadricula: rgba(140, 170, 255, 0.05); --acento: #8aa6ff; --acento-suave: #1f2a48;
+  --rayo: #ff9a57; --rayo-suave: #3a2618; --ok: #5ed39a; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background-color: var(--papel);
+  background-image:
+    linear-gradient(var(--cuadricula) 1px, transparent 1px),
+    linear-gradient(90deg, var(--cuadricula) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--tinta);
+  font: 400 1.0625rem/1.65 var(--cuerpo);
+}
+.marco {
+  display: grid; grid-template-columns: 1fr; gap: 32px;
+  max-width: 1180px; margin: 0 auto;
+  padding-block: 32px 80px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 1000px) {
+  .marco { grid-template-columns: 230px minmax(0, 1fr); }
+}
+
+/* Índice */
+.indice { min-width: 0; }
+.indice details { background: var(--hoja); border: 1px solid var(--linea); border-radius: 10px; padding: 10px 14px; }
+.indice summary { font: 600 0.95rem var(--display); cursor: pointer; }
+.indice ol { margin: 10px 0 0; padding-left: 1.4em; display: grid; gap: 4px; font: 0.9rem/1.35 var(--display); }
+.indice a { color: var(--tenue); text-decoration: none; }
+.indice a:hover, .indice a:focus-visible { color: var(--acento); }
+@media (min-width: 1000px) {
+  .indice { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; }
+  .indice details { background: transparent; border: 0; padding: 0; }
+  .indice summary { pointer-events: none; list-style: none; color: var(--tenue); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .indice summary::-webkit-details-marker { display: none; }
+}
+
+main { min-width: 0; display: grid; gap: 56px; }
+.portada { display: grid; gap: 14px; max-width: 70ch; }
+.portada .ceja { font: 600 0.78rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--rayo); }
+h1 { margin: 0; font: 700 clamp(2.2rem, 6vw, 3.6rem)/1.02 var(--display); letter-spacing: -0.02em; text-wrap: balance; }
+.portada p { margin: 0; font-size: 1.15rem; color: var(--tenue); }
+
+/* Tubería */
+.tuberia { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font: 500 0.85rem var(--mono); margin-top: 8px; }
+.tuberia span { padding: 6px 10px; border: 1px solid var(--linea); border-radius: 6px; background: var(--hoja); }
+.tuberia i { color: var(--rayo); font-style: normal; }
+
+section { display: grid; gap: 16px; max-width: 74ch; scroll-margin-top: 24px; }
+section > * { margin: 0; }
+h2 { font: 700 1.75rem/1.15 var(--display); letter-spacing: -0.01em; text-wrap: balance; display: flex; gap: 12px; align-items: baseline; }
+h2 .num { font: 600 0.95rem var(--mono); color: var(--acento); }
+h3 { font: 600 1.15rem/1.3 var(--display); margin-top: 8px; }
+p, li { text-wrap: pretty; }
+ul, ol { padding-left: 1.3em; display: grid; gap: 6px; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+b { font-weight: 600; }
+
+/* Bloques */
+.ejemplo, .idea, .codigo {
+  border-radius: 10px; padding: 16px 18px; display: grid; gap: 10px; min-width: 0;
+}
+.ejemplo { background: var(--hoja); border: 1px solid var(--linea); }
+.ejemplo > .etiqueta, .idea > .etiqueta, .codigo > .etiqueta {
+  font: 600 0.72rem var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
+}
+.ejemplo > .etiqueta { color: var(--acento); }
+.idea { background: var(--acento-suave); }
+.idea > .etiqueta { color: var(--acento); }
+.codigo { background: var(--rayo-suave); }
+.codigo > .etiqueta { color: var(--rayo); }
+.ejemplo p, .idea p, .codigo p { margin: 0; }
+.mate { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+
+figure { margin: 0; display: grid; gap: 8px; }
+figure .lienzo { overflow-x: auto; background: var(--hoja); border: 1px solid var(--linea); border-radius: 10px; padding: 12px; }
+figure svg { display: block; width: 100%; min-width: 520px; height: auto; }
+figcaption { font-size: 0.9rem; color: var(--tenue); }
+svg text { font-family: var(--mono); font-size: 13px; fill: var(--tinta); }
+svg .t-tenue { fill: var(--tenue); }
+svg .t-acento { fill: var(--acento); }
+svg .t-rayo { fill: var(--rayo); }
+svg .trazo { stroke: var(--tinta); fill: none; stroke-width: 1.5; }
+svg .trazo-tenue { stroke: var(--tenue); fill: none; stroke-width: 1; stroke-dasharray: 4 4; }
+svg .rayo { stroke: var(--rayo); fill: none; stroke-width: 2; }
+svg .acento { stroke: var(--acento); fill: none; stroke-width: 2; }
+svg .relleno-acento { fill: var(--acento-suave); stroke: var(--acento); stroke-width: 1.5; }
+svg .relleno-rayo { fill: var(--rayo-suave); stroke: var(--rayo); stroke-width: 1.5; }
+svg .punto { fill: var(--tinta); }
+svg .punto-rayo { fill: var(--rayo); }
+svg .punto-acento { fill: var(--acento); }
+svg .hoja { fill: var(--hoja); stroke: var(--tenue); stroke-width: 1; }
+
+/* Tablas */
+.tabla { overflow-x: auto; border: 1px solid var(--linea); border-radius: 10px; background: var(--hoja); }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--linea); vertical-align: top; }
+th { font: 600 0.78rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--tenue); }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+
+/* Preguntas */
+.preguntas { display: grid; gap: 10px; }
+.preguntas details { background: var(--hoja); border: 1px solid var(--linea); border-radius: 10px; padding: 12px 16px; }
+.preguntas summary { cursor: pointer; font-weight: 600; }
+.preguntas details p { margin: 10px 0 0; }
+
+a { color: var(--acento); }
+:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.pie { color: var(--tenue); font-size: 0.9rem; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="marco">
+  <nav class="indice" aria-label="Contenido">
+    <details open>
+      <summary>Contenido</summary>
+      <ol>
+        <li><a href="#problema">El problema</a></li>
+        <li><a href="#imagen">La imagen es una matriz</a></li>
+        <li><a href="#camara">La cámara como matriz K</a></li>
+        <li><a href="#inversa">K⁻¹ y el rayo de un píxel</a></li>
+        <li><a href="#profundidad">Profundidad por la silueta</a></li>
+        <li><a href="#malla">La malla V y F</a></li>
+        <li><a href="#volumen">Volumen con determinantes</a></li>
+        <li><a href="#vistas">Cinco vistas</a></li>
+        <li><a href="#normales">Normales y luz</a></li>
+        <li><a href="#exponer">Para exponer</a></li>
+      </ol>
+    </details>
+  </nav>
+
+  <main>
+    <header class="portada">
+      <span class="ceja">Guía de estudio · Álgebra lineal</span>
+      <h1>De la foto al sólido</h1>
+      <p>La matemática del mapeador 3D explicada desde lo que vimos en clase: vectores, matrices y sistemas de ecuaciones. Cada idea nueva viene con un ejemplo pequeño hecho a mano.</p>
+      <div class="tuberia" aria-label="Pasos del programa">
+        <span>foto</span><i>→</i><span>máscara 0/1</span><i>→</i><span>profundidad Z</span><i>→</i><span>P = Z·K⁻¹·[u v 1]ᵀ</span><i>→</i><span>V, F</span><i>→</i><span>render</span>
+      </div>
+    </header>
+
+    <!-- 1 -->
+    <section id="problema">
+      <h2><span class="num">1</span>El problema</h2>
+      <p>Queremos tomar una foto de un objeto con el celular y obtener un modelo 3D que se pueda girar, medir y exportar. El obstáculo es que una foto es plana: cada punto del espacio \((X, Y, Z)\) termina en un píxel \((u, v)\). Pasamos de tres números a dos, así que <b>se pierde la profundidad Z</b>.</p>
+      <p>Por eso todo el proyecto gira alrededor de una pregunta: ¿de dónde sacamos Z? Usamos dos estrategias.</p>
+      <ul>
+        <li><b>Una foto:</b> suponemos la distancia \(Z_0 = 400\) mm y estimamos el relieve a partir de la forma de la silueta.</li>
+        <li><b>Cinco fotos</b> (frontal, laterales, trasera y superior): cada foto descarta las partes del espacio que no pueden ser el objeto. Lo que sobrevive a todas es el sólido.</li>
+      </ul>
+      <div class="idea">
+        <span class="etiqueta">Idea clave</span>
+        <p>Proyectar (3D → 2D) es una multiplicación de matrices. Reconstruir (2D → 3D) es resolver un sistema de ecuaciones al que le falta una ecuación. Las dos estrategias son formas de conseguir esa ecuación que falta.</p>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section id="imagen">
+      <h2><span class="num">2</span>La imagen es una matriz</h2>
+      <p>Una foto de 640 × 480 píxeles es una matriz de 480 filas y 640 columnas. Cada casilla guarda un color, que es un vector de tres componentes \((R, G, B) \in \mathbb{R}^3\), cada una entre 0 y 255. La posición de un píxel también es un vector: \((u, v)\), con \(u\) la columna (hacia la derecha) y \(v\) la fila (hacia abajo).</p>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo</span>
+        <p>Un píxel naranja en la columna 370 y la fila 215:</p>
+        <div class="mate">\[ (u, v) = (370,\ 215), \qquad \text{color} = \begin{bmatrix} 240 \\ 140 \\ 40 \end{bmatrix} \]</div>
+      </div>
+      <h3>Segmentación: la máscara</h3>
+      <p>El primer paso separa el objeto del fondo. El resultado es otra matriz del mismo tamaño, la <b>máscara</b> \(M\), con un 1 donde hay objeto y un 0 donde hay fondo. Para calcularla usamos una red neuronal ya entrenada (rembg, U²-Net) que funciona aunque el fondo no sea liso; si no está disponible, el programa usa GrabCut de OpenCV. Para la parte matemática solo importa el resultado: una matriz de ceros y unos.</p>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo</span>
+        <p>Un objeto pequeño en una imagen de 5 × 6:</p>
+        <div class="mate">\[ M = \begin{bmatrix} 0&0&0&0&0&0\\ 0&1&1&1&0&0\\ 0&1&1&1&1&0\\ 0&0&1&1&0&0\\ 0&0&0&0&0&0 \end{bmatrix} \]</div>
+        <p>Después se limpia: se queda la mancha más grande dentro del recuadro de encuadre y se rellenan sus huecos (<code>segmentacion.py</code>).</p>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section id="camara">
+      <h2><span class="num">3</span>La cámara como matriz K</h2>
+      <p>Usamos el modelo de <b>cámara estenopeica</b> (cámara de agujero): toda la luz pasa por un punto, el centro de la cámara, y choca contra el plano de la imagen. Ponemos los ejes de la cámara así: \(X\) a la derecha, \(Y\) hacia abajo y \(Z\) hacia adelante, hacia donde mira.</p>
+      <figure>
+        <div class="lienzo">
+          <svg viewBox="0 0 640 260" role="img" aria-label="Rayo desde el centro de la cámara, por un píxel del plano de imagen, hasta los puntos P y 2P">
+            <line class="trazo-tenue" x1="40" y1="200" x2="620" y2="200"/>
+            <text class="t-tenue" x="596" y="220">Z</text>
+            <rect class="hoja" x="150" y="40" width="14" height="190"/>
+            <text class="t-tenue" x="120" y="30">plano de imagen</text>
+            <circle class="punto" cx="40" cy="200" r="5"/>
+            <text x="20" y="232">centro C</text>
+            <line class="rayo" x1="40" y1="200" x2="600" y2="40"/>
+            <circle class="punto-acento" cx="157" cy="166.6" r="5"/>
+            <text class="t-acento" x="172" y="160">píxel (u, v)</text>
+            <circle class="punto-rayo" cx="330" cy="117" r="6"/>
+            <text class="t-rayo" x="340" y="140">P = (X, Y, Z)</text>
+            <circle class="punto-rayo" cx="600" cy="40" r="6"/>
+            <text class="t-rayo" x="470" y="30">2P = (2X, 2Y, 2Z)</text>
+            <text class="t-tenue" x="250" y="250">todos los puntos del rayo caen en el mismo píxel</text>
+          </svg>
+        </div>
+        <figcaption>Un punto y el doble de ese punto están sobre la misma recta que pasa por el centro: los dos se ven en el mismo píxel.</figcaption>
+      </figure>
+      <h3>La matriz intrínseca</h3>
+      <p>La cámara se describe con tres números: la distancia focal \(f\) (en píxeles) y el centro de la imagen \((c_x, c_y)\). Se ordenan en una matriz de 3 × 3:</p>
+      <div class="mate">\[ K = \begin{bmatrix} f & 0 & c_x \\ 0 & f & c_y \\ 0 & 0 & 1 \end{bmatrix} \]</div>
+      <p>En el programa, \(f\) sale del ángulo de visión de la cámara (65°): \(f = \dfrac{\text{ancho}/2}{\tan(65^\circ/2)}\). Para una foto de 640 píxeles de ancho da \(f \approx 502\), muy cerca del 500 que usamos en los ejemplos (<code>geometria.py</code>).</p>
+      <h3>Coordenadas homogéneas</h3>
+      <p>Al píxel \((u, v)\) le agregamos un 1 al final: \([u, v, 1]^T\). Ese 1 permite escribir la proyección como una sola multiplicación de matriz por vector:</p>
+      <div class="mate">\[ \lambda \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = K \begin{bmatrix} X \\ Y \\ Z \end{bmatrix} \]</div>
+      <p>Si desarrollamos la multiplicación, obtenemos un sistema de tres ecuaciones:</p>
+      <div class="mate">\[ \begin{cases} \lambda u = fX + c_x Z \\ \lambda v = fY + c_y Z \\ \lambda = Z \end{cases} \quad\Longrightarrow\quad u = f\frac{X}{Z} + c_x, \qquad v = f\frac{Y}{Z} + c_y \]</div>
+      <p>La tercera ecuación dice que \(\lambda\) es la profundidad. Dividir entre Z es lo que hace que las cosas lejanas se vean más pequeñas.</p>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo con f = 500, cx = 320, cy = 240</span>
+        <p>Un punto a 1 metro, 100 mm a la derecha y 50 mm arriba (Y negativo, porque Y apunta hacia abajo): \(P = (100, -50, 1000)\).</p>
+        <div class="mate">\[ K P = \begin{bmatrix} 500 & 0 & 320 \\ 0 & 500 & 240 \\ 0 & 0 & 1 \end{bmatrix}\begin{bmatrix} 100 \\ -50 \\ 1000 \end{bmatrix} = \begin{bmatrix} 50\,000 + 320\,000 \\ -25\,000 + 240\,000 \\ 1000 \end{bmatrix} = \begin{bmatrix} 370\,000 \\ 215\,000 \\ 1000 \end{bmatrix} \]</div>
+        <p>Dividimos entre la tercera componente (\(\lambda = 1000\)): el punto se ve en el píxel \((u, v) = (370, 215)\).</p>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section id="inversa">
+      <h2><span class="num">4</span>K⁻¹ y el rayo de un píxel</h2>
+      <p>Ahora el camino de vuelta: conocemos el píxel y queremos el punto. Necesitamos la inversa de K, la matriz que deshace la multiplicación: \(K \cdot K^{-1} = I\).</p>
+      <h3>La inversa de una matriz triangular</h3>
+      <p>K es triangular superior (debajo de la diagonal solo hay ceros), y eso permite escribir su inversa directamente:</p>
+      <div class="mate">\[ K^{-1} = \begin{bmatrix} 1/f & 0 & -c_x/f \\ 0 & 1/f & -c_y/f \\ 0 & 0 & 1 \end{bmatrix} \]</div>
+      <div class="ejemplo">
+        <span class="etiqueta">Comprobación con f = 500, cx = 320, cy = 240</span>
+        <div class="mate">\[ K^{-1} = \begin{bmatrix} 0.002 & 0 & -0.64 \\ 0 & 0.002 & -0.48 \\ 0 & 0 & 1 \end{bmatrix} \]</div>
+        <p>Multiplicamos fila por columna. Por ejemplo, la casilla (1, 3) de \(K K^{-1}\) es \(500 \cdot (-0.64) + 0 \cdot (-0.48) + 320 \cdot 1 = -320 + 320 = 0\), y la (1, 1) es \(500 \cdot 0.002 = 1\). Haciendo las nueve casillas queda la identidad:</p>
+        <div class="mate">\[ K K^{-1} = \begin{bmatrix} 1&0&0\\0&1&0\\0&0&1 \end{bmatrix} = I \]</div>
+      </div>
+      <h3>Retroproyección</h3>
+      <p>Multiplicamos la ecuación de la cámara por \(K^{-1}\) a ambos lados y usamos \(\lambda = Z\):</p>
+      <div class="mate">\[ P = Z \cdot K^{-1} \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} \]</div>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo: volver del píxel (370, 215)</span>
+        <div class="mate">\[ K^{-1}\begin{bmatrix} 370 \\ 215 \\ 1 \end{bmatrix} = \begin{bmatrix} 0.74 - 0.64 \\ 0.43 - 0.48 \\ 1 \end{bmatrix} = \begin{bmatrix} 0.1 \\ -0.05 \\ 1 \end{bmatrix} \]</div>
+        <p>Con \(Z = 1000\) recuperamos \(P = (100, -50, 1000)\), el punto de la sección anterior. Con \(Z = 2000\) obtenemos \((200, -100, 2000)\), otro punto del mismo rayo.</p>
+      </div>
+      <div class="idea">
+        <span class="etiqueta">¿Por qué falta Z?</span>
+        <p>Un píxel nos da dos ecuaciones (una para u y otra para v), pero el punto tiene tres incógnitas (X, Y, Z). Un sistema con más incógnitas que ecuaciones tiene infinitas soluciones: aquí forman una recta, el rayo \(t \cdot (0.1, -0.05, 1)\). Escoger Z es escoger un punto de esa recta.</p>
+      </div>
+      <div class="codigo">
+        <span class="etiqueta">En el código</span>
+        <p>El programa no hace esto píxel por píxel. Pone los N píxeles del objeto como columnas de una matriz de 3 × N y hace una sola multiplicación \(K^{-1} \cdot [\text{píxeles}]\), que da los N rayos a la vez (<code>retroproyectar</code> en <code>geometria.py</code>).</p>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section id="profundidad">
+      <h2><span class="num">5</span>Profundidad por la silueta (una foto)</h2>
+      <p>Con una sola foto no hay forma de medir Z. Hacemos una suposición razonable: los objetos son más gruesos en el centro y más delgados en los bordes, como una almohada inflada.</p>
+      <h3>Distancia al borde</h3>
+      <p>Para cada píxel del objeto calculamos \(d\), su distancia (en píxeles) al borde más cercano de la silueta. En el borde vale 0 y crece hacia el centro. Lo dividimos entre el máximo para tener \(s = d / d_{\max}\), entre 0 y 1.</p>
+      <h3>Perfil de cuarto de círculo</h3>
+      <p>Si usáramos \(s\) tal cual, el objeto quedaría con forma de tejado. Para que los lados queden redondeados, como un cilindro, aplicamos la ecuación de una circunferencia:</p>
+      <div class="mate">\[ h = R\left(0.75\sqrt{1 - (1 - s)^2} + 0.06\cdot\text{detalle}\right) \]</div>
+      <p>\(R\) es el radio del objeto en milímetros y el término "detalle" agrega un poco de relieve donde la foto es más clara que su entorno. La cara de adelante queda en \(Z_{\text{frente}} = Z_0 - g - h\) (más cerca de la cámara) y la de atrás en \(Z_{\text{atrás}} = Z_0 + g + 0.6h\), con \(g = 0.10R\) el medio grosor (<code>profundidad.py</code>).</p>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo</span>
+        <div class="tabla">
+          <table>
+            <thead><tr><th>s</th><th>s tal cual</th><th>\(\sqrt{1-(1-s)^2}\)</th><th>dónde</th></tr></thead>
+            <tbody>
+              <tr><td>0</td><td>0</td><td>0</td><td>en el borde</td></tr>
+              <tr><td>0.25</td><td>0.25</td><td>0.66</td><td>cerca del borde</td></tr>
+              <tr><td>0.5</td><td>0.5</td><td>0.87</td><td>a medio camino</td></tr>
+              <tr><td>1</td><td>1</td><td>1</td><td>en el centro</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>El perfil sube rápido cerca del borde y se aplana en el centro: así se ve el corte de un cilindro.</p>
+      </div>
+    </section>
+
+    <!-- 6 -->
+    <section id="malla">
+      <h2><span class="num">6</span>La malla: V y F</h2>
+      <p>Un modelo 3D se guarda con dos matrices:</p>
+      <ul>
+        <li>\(V \in \mathbb{R}^{N\times 3}\): una fila por vértice, con sus coordenadas \((x, y, z)\) en milímetros.</li>
+        <li>\(F \in \mathbb{Z}^{M\times 3}\): una fila por triángulo, con los tres números de fila de V que lo forman.</li>
+      </ul>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo: un cuadrado con dos triángulos</span>
+        <div class="mate">\[ V = \begin{bmatrix} 0&0&0\\ 1&0&0\\ 0&1&0\\ 1&1&0 \end{bmatrix}, \qquad F = \begin{bmatrix} 0&2&1\\ 1&2&3 \end{bmatrix} \]</div>
+        <p>El triángulo 0 une los vértices 0, 2 y 1. Para una foto de un objeto, N y M quedan en decenas de miles.</p>
+      </div>
+      <h3>Frente, atrás y paredes</h3>
+      <p>Se pone una rejilla sobre la silueta (como máximo 180 nodos por lado). Cada nodo dentro del objeto se retroproyecta con su \(Z_{\text{frente}}\) y da un vértice; cada cuadrito de la rejilla se parte en dos triángulos. Después se crean la cara trasera y las paredes para que el sólido quede cerrado.</p>
+      <figure>
+        <div class="lienzo">
+          <svg viewBox="0 0 640 230" role="img" aria-label="Corte de la malla: frente curvo, cara trasera y paredes en el contorno">
+            <line class="trazo-tenue" x1="40" y1="200" x2="600" y2="200"/>
+            <text class="t-tenue" x="40" y="222">← hacia la cámara (Z menor)</text>
+            <text class="t-tenue" x="440" y="222">eje óptico Z →</text>
+            <path class="relleno-acento" d="M 320 40 C 230 40 205 90 205 120 C 205 150 230 200 320 200"/>
+            <path class="relleno-rayo" d="M 320 40 L 380 40 C 420 40 432 90 432 120 C 432 150 420 200 380 200 L 320 200 Z"/>
+            <line class="acento" x1="320" y1="40" x2="320" y2="200"/>
+            <text class="t-acento" x="96" y="96">frente</text>
+            <text class="t-acento" x="96" y="114">Z₀ − g − h</text>
+            <text class="t-rayo" x="456" y="96">atrás</text>
+            <text class="t-rayo" x="456" y="114">Z₀ + g + 0.6h</text>
+            <text class="t-tenue" x="296" y="30">contorno: paredes</text>
+            <circle class="punto" cx="320" cy="40" r="4"/>
+            <circle class="punto" cx="320" cy="200" r="4"/>
+          </svg>
+        </div>
+        <figcaption>Corte del objeto visto de lado. La cara trasera va paralela al eje óptico, así no se sale de la silueta.</figcaption>
+      </figure>
+      <div class="mate">\[ P_{\text{atrás}} = Z_0\,K^{-1}\begin{bmatrix} u\\v\\1 \end{bmatrix} + (Z_{\text{atrás}} - Z_0)\, e_3, \qquad e_3 = \begin{bmatrix}0\\0\\1\end{bmatrix} \]</div>
+      <p>Es una combinación lineal: un punto del contorno más un desplazamiento a lo largo del eje Z. Los triángulos de atrás usan los mismos índices que los del frente pero en orden invertido, para que miren hacia afuera. Las <b>paredes</b> unen cada arista del contorno con su copia de atrás. Una arista es del contorno si la usa un solo triángulo del frente.</p>
+      <h3>Orientación de un triángulo</h3>
+      <p>El orden de los vértices importa: si se recorren en sentido antihorario vistos desde afuera, la cara mira hacia afuera. El programa revisa que la malla quede cerrada: cada arista la comparten exactamente dos triángulos, recorrida en sentidos opuestos.</p>
+      <h3>Cambio de ejes</h3>
+      <p>La cámara usa Y hacia abajo y Z hacia adelante, pero para mostrar el objeto queremos Y hacia arriba y Z hacia quien mira. Lo arreglamos con una matriz:</p>
+      <div class="mate">\[ p = R\,(P - c), \qquad R = \begin{bmatrix} 1&0&0\\0&-1&0\\0&0&-1 \end{bmatrix} \]</div>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo</span>
+        <p>Con el centro \(c = (0, 0, 400)\) y el punto \(P = (10, -20, 380)\): \(P - c = (10, -20, -20)\), y \(R(P - c) = (10, 20, 20)\). Queda 20 mm arriba y 20 mm hacia quien mira. Además \(\det R = 1\cdot(-1)\cdot(-1) = 1\): R es un giro de 180° alrededor del eje x, no un espejo, así que no le da la vuelta a los triángulos.</p>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section id="volumen">
+      <h2><span class="num">7</span>Volumen con determinantes</h2>
+      <p>El determinante de una matriz de 3 × 3 cuyas columnas son tres vectores mide el volumen del paralelepípedo que forman (con signo). El tetraedro formado por el origen y esos tres vectores ocupa exactamente la sexta parte. Si sumamos esa cantidad sobre todos los triángulos de una malla cerrada, las partes de afuera se cancelan y queda el volumen del sólido:</p>
+      <div class="mate">\[ \text{Volumen} = \frac{1}{6}\sum_{\text{triángulos}} \det\begin{bmatrix} p_0 & p_1 & p_2 \end{bmatrix} \]</div>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo: un tetraedro</span>
+        <p>Vértices \((0,0,0)\), \((1,0,0)\), \((0,1,0)\), \((0,0,1)\). Tiene cuatro caras. Las tres que tocan el origen tienen un vértice igual a cero, así que su determinante es 0. Solo cuenta la cara inclinada:</p>
+        <div class="mate">\[ \det\begin{bmatrix} 1&0&0\\0&1&0\\0&0&1 \end{bmatrix} = 1 \quad\Longrightarrow\quad \text{Volumen} = \frac{1}{6} \]</div>
+        <p>Comprobación con geometría: base \(\tfrac12\) por altura 1, dividido entre 3, da \(\tfrac16\).</p>
+      </div>
+      <p>El programa usa esta fórmula (<code>volumen</code> en <code>malla.py</code>) para reportar el volumen y para revisar que los triángulos miren hacia afuera: si la suma da negativa, están al revés.</p>
+    </section>
+
+    <!-- 8 -->
+    <section id="vistas">
+      <h2><span class="num">8</span>Cinco vistas: la envolvente visual</h2>
+      <p>Con varias fotos ya no tenemos que inventar el relieve. Cada foto, junto con su máscara, define un <b>cono</b>: todos los puntos del espacio que se ven dentro de la silueta. El objeto tiene que estar dentro de todos los conos a la vez, así que nos quedamos con su intersección.</p>
+      <figure>
+        <div class="lienzo">
+          <svg viewBox="0 0 640 300" role="img" aria-label="Vista desde arriba: el objeto en el centro y cuatro cámaras alrededor con sus conos de visión">
+            <path class="relleno-rayo" d="M 320 285 L 260 150 L 380 150 Z" opacity="0.5"/>
+            <path class="relleno-rayo" d="M 320 15 L 260 150 L 380 150 Z" opacity="0.5"/>
+            <path class="relleno-acento" d="M 95 150 L 320 100 L 320 200 Z" opacity="0.5"/>
+            <path class="relleno-acento" d="M 545 150 L 320 100 L 320 200 Z" opacity="0.5"/>
+            <rect class="hoja" x="280" y="120" width="80" height="60" rx="8"/>
+            <text x="295" y="155">objeto</text>
+            <circle class="punto" cx="320" cy="285" r="6"/><text x="334" y="290">frontal</text>
+            <circle class="punto" cx="320" cy="15" r="6"/><text x="334" y="20">trasera</text>
+            <circle class="punto" cx="95" cy="150" r="6"/><text x="30" y="180">izquierda</text>
+            <circle class="punto" cx="545" cy="150" r="6"/><text x="540" y="180">derecha</text>
+            <text class="t-tenue" x="20" y="285">superior: desde arriba, mirando hacia abajo</text>
+          </svg>
+        </div>
+        <figcaption>Vista desde arriba. Cada cámara recorta el espacio con su cono; lo que queda dentro de todos es la envolvente visual.</figcaption>
+      </figure>
+      <h3>Rotaciones: dónde está cada cámara</h3>
+      <p>Usamos los ejes de la cámara frontal como ejes del mundo (X derecha, Y abajo, Z hacia el fondo) con el origen en el centro del objeto. Cada vista tiene su matriz de rotación \(R_v\), cuyas filas son los ejes de esa cámara escritos en el mundo (<code>ROTACIONES</code> en <code>multivista.py</code>):</p>
+      <div class="mate">\[ R_{\text{frontal}} = \begin{bmatrix}1&0&0\\0&1&0\\0&0&1\end{bmatrix} \quad R_{\text{izquierda}} = \begin{bmatrix}0&0&-1\\0&1&0\\1&0&0\end{bmatrix} \quad R_{\text{derecha}} = \begin{bmatrix}0&0&1\\0&1&0\\-1&0&0\end{bmatrix} \]</div>
+      <div class="mate">\[ R_{\text{trasera}} = \begin{bmatrix}-1&0&0\\0&1&0\\0&0&-1\end{bmatrix} \qquad R_{\text{superior}} = \begin{bmatrix}1&0&0\\0&0&-1\\0&1&0\end{bmatrix} \]</div>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo: la vista izquierda</span>
+        <p>La cámara está a la izquierda del objeto (en −X) y mira hacia +X. Tomemos el punto del lado derecho del objeto, \(X = (50, 0, 0)\):</p>
+        <div class="mate">\[ R_{\text{izq}}\,X = \begin{bmatrix}0&0&-1\\0&1&0\\1&0&0\end{bmatrix}\begin{bmatrix}50\\0\\0\end{bmatrix} = \begin{bmatrix}0\\0\\50\end{bmatrix} \]</div>
+        <p>Para esa cámara, el punto queda 50 mm más lejos que el centro del objeto, que es lo esperable: el lado derecho es el lado opuesto. Una rotación cumple \(R R^T = I\) (sus filas son vectores unitarios y perpendiculares entre sí) y \(\det R = 1\).</p>
+      </div>
+      <h3>La cámara completa: K·[R | t]</h3>
+      <p>Para cada vista, un punto del mundo X se lleva a los ejes de esa cámara con \(R_v X + t_v\) (girar y luego mover), y después se proyecta con K:</p>
+      <div class="mate">\[ \lambda\begin{bmatrix}u\\v\\1\end{bmatrix} = K\,(R_v X + t_v) \]</div>
+      <h3>Escala: un sistema de proporciones</h3>
+      <p>Las fotos se toman a pulso, así que no sabemos a qué distancia \(d_v\) estuvo cada una. Usamos que un objeto de tamaño \(L\) a distancia \(d\) mide \(L f / d\) píxeles, y que las vistas comparten medidas: las laterales comparten la altura con la frontal, la superior comparte el ancho y la trasera comparte las dos.</p>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo con f = 500 y Z₀ = 400 mm</span>
+        <p>En la foto frontal el objeto mide 200 × 120 píxeles. Entonces:</p>
+        <div class="mate">\[ \text{ancho} = \frac{200 \cdot 400}{500} = 160\ \text{mm}, \qquad \text{alto} = \frac{120 \cdot 400}{500} = 96\ \text{mm} \]</div>
+        <p>En la lateral, el objeto mide 150 píxeles de alto y 100 de ancho. Como el alto real es 96 mm:</p>
+        <div class="mate">\[ d_{\text{lateral}} = \frac{f \cdot \text{alto}}{\text{alto}_{px}} = \frac{500 \cdot 96}{150} = 320\ \text{mm}, \qquad \text{fondo} = \frac{100 \cdot 320}{500} = 64\ \text{mm} \]</div>
+        <p>Esa foto se tomó más cerca (320 mm), y de ella sale el fondo del objeto, que la frontal no puede ver.</p>
+      </div>
+      <p>El centro del objeto está sobre el rayo que pasa por el centro de su silueta \((u_c, v_c)\), a la distancia \(d_v\). Es la misma retroproyección de antes:</p>
+      <div class="mate">\[ t_v = d_v\,K^{-1}\begin{bmatrix}u_c\\v_c\\1\end{bmatrix} \]</div>
+      <h3>Tallar con voxeles</h3>
+      <p>Llenamos una caja alrededor del objeto con cubitos (<b>voxeles</b>), unos 120 por el lado mayor. Cada voxel se proyecta en las cinco fotos. Si en alguna cae fuera de la silueta, se descarta. Para que la superficie no quede escalonada, la máscara se suaviza un poco y se toma el mínimo entre las vistas:</p>
+      <div class="mate">\[ \text{ocupación}(X) = \min_{v}\ \text{silueta}_v\big(\text{proyección de } X \text{ en la vista } v\big) \]</div>
+      <p>La superficie del sólido está donde la ocupación vale 0.5. Un algoritmo estándar (marching cubes) la convierte en triángulos, es decir, en las matrices V y F.</p>
+      <h3>Color: ¿qué foto ve mejor cada punto?</h3>
+      <p>Para cada vértice tenemos su normal \(\hat n\) (hacia dónde mira la superficie, sección 9) y la dirección hacia cada cámara \(\hat c\). El producto punto de dos vectores unitarios es el coseno del ángulo entre ellos: vale 1 si apuntan igual y 0 si son perpendiculares. Se usa el color de la foto con mayor \(\hat n \cdot \hat c\).</p>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo</span>
+        <p>Un punto de la cara de adelante tiene normal \(\hat n = (0, 0, -1)\), porque mira hacia la cámara frontal. La dirección hacia la frontal es \((0, 0, -1)\) y hacia la izquierda \((-1, 0, 0)\):</p>
+        <div class="mate">\[ (0,0,-1)\cdot(0,0,-1) = 1, \qquad (0,0,-1)\cdot(-1,0,0) = 0 \]</div>
+        <p>Gana la frontal, y el punto toma su color de esa foto.</p>
+      </div>
+    </section>
+
+    <!-- 9 -->
+    <section id="normales">
+      <h2><span class="num">9</span>Normales y luz</h2>
+      <p>La normal de un triángulo ABC sale del <b>producto cruz</b> de dos de sus lados:</p>
+      <div class="mate">\[ n = (B - A)\times(C - A) \]</div>
+      <div class="ejemplo">
+        <span class="etiqueta">Ejemplo</span>
+        <p>\(A = (0,0,0)\), \(B = (1,0,0)\), \(C = (0,1,0)\):</p>
+        <div class="mate">\[ (1,0,0)\times(0,1,0) = \begin{vmatrix} \mathbf{i}&\mathbf{j}&\mathbf{k}\\ 1&0&0\\ 0&1&0 \end{vmatrix} = (0,\ 0,\ 1) \]</div>
+        <p>El triángulo está en el plano xy y su normal apunta hacia +z. Si cambiamos el orden a A, C, B, la normal sale \((0, 0, -1)\): por eso importa la orientación (sección 6).</p>
+      </div>
+      <p>Para dibujar, three.js calcula el brillo de cada punto con otro producto punto, entre la normal y la dirección de la luz: \(\text{brillo} = \max(0,\ \hat n \cdot \hat \ell)\). Una cara de frente a la luz se ve clara; una de lado, oscura. Ese sombreado es lo que hace que la malla se vea como un objeto con volumen.</p>
+    </section>
+
+    <!-- 10 -->
+    <section id="exponer">
+      <h2><span class="num">10</span>Para exponer</h2>
+      <h3>Lo de clase y dónde aparece</h3>
+      <div class="tabla">
+        <table>
+          <thead><tr><th>Concepto de clase</th><th>Dónde aparece en el proyecto</th></tr></thead>
+          <tbody>
+            <tr><td>Matriz</td><td>La foto (alto × ancho), la máscara 0/1, la cámara K, las rotaciones R, la malla V y F.</td></tr>
+            <tr><td>Vector</td><td>Un píxel (u, v), un color (R, G, B), un punto (X, Y, Z), una normal.</td></tr>
+            <tr><td>Multiplicación matriz × vector</td><td>Proyectar: λ[u v 1]ᵀ = K·P. Girar: R·X.</td></tr>
+            <tr><td>Sistema de ecuaciones</td><td>La proyección son 3 ecuaciones; retroproyectar deja 2 ecuaciones con 3 incógnitas (un rayo).</td></tr>
+            <tr><td>Matriz inversa</td><td>K⁻¹ convierte píxeles en rayos: P = Z·K⁻¹·[u v 1]ᵀ.</td></tr>
+            <tr><td>Matriz identidad</td><td>K·K⁻¹ = I; R·Rᵀ = I en las rotaciones; la vista frontal usa R = I.</td></tr>
+            <tr><td>Combinación lineal</td><td>Cara trasera: Z₀·K⁻¹[u v 1]ᵀ + (Z_atrás − Z₀)·e₃.</td></tr>
+            <tr><td>Determinante</td><td>Volumen del sólido; comprobar que R es un giro (det = 1).</td></tr>
+            <tr><td>Producto punto</td><td>Elegir la foto que da el color; brillo de la luz.</td></tr>
+            <tr><td>Producto cruz</td><td>Normal de cada triángulo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>Preguntas que podría hacer el profesor</h3>
+      <div class="preguntas">
+        <details>
+          <summary>¿Por qué una sola foto no basta para saber la forma?</summary>
+          <p>Porque cada píxel da dos ecuaciones y el punto tiene tres incógnitas. Todos los puntos de un rayo caen en el mismo píxel. Con una foto suponemos la distancia y el relieve; con varias fotos, las otras vistas aportan las ecuaciones que faltan.</p>
+        </details>
+        <details>
+          <summary>¿Para qué sirve el 1 en [u, v, 1]?</summary>
+          <p>Son coordenadas homogéneas. Permiten escribir la proyección, que tiene una suma (el centro c) y una división (entre Z), como una sola multiplicación de matrices.</p>
+        </details>
+        <details>
+          <summary>¿Cómo calcularon K⁻¹?</summary>
+          <p>K es triangular superior, así que su inversa se escribe directamente: 1/f en la diagonal y −c/f en la última columna. Lo comprobamos multiplicando K·K⁻¹ y obteniendo la identidad; una prueba automática del programa también lo verifica.</p>
+        </details>
+        <details>
+          <summary>¿Qué representan V y F?</summary>
+          <p>V tiene una fila por vértice con sus coordenadas en milímetros (N × 3). F tiene una fila por triángulo con los índices de sus tres vértices en V (M × 3). Con eso se dibuja y se exporta el modelo a .obj.</p>
+        </details>
+        <details>
+          <summary>¿Cómo saben que el sólido está cerrado y cuánto volumen tiene?</summary>
+          <p>Cada arista la comparten exactamente dos triángulos en sentidos opuestos. El volumen se calcula sumando det[p₀ p₁ p₂]/6 sobre los triángulos; con un disco de grosor conocido, el resultado coincide con π·r²·grosor.</p>
+        </details>
+        <details>
+          <summary>¿Cómo combinan las cinco fotos si se tomaron a pulso?</summary>
+          <p>Cada vista tiene una rotación fija y una distancia que se despeja con proporciones, usando las medidas que comparte con la frontal (alto, ancho o ambos). Después se tallan voxeles: sobrevive lo que cae dentro de la silueta en todas las fotos.</p>
+        </details>
+        <details>
+          <summary>¿Qué tan exactas son las medidas?</summary>
+          <p>La forma y las proporciones salen bien: con una caja de prueba de 100 × 60 × 40 mm, el programa obtuvo proporciones de 1.65 : 1 : 0.69 frente a las reales 1.67 : 1 : 0.67. Los milímetros absolutos dependen de la distancia supuesta Z₀ = 400 mm, así que son aproximados.</p>
+        </details>
+        <details>
+          <summary>¿Qué no puede reconstruir?</summary>
+          <p>Las partes cóncavas, como el interior de una taza, porque ninguna silueta las ve. Tampoco la base, porque no hay foto desde abajo.</p>
+        </details>
+      </div>
+      <p class="pie">Código: <code>servidor/escaner/</code> (geometria, segmentacion, profundidad, malla, multivista, proceso). Los números de esta guía son los del programa: foto reducida a 640 px de ancho, ángulo de visión de 65°, Z₀ = 400 mm.</p>
+    </section>
+  </main>
+</div>

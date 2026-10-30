@@ -2,165 +2,189 @@
 
 \subsection{Arquitectura del sistema}
 
-El sistema tiene tres partes (Figura~\ref{fig:arquitectura}): el prototipo
-físico, que mide; el firmware del ESP32, que promedia las lecturas y las envía,
-y una interfaz web, que guía el recorrido, hace los cálculos matriciales y
-dibuja la figura. Las mediciones viajan por el cable USB como texto en formato
-JSON, una línea por lectura, por ejemplo \verb|{"r":143}|.
+El sistema tiene dos partes (figura~\ref{fig:arquitectura}). Un servidor en
+Python recibe la imagen de la cámara y hace todo el cálculo con NumPy y
+OpenCV; una página web, hecha con React y three.js, muestra la cámara con una
+cuadrícula de encuadre y, después de la foto, el objeto en 3D, que se puede
+girar y acercar con el mouse.
 
 \begin{figure}[htbp]
-\caption{Arquitectura del escáner 3D}
-\label{fig:arquitectura}
 \centering
-\includegraphics[width=0.95\linewidth]{arquitectura.pdf}
-\figurenote{Elaboración propia.}
+\begin{tikzpicture}[>=Stealth, node distance=0.7cm,
+  caja/.style={draw, rounded corners, align=center, font=\small, minimum height=1.0cm, text width=2.8cm}]
+  \node[caja] (cam) {Celular\\(DroidCam)};
+  \node[caja, right=of cam] (seg) {1. Segmentación\\máscara $M$};
+  \node[caja, right=of seg] (prof) {2. Profundidad\\$Z(u,v)$};
+  \node[caja, below=0.7cm of prof] (retro) {3. Retroproyección\\$Z\,K^{-1}[u,v,1]^T$};
+  \node[caja, left=of retro] (malla) {4. Malla\\$V$, $F$};
+  \node[caja, left=of malla] (web) {Página web\\(three.js)};
+  \draw[->] (cam) -- node[above, font=\scriptsize] {foto} (seg);
+  \draw[->] (seg) -- (prof);
+  \draw[->] (prof) -- (retro);
+  \draw[->] (retro) -- (malla);
+  \draw[->] (malla) -- (web);
+\end{tikzpicture}
+\caption{Flujo del mapeador con una fotografía. Con cinco vistas, los pasos 2 y
+3 se reemplazan por la talla de voxeles.}
+\label{fig:arquitectura}
 \end{figure}
 
-\subsection{Prototipo físico}
+\subsection{Captura}
 
-El prototipo usa los componentes de la Tabla~\ref{tab:materiales}. El sensor
-VL53L0X se alimenta con 3,3 V y se comunica con el ESP32 por el bus
-I\textsuperscript{2}C (GPIO 21 para SDA y GPIO 22 para SCL); sus cuatro cables
-van soldados a los pines del ESP32. El sensor va dentro de una caja de cartón,
-pegado al fondo con el lente asomando por un orificio, de modo que mide hacia
-abajo. Para mantener una altura fija $H$ sobre la mesa, la caja va sujeta a
-una regla apoyada sobre dos pilas de libros de unos 15 cm, una a cada lado de
-un octavo de cartulina en el que se dibuja una cuadrícula de cuadros de lado
-$\Delta$ (Figura~\ref{fig:montaje}). En cada fila la caja se desliza a lo largo
-de la regla, en la dirección $x$; para pasar a la fila siguiente, la regla se
-corre un cuadro hacia adelante, en la dirección $y$. La altura importa porque
-el VL53L0X no mide bien a menos de unos 3 cm y porque la caja debe pasar por
-encima del objeto. El prototipo no necesita componentes adicionales.
+La cámara es la de un celular con la aplicación DroidCam, que transmite video
+en formato MJPEG (una secuencia de imágenes JPEG). Se puede conectar de tres
+formas: por WiFi, escribiendo la IP del celular; por cable USB en el caso del
+iPhone, a través del servicio \texttt{usbmuxd} de Linux; o con cualquier
+cámara del computador. El servidor guarda siempre el último cuadro y lo
+reparte a la vista previa y al escáner.
+
+La página dibuja sobre la imagen una cuadrícula de $3\times3$ y un recuadro
+central (figura~\ref{fig:encuadre}). El objeto se debe poner dentro del
+recuadro; el servidor usa ese mismo recuadro para saber cuál de las regiones
+de la foto es el objeto. Antes de procesarla, la foto se reduce a 640 píxeles
+de ancho.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.8\linewidth]{app_encuadre.jpg}
+\caption{Pantalla de captura: imagen de la cámara con la cuadrícula y el
+recuadro de encuadre.}
+\label{fig:encuadre}
+\end{figure}
+
+\subsection{Paso 1: segmentación}
+
+La red U\textsuperscript{2}-Net (a través de \texttt{rembg}) entrega un valor
+alfa entre 0 y 255 por píxel. Se toma $M_{vu}=1$ donde el alfa supera 127 y
+luego se limpia la máscara: se quitan puntos sueltos, se rellenan los huecos y
+se conserva la región conectada que más se superpone con el recuadro de
+encuadre. Si la red no está disponible, GrabCut hace la segmentación a partir
+del recuadro. Ninguno de los dos necesita un fondo neutro.
+
+\subsection{Paso 2: profundidad a partir de la silueta}
+
+Con una sola foto no se conoce la profundidad, así que se supone una forma
+redondeada. Para cada píxel del objeto se calcula su distancia $d$ al borde
+de la silueta y se normaliza, $s=d/d_{\max}$. La altura sobre el plano del
+borde sigue un cuarto de círculo:
+\begin{equation}
+h(u,v) = R\left(0{,}75\,\sqrt{1-(1-s)^2} + 0{,}06\,\delta(u,v)\right),
+\end{equation}
+donde $R$ es $d_{\max}$ convertido a milímetros y $\delta$ es un pequeño
+detalle que sale de las variaciones de brillo de la foto (las zonas más
+claras que su entorno suelen estar más cerca). El objeto se supone a una
+distancia $Z_0=400$ mm, de modo que un píxel mide $Z_0/f$ milímetros. La cara
+frontal queda en $Z_{\text{frente}}=Z_0-g-h$ y la trasera en
+$Z_{\text{atrás}}=Z_0+g+0{,}6\,h$, donde $g$ es medio grosor.
+
+\subsection{Paso 3: retroproyección con $K^{-1}$}
+
+La matriz $K$ se arma con el tamaño de la foto y un ángulo de visión de
+$65^\circ$, típico de los celulares. Todos los píxeles del objeto se apilan
+como columnas de una matriz de $3\times N$ y se retroproyectan con un solo
+producto de matrices:
+\begin{equation}
+\underbrace{\begin{bmatrix} \vect{P}_1 & \cdots & \vect{P}_N \end{bmatrix}}_{3\times N}
+= K^{-1}
+\underbrace{\begin{bmatrix} u_1 & \cdots & u_N\\ v_1 & \cdots & v_N\\ 1 & \cdots & 1 \end{bmatrix}}_{3\times N}
+\operatorname{diag}(Z_1,\dots,Z_N).
+\end{equation}
+Multiplicar por la matriz diagonal a la derecha escala cada columna por su
+profundidad. Para la cara trasera se usa
+$\vect{P}_{\text{atrás}}=Z_0K^{-1}[u,v,1]^{T}+(Z_{\text{atrás}}-Z_0)\,\vect{e}_3$,
+es decir, una extrusión paralela al eje de la cámara, para que la parte de
+atrás no se salga de la silueta.
+
+Al final, los puntos se llevan a los ejes del objeto ($x$ a la derecha, $y$
+hacia arriba, $z$ hacia la cámara) con $\vect{p}=R_o(\vect{P}-\vect{c})$, donde
+$\vect{c}$ es el centro del objeto y $R_o=\operatorname{diag}(1,-1,-1)$, que
+es una rotación de $180^\circ$ alrededor del eje $x$ ($\det R_o=1$).
+
+\subsection{Paso 4: la malla $V$, $F$}
+
+Los vértices se guardan en una matriz $V\in\mathbb{R}^{N\times3}$ (una fila por
+punto) y los triángulos en una matriz $F\in\mathbb{Z}^{M\times3}$ cuyas filas
+son tres índices de filas de $V$. La malla tiene tres partes:
+\begin{enumerate}
+  \item \textbf{Frente.} Sobre los píxeles del objeto se coloca una rejilla (de
+        hasta 180 nodos por lado). Cada celda con sus cuatro esquinas dentro
+        del objeto se divide en dos triángulos; si solo tiene tres, en uno.
+        Los vértices de cada triángulo se ordenan en sentido antihorario visto
+        desde la cámara, de modo que la normal
+        $(\vect{p}_1-\vect{p}_0)\times(\vect{p}_2-\vect{p}_0)$ apunte hacia
+        afuera.
+  \item \textbf{Atrás.} Los mismos triángulos con los vértices de la cara
+        trasera y el orden invertido, para que miren hacia el otro lado.
+  \item \textbf{Paredes.} Las aristas que pertenecen a un solo triángulo del
+        frente forman el contorno. Cada una se une con su copia trasera
+        mediante dos triángulos.
+\end{enumerate}
+Con esto cada arista queda compartida por exactamente dos triángulos, y la
+malla es un sólido cerrado cuyo volumen se calcula con la
+ecuación~\eqref{eq:volumen}. La foto se usa como textura del frente.
+
+\subsection{Reconstrucción con cinco vistas}
+
+Para obtener la forma completa, el usuario toma cinco fotos dando una vuelta
+al objeto (figura~\ref{fig:vistas}). Se usan como ejes del mundo los de la
+cámara frontal, con el origen en el centro del objeto, y cada vista tiene una
+matriz de rotación cuyas filas son los ejes de esa cámara escritos en el
+mundo (tabla~\ref{tab:rotaciones}).
 
 \begin{table}[htbp]
-\caption{Materiales del prototipo y costo aproximado}
-\label{tab:materiales}
-\begin{tabular}{lcl}
+\caption{Matrices de rotación de las cinco vistas}
+\label{tab:rotaciones}
+\begin{tabular}{lll}
 \toprule
-Material & Cantidad & Costo aproximado (COP) \\
+Vista & Posición de la cámara & $R$ \\
 \midrule
-ESP32 DevKit V1 de 30 pines & 1 & 25.000 -- 35.000 \\
-Sensor VL53L0X con pines soldados & 1 & 12.000 -- 20.000 \\
-Cables jumper (paquete) & 1 & 5.000 -- 8.000 \\
-Cable USB de datos & 1 & 8.000 -- 15.000 \\
-Caja de cartón, cartulina y soporte & 1 & reciclados \\
-\midrule
-Total & & 50.000 -- 78.000 \\
+Frontal & delante, mira hacia $+Z$ & $I$ \\[2pt]
+Lateral izquierda & en $-X$, mira hacia $+X$ &
+  $\begin{bmatrix}0&0&-1\\0&1&0\\1&0&0\end{bmatrix}$ \\[12pt]
+Trasera & en $+Z$, mira hacia $-Z$ &
+  $\begin{bmatrix}-1&0&0\\0&1&0\\0&0&-1\end{bmatrix}$ \\[12pt]
+Lateral derecha & en $+X$, mira hacia $-X$ &
+  $\begin{bmatrix}0&0&1\\0&1&0\\-1&0&0\end{bmatrix}$ \\[12pt]
+Superior & arriba ($-Y$), mira hacia abajo &
+  $\begin{bmatrix}1&0&0\\0&0&-1\\0&1&0\end{bmatrix}$ \\
 \bottomrule
 \end{tabular}
-\note{Precios de referencia en tiendas de electrónica de Colombia en 2026. Elaboración propia.}
+\note{Las cinco cumplen $R^{T}R=I$ y $\det R=1$.}
 \end{table}
 
-\begin{figure}[htbp]
-\caption{Montaje del escáner: la caja se desliza a una altura fija sobre la cuadrícula}
-\label{fig:montaje}
-\centering
-\includegraphics[width=0.9\linewidth]{montaje3d.pdf}
-\figurenote{En cada casilla $(i,j)$ el sensor mide la distancia $r$ hacia abajo;
-la altura de la superficie es $H - r$. Elaboración propia.}
-\end{figure}
+\paragraph{Escala de cada vista.} Como las fotos se toman a pulso, no se sabe a
+qué distancia se tomó cada una. La foto frontal fija la escala: con $Z_0$ se
+obtienen el ancho $a$ y el alto $b$ del objeto en milímetros. Las demás vistas
+comparten alguna medida con la frontal, lo que da una ecuación lineal por
+vista para su distancia $d$:
+\begin{equation}
+d_{\text{lateral}} = \frac{f\,b}{b_{\text{px}}}, \qquad
+d_{\text{superior}} = \frac{f\,a}{a_{\text{px}}}, \qquad
+d_{\text{trasera}} = \frac{f}{2}\left(\frac{a}{a_{\text{px}}}+\frac{b}{b_{\text{px}}}\right),
+\end{equation}
+donde $a_{\text{px}}$ y $b_{\text{px}}$ son el ancho y el alto de la silueta en
+esa foto. El centro del objeto está sobre el rayo que pasa por el centro
+$(u_c,v_c)$ de la silueta, así que la traslación de cada vista es
+$\vect{t}=d\,K^{-1}[u_c,v_c,1]^{T}$: otra vez la retroproyección.
 
-\subsection{Firmware}
+\paragraph{Talla de voxeles.} Alrededor del objeto se arma una rejilla de cubos
+pequeños (voxeles), unos 120 a lo largo del lado mayor. Cada centro de voxel
+$\vect{X}$ se proyecta en cada foto con la ecuación~\eqref{eq:camara-general};
+el voxel se conserva solo si cae dentro de la silueta en todas las vistas. En
+la práctica se usan siluetas suavizadas, de modo que la ocupación es un número
+entre 0 y 1 (el mínimo entre las vistas). Marching cubes extrae la superficie
+donde la ocupación vale 0,5.
 
-El firmware, escrito en C++ con el entorno de Arduino, configura el VL53L0X en
-su modo por defecto, en el que cada lectura tarda unos 33 ms, y envía lecturas
-de forma continua mientras la caja se mueve. El sensor marca cada lectura con un
-código de estado; solo se aceptan las que tienen estado 0 (medición válida), y
-si una lectura falla se repite hasta tres veces. Para repetir una sola casilla,
-el comando \texttt{M} o el botón BOOT del ESP32 toman diez lecturas seguidas y
-envían su media y su desviación estándar.
+\paragraph{Color.} Cada vértice de la superficie toma el color de la foto cuya
+cámara lo ve más de frente: la que tiene mayor producto punto
+$\hat{\vect{n}}\cdot\hat{\vect{c}}$ entre la normal del vértice y el vector
+unitario que va del vértice hacia la cámara.
 
-\subsection{Procedimiento de escaneo}
+\subsection{Pruebas}
 
-Por defecto, la interfaz usa una cuadrícula de 11 columnas por 8 filas con
-cuadros de 30 mm (33 $\times$ 24 cm, el tamaño de un octavo de cartulina) y una
-marca que avanza a 30 mm/s. El escaneo se inicia con un solo botón:
-\begin{enumerate}
-\item Se coloca el objeto en el centro de la cuadrícula, dejando libres las
-casillas del borde, y la caja en la esquina $(0,0)$.
-\item Se pulsa \textit{Escanear}. Después de una cuenta regresiva de tres
-segundos, una marca recorre la fila a velocidad constante y la persona
-desliza la caja siguiéndola. La posición de cada lectura
-se obtiene con la ecuación~\eqref{eq:tiempo}.
-\item Al final de la fila hay otra cuenta regresiva para pasar a la siguiente.
-El recorrido sigue un zigzag (la fila 0 de izquierda a derecha, la fila 1 de
-derecha a izquierda, y así sucesivamente) para que la caja siempre pase a una
-fila vecina.
-\item Al terminar la última fila, la figura se guarda o se exporta.
-\end{enumerate}
-No hace falta medir la altura $H$ de antemano: un error en $H$ desplaza todas
-las alturas por igual, y el plano de la mesa ajustado por mínimos cuadrados lo
-absorbe en su término independiente $c$.
-
-\subsection{Procesamiento matemático}
-
-Cada medición se convierte en un punto con la ecuación~\eqref{eq:casilla}. Con
-las casillas del borde se ajusta el plano de la mesa resolviendo las
-ecuaciones normales~\eqref{eq:normales} por eliminación de Gauss. Como alguna
-casilla del borde puede alcanzar a ver parte del objeto, se hace un segundo
-ajuste descartando los puntos que quedan a más de 6 mm del primer plano. La
-altura del objeto en cada casilla es $h = z - (ax + by + c)$.
-
-La superficie se arma con dos triángulos por cada cuadro de la cuadrícula que
-tenga sus cuatro esquinas medidas. Cada vértice se rota y se proyecta con la
-ecuación~\eqref{eq:proyeccion}, cada triángulo se sombrea con su normal y el
-producto punto con la dirección de la luz, y los triángulos se pintan del más
-lejano al más cercano. Todas estas operaciones se programaron directamente en
-TypeScript, sin bibliotecas de gráficos 3D ni de álgebra lineal, para que el
-código siga las ecuaciones del marco teórico.
-
-\subsection{Interfaz web}
-
-La interfaz se construyó con React y TypeScript, se empaqueta con Bun y se
-ejecuta en el navegador. Recibe los datos del ESP32 por un puente USB
-(\texttt{web/puente.ts}) que reenvía el puerto serie por WebSocket, lo que
-permite usarla en cualquier navegador; sin el puente, usa la API Web Serial de
-Chrome. Su diseño es minimalista: la figura 3D ocupa la pantalla y, encima, un
-solo control cambia según el momento.
-\begin{itemize}
-\item En reposo muestra en grande la distancia que mide el sensor y el botón
-\textit{Escanear}. Si la caja está a menos de 6 cm de la mesa, avisa que hay
-que subirla.
-\item Durante el escaneo muestra la fila actual, la cuenta regresiva y una
-barra con la marca que la caja debe seguir. Un mapa pequeño de la cuadrícula,
-en una esquina, se colorea según la altura a medida que se mide.
-\item La figura 3D se construye mientras se escanea y se gira arrastrando con
-el mouse.
-\item Un botón \textit{Cálculos} abre un cuaderno que desglosa, con KaTeX y con los números de una medición, los
-cinco pasos del cálculo: la medición, el producto por $A$, el plano de la mesa
-con sus ecuaciones normales, la rotación y la proyección de la vista, y el
-producto vectorial y el producto punto del sombreado. Se puede congelar en una
-casilla o elegir una casilla en el mapa para ver su cálculo.
-\item Un botón \textit{Ajustes} abre el tamaño de la cuadrícula, la velocidad
-de la marca y los archivos. Cada escaneo se puede guardar en el navegador o
-exportar como malla 3D (\texttt{.obj}) o como archivo de la página
-(\texttt{.json}).
-\end{itemize}
-El botón \textit{Simular prototipo} reemplaza el sensor por un simulador que
-se describe a continuación; en la simulación, la caja virtual sigue la marca
-sola, así que se ve cómo se construye la figura sin mover nada. El código del
-proyecto (firmware, interfaz, pruebas y este informe) está en
-\url{https://github.com/ownerng/algebra-2-26}.
-
-\subsection{Protocolo experimental}
-
-Para medir la exactitud de la reconstrucción hay que conocer la forma real del
-objeto, así que se usó un simulador. Este representa una mesa inclinada
-($z = 0{,}03\,x - 0{,}015\,y$) con un objeto encima y la caja a 150 mm de la
-mesa. Para imitar el cono del sensor, la distancia simulada es un promedio de
-las distancias dentro de un círculo bajo la caja, en el que pesan más las
-superficies cercanas, porque devuelven más luz. A cada lectura se le suma un
-ruido uniforme de $\pm 2$ mm, y el generador de números aleatorios usa una
-semilla fija para que los resultados se puedan reproducir. Se escanearon tres
-objetos de forma conocida (una taza cilíndrica, una caja y unos libros
-escalonados) y la mesa vacía, con una cuadrícula de \simNX{} $\times$ \simNY{}
-cuadros de \simPaso{} mm; en estos experimentos cada casilla se midió con
-diez lecturas en su centro, lo que equivale a seguir la marca sin error. Para
-los objetos se calculó el error de la altura
-en todas las casillas; para la mesa vacía, con y sin la corrección del plano.
-
-Con el sensor real se midieron el número de lecturas por segundo que llegan a
-la interfaz y la repetibilidad: se tomaron \repN{} mediciones promediadas
-seguidas con la caja quieta en la misma posición. Además, se
-verificaron numéricamente las propiedades de las matrices y se escribieron
-pruebas automáticas para las funciones de álgebra lineal y el simulador.
+El código incluye pruebas automáticas de la matemática: que $KK^{-1}=I$; que
+proyectar un punto retroproyectado devuelve el mismo píxel; que la malla de un
+disco es cerrada (cada arista aparece dos veces, en sentidos opuestos) y que su
+volumen coincide con $\pi r^2$ por el grosor; que la segmentación separa un
+objeto de un fondo con ruido de colores; y que la envolvente visual de una
+caja de $100\times60\times40$ mm recupera sus proporciones.

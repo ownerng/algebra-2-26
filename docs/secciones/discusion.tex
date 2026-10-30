@@ -1,43 +1,40 @@
 \section{Discusión}
 
-Los resultados muestran que el escáner reconstruye bien la altura de las
-superficies planas de un objeto y su posición sobre la mesa, y que el error se
-concentra en los bordes. La causa es física y no del cálculo: el VL53L0X recibe
-luz de un cono de unos $25^\circ$, así que cuando la caja pasa cerca del borde
-de un objeto, el sensor ve a la vez la parte alta y la mesa, y entrega una
-distancia intermedia. Una pared vertical aparece como una rampa cuyo ancho es
-del orden del diámetro del cono a esa distancia, unos 6 cm a 15 cm de altura.
-Por eso el error medio es mayor en la taza, que tiene paredes de 95 mm, que en
-la caja o los libros, de paredes más bajas. Bajar la caja reduce el cono y
-mejora la nitidez de los bordes, a cambio de un menor margen para objetos
-altos.
+Los resultados muestran que el proceso cumple la meta de tiempo: una foto se
+convierte en un sólido en alrededor de un segundo, y cinco vistas en unos
+pocos segundos contando la segmentación de cada foto. La mayor parte del
+tiempo la consume la red neuronal; los pasos de álgebra lineal son casi
+instantáneos porque cada uno es un producto de matrices sobre miles de
+puntos a la vez.
 
-El ajuste por mínimos cuadrados cumple su función. Una inclinación de la mesa
-o del soporte de pocos milímetros se suma a todas las alturas, y en el escaneo
-de la mesa vacía bastó restar el plano de las ecuaciones normales para pasar de
-\simMesaSin{} mm a \simMesaCon{} mm de error medio. Como el plano se calcula con
-las casillas del borde, el método requiere que el objeto no toque el borde de
-la cuadrícula; el segundo ajuste, que descarta los puntos lejanos al primer
-plano, protege contra casillas del borde que alcanzan a ver parte del objeto.
+\subsection{Limitaciones}
 
-La repetibilidad del sensor real, con una desviación de \repDesv{} mm entre
-mediciones en la misma posición, es mucho menor que el error que introduce el
-cono en los bordes. Esto indica que el límite del prototipo es la resolución
-lateral del sensor y no su ruido. Que el sensor marcara como inválida una de
-cada dos lecturas en el modo de alta precisión es un comportamiento observado
-en este prototipo; el filtro por código de estado evita que esas lecturas
-contaminen el promedio, y el modo por defecto da las lecturas por segundo que
-necesita el escaneo continuo.
+\begin{itemize}
+  \item \textbf{Escala aproximada.} La distancia $Z_0$ entre la cámara y el
+        objeto se supone (400 mm). Si el objeto estaba al doble de distancia,
+        sus medidas reales son el doble. La forma y las proporciones no
+        cambian, porque todas las coordenadas se escalan por el mismo factor.
+  \item \textbf{Una foto no ve la parte de atrás.} Con una sola imagen la
+        profundidad es una suposición (una forma redondeada a partir de la
+        silueta), no una medición. Sirve para objetos convexos y lisos, pero
+        no para formas con salientes o huecos.
+  \item \textbf{Concavidades.} La envolvente visual nunca recupera las partes
+        cóncavas, como el interior de una taza, porque no cambian ninguna
+        silueta.
+  \item \textbf{Fotos a pulso.} Las rotaciones de la
+        tabla~\ref{tab:rotaciones} suponen giros exactos de $90^\circ$. Si el
+        celular se inclina, las siluetas no coinciden y la talla quita de más.
+        Por eso las siluetas se ensanchan un píxel antes de tallar.
+  \item \textbf{Perspectiva.} Con pocas vistas, la envolvente queda con
+        esquinas biseladas, como se ve en la figura~\ref{fig:vistas}, porque
+        los conos de las cámaras no son prismas rectos.
+\end{itemize}
 
-El trabajo tiene limitaciones que conviene precisar. La posición de cada
-lectura no se mide: en $y$ la da la fila de la cuadrícula y en $x$, el tiempo
-según la ecuación~\eqref{eq:tiempo}. Si la caja va adelante o atrás de la
-marca, las lecturas se asignan a casillas desplazadas en $x$; seguir la marca
-con calma y promediar varias lecturas por casilla reduce este efecto, y la
-velocidad de la marca se puede bajar. El sensor solo ve la parte de
-arriba del objeto: las zonas bajo un saliente o el interior de una taza
-estrecha no se miden, y la figura es una superficie de alturas, no un modelo
-cerrado. Las superficies negras, brillantes o transparentes devuelven poca luz
-y dan lecturas poco confiables. Por último, la exactitud de la reconstrucción
-se evaluó en simulación, donde la forma real es conocida; con el prototipo se
-midió la repetibilidad del sensor.
+\subsection{Comparación con la versión anterior}
+
+El escáner anterior, con un sensor láser sobre una cuadrícula, medía la
+distancia real en cada punto, pero tomaba varios minutos por objeto y daba
+pocas decenas de puntos. El mapeador con cámara mide la escala de forma menos
+exacta, pero en un segundo produce decenas de miles de puntos con color.
+Ambos usan la misma idea de fondo: llevar una medición (la casilla y la
+distancia antes; el píxel y la profundidad ahora) al espacio con una matriz.

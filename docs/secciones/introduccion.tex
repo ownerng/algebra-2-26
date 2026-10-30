@@ -1,39 +1,51 @@
 \section{Introducción}
 
-Un escáner 3D captura la forma de un objeto como una nube de puntos o una
-superficie que se puede girar, medir e imprimir. Se usa en ingeniería inversa,
-control de calidad, arqueología, medicina y videojuegos. Los equipos
-comerciales emplean láseres, cámaras de profundidad o luz estructurada y
-cuestan desde cientos de miles hasta millones de pesos, lo que los deja fuera
-del alcance de un curso universitario.
+\subsection{Planteamiento del problema}
 
-Detrás de cualquier escáner 3D hay un problema de álgebra lineal: el sensor
-entrega distancias medidas desde su propia posición, y esas medidas deben
-llevarse a un sistema de coordenadas común para formar la figura. Después, la
-figura debe girarse y proyectarse en una pantalla plana, y para que se vea como
-un sólido hay que calcular hacia dónde mira cada parte de la superficie. Todas
-estas operaciones se escriben con matrices y vectores
-\citep{hartley2004,strang2016}.
+Cada vez más actividades necesitan una versión digital en tres dimensiones de
+un objeto físico: mostrar un producto en una tienda en línea, conservar piezas
+de un museo, preparar una impresión 3D o explicar una pieza en clase. Las
+herramientas que hacen esto bien tienen un costo alto. Un escáner de luz
+estructurada o láser cuesta miles de dólares, y la fotogrametría, que no
+necesita equipo especial, pide decenas de fotografías tomadas con cuidado y
+varios minutos u horas de cómputo \citep{szeliski2022}.
 
-Este trabajo construye un escáner 3D con los mismos componentes de un primer
-prototipo: un microcontrolador ESP32 \citep{espressif2023} y un sensor láser
-de tiempo de vuelo VL53L0X \citep{st2018}. El sensor va dentro de una caja que
-mira hacia abajo; con un solo botón, una marca recorre en la pantalla cada fila
-de una cuadrícula dibujada en la mesa, y la persona desliza la caja
-siguiéndola mientras el sensor mide la distancia a la superficie que tiene
-debajo. La posición de cada lectura la dan la fila y el tiempo, de modo que no
-se necesitan motores ni sensores adicionales.
+La dificultad de fondo es geométrica. Una fotografía es una imagen plana: cada
+punto del espacio se proyecta sobre un píxel, y en esa proyección se pierde la
+distancia a la cámara. Todos los puntos que están sobre un mismo rayo de luz
+terminan en el mismo píxel. Recuperar la tercera dimensión a partir de la
+imagen es, por lo tanto, un problema con más incógnitas que ecuaciones, y para
+resolverlo hay que agregar información: suponer una forma, medir una
+distancia o tomar más fotografías desde otros ángulos.
 
-El aporte del proyecto es mostrar el álgebra lineal de cada paso con los datos
-reales: la matriz homogénea que lleva cada casilla al espacio, el ajuste por
-mínimos cuadrados que corrige la inclinación de la mesa, las rotaciones y la
-proyección que permiten ver la figura desde cualquier ángulo, y el producto
-vectorial y el producto punto que la sombrean. Una interfaz web hace estos
-cálculos y los desglosa con los números de cada medición mientras la figura se
-construye.
+En una versión anterior de este proyecto se construyó un escáner con un
+sensor láser de distancia que medía el objeto punto por punto sobre una
+cuadrícula. Funcionaba, pero cada objeto tomaba varios minutos y el resultado
+era una superficie de pocos puntos. Por eso se planteó la pregunta que guía
+este trabajo:
 
-El documento está organizado así: el marco teórico presenta los conceptos de
-álgebra lineal empleados; la metodología describe el prototipo, el firmware,
-el procedimiento de escaneo y la interfaz; luego se presentan y discuten los
-resultados en simulación y con el sensor real, y se cierra con las
-conclusiones y el trabajo futuro.
+\begin{quote}
+¿Es posible obtener, en pocos segundos y solo con la cámara de un celular, un
+modelo tridimensional aproximado de un objeto, usando como herramienta
+principal los vectores, las matrices y los sistemas de ecuaciones vistos en el
+curso?
+\end{quote}
+
+\subsection{Justificación}
+
+El proyecto muestra que los temas básicos del álgebra lineal no son abstractos:
+la cámara de un celular se describe con una matriz de $3\times3$, ir del píxel
+al espacio es multiplicar por su inversa, girar una vista es multiplicar por
+una matriz de rotación y medir un volumen es sumar determinantes. Además, el
+resultado es útil: un modelo 3D que se puede girar en el navegador y exportar
+a un archivo \texttt{.obj}, obtenido con equipo que casi cualquier estudiante
+tiene.
+
+\subsection{Alcance}
+
+El sistema reconstruye la forma aproximada de objetos medianos (una taza, una
+fruta, una caja) que se puedan rodear con el celular. Las medidas en
+milímetros son aproximadas, porque la distancia entre la cámara y el objeto se
+supone en lugar de medirse. No se busca la precisión de un escáner
+profesional, sino un resultado rápido y explicable con la matemática del
+curso.

@@ -1,26 +1,24 @@
 \begin{table}[htbp]
-\caption{Conceptos de álgebra lineal y su punto de aplicación en el escáner}
+\caption{Conceptos del curso y su punto de aplicación en el mapeador 3D}
 \label{tab:mapeo-conceptos}
 \begin{tabular}{ll}
 \toprule
 Concepto & Dónde se aplica \\
 \midrule
-Vectores en $\mathbb{R}^3$ & Cada medición como punto $(x,y,z)$ \\
-Función afín del tiempo & Posición de la marca $x = v\,(t-t_0)$ \\
-Coordenadas homogéneas & Casilla y distancia como $(i,j,r,1)$ \\
-Matriz homogénea $4\times4$ & $A$ lleva la casilla al espacio \\
-Composición de transformaciones & $A = T\,F\,E$ \\
-Escalamiento & $E$: de índice de casilla a milímetros \\
-Reflexión, $\det F = -1$ & $F$: el sensor mide hacia abajo \\
-Traslación & $T$: el haz sale a la altura $H$ \\
-Sistema sobredeterminado & Puntos del borde que deben estar en un plano \\
-Mínimos cuadrados, ecuaciones normales & Plano de la mesa $z = ax+by+c$ \\
-Eliminación de Gauss & Resolución de $M^{T}M\,\vect{u} = M^{T}\vect{z}$ \\
-Rotaciones en $\mathbb{R}^3$, $\det R = 1$ & Vista 3D $V = R_x(\varphi)R_z(\theta)$ \\
-Proyección ortogonal & $\Pi$: del espacio a la pantalla \\
-Producto vectorial & Normal de cada triángulo \\
-Producto punto & Brillo de cada cara \\
-Norma euclidiana & Error de altura (RMSE) \\
+Matriz & Foto, máscara, $V$ ($N\times3$) y $F$ ($M\times3$) \\
+Vector en $\mathbb{R}^3$ & Color $(r,g,b)$, puntos del objeto, normales \\
+Norma euclidiana & Diferencia de colores, distancias \\
+Producto matriz--vector & Proyección $K\vect{P}$ y $K^{-1}[u,v,1]^T$ \\
+Producto de matrices & $N$ píxeles a la vez (matriz $3\times N$) \\
+Sistema de ecuaciones & Ecuaciones de proyección (2 ecuaciones, 3 incógnitas) \\
+Matriz triangular e inversa & $K^{-1}$ por sustitución regresiva \\
+Matriz identidad & Comprobación $KK^{-1}=I$ \\
+Coordenadas homogéneas & El píxel $(u,v)$ escrito como $(u,v,1)$ \\
+Matriz de rotación, $R^TR=I$ & Orientación de cada una de las cinco vistas \\
+Proporciones & Escala de cada vista \\
+Producto cruz & Normal de cada triángulo \\
+Producto punto & Vista que mejor ve cada punto; brillo \\
+Determinante & Volumen del sólido y orientación de las caras \\
 \bottomrule
 \end{tabular}
 \note{Elaboración propia.}

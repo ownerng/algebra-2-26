@@ -2,29 +2,23 @@
 
 \subsection{Objetivo general}
 
-Desarrollar un prototipo de escáner 3D de bajo costo que reconstruya la
-superficie de un objeto a partir de mediciones de distancia tomadas sobre una
-cuadrícula, aplicando transformaciones lineales en coordenadas homogéneas,
-mínimos cuadrados y rotaciones en $\mathbb{R}^3$, y que muestre en una interfaz
-web los cálculos matriciales involucrados.
+Desarrollar un mapeador 3D que convierta fotografías tomadas con la cámara de
+un celular en un modelo tridimensional cerrado, usando vectores, matrices y
+sistemas de ecuaciones lineales como base matemática.
 
 \subsection{Objetivos específicos}
 
 \begin{enumerate}
-\item Construir el prototipo físico con un ESP32 y un sensor VL53L0X dentro de
-una caja, junto con su firmware, para obtener mediciones promediadas de
-distancia en cada casilla de una cuadrícula.
-
-\item Implementar la conversión de cada medición a un punto 3D mediante una
-matriz homogénea de $4\times4$ y la corrección de la inclinación de la mesa
-mediante un plano ajustado por mínimos cuadrados, verificando numéricamente
-sus propiedades.
-
-\item Desarrollar una interfaz web que guíe el recorrido de la cuadrícula,
-dibuje la superficie del objeto en 3D con rotaciones, proyección y sombreado
-programados con matrices propias, y desglose paso a paso el cálculo de cada
-medición.
-
-\item Evaluar la exactitud de la reconstrucción en simulación frente a formas
-conocidas y la repetibilidad de las mediciones con el sensor real.
+  \item Separar el objeto del fondo de la fotografía sin necesidad de un fondo
+        neutro y representarlo como una matriz binaria (máscara).
+  \item Modelar la cámara con su matriz intrínseca $K$ y usar su inversa
+        $K^{-1}$ para llevar cada píxel a un punto del espacio $\mathbb{R}^3$.
+  \item Construir una malla de triángulos cerrada, descrita por la matriz de
+        vértices $V$ y la matriz de caras $F$, con cara frontal, cara trasera y
+        paredes.
+  \item Combinar cinco vistas del objeto (frontal, laterales, trasera y
+        superior) mediante matrices de rotación para reconstruir su forma
+        completa.
+  \item Mostrar el resultado en una página web interactiva y medir el tiempo de
+        procesamiento y el error de las proporciones reconstruidas.
 \end{enumerate}

@@ -1,129 +1,126 @@
 \section{Resultados}
 
-\subsection{Reconstrucción de objetos en simulación}
+Las pruebas se hicieron en un portátil con procesador de 8 núcleos y sin
+tarjeta gráfica dedicada para el cálculo. Se usaron fotografías de prueba de
+la biblioteca OpenCV (frutas sobre fondos con textura) y, para medir el error,
+fotografías sintéticas de una caja de dimensiones conocidas.
 
-La Figura~\ref{fig:sim3d} muestra las superficies reconstruidas de la taza y
-de la caja con una cuadrícula de \simNX{}$\times$\simNY{} casillas de
-\simPaso{} mm, ya corregido el plano de la mesa. En ambos casos aparece el
-objeto en el lugar correcto y con la altura correcta en su parte superior:
-la taza, de 95 mm de alto, se midió con \simTazaMax{} mm, y la caja, de 45 mm,
-con \simCajaMax{} mm (Tabla~\ref{tab:sim3d}). Los bordes, en cambio, aparecen
-como rampas suaves en lugar de paredes verticales. Por eso el error medio de
-la altura en todas las casillas es mayor para los objetos con paredes altas:
-\simTazaCon{} mm para la taza, \simCajaCon{} mm para la caja y
-\simLibrosCon{} mm para los libros.
+\subsection{Segmentación}
 
-\begin{figure}[htbp]
-\caption{Superficies reconstruidas en simulación}
-\label{fig:sim3d}
-\centering
-\includegraphics[width=\linewidth]{sim3d.pdf}
-\figurenote{Altura $h$ de cada casilla después de restar el plano de la mesa.
-Cuadrícula de \simNX{}$\times$\simNY{} casillas de \simPaso{} mm, caja a
-\simH{} mm de la mesa. Elaboración propia.}
-\end{figure}
-
-\input{tablas/sim3d}
-
-\subsection{Corrección del plano de la mesa}
-
-La Tabla~\ref{tab:mesa} muestra el escaneo de la mesa vacía e inclinada, en el
-que la altura correcta es 0 mm en todas las casillas. Sin corrección, la
-inclinación aparece como un error de altura de \simMesaSin{} mm en promedio.
-Al restar el plano ajustado por mínimos cuadrados, el error baja a
-\simMesaCon{} mm, del orden del ruido de las lecturas. Las pendientes halladas
-($a = \simPlanoA{}$ y $b = \simPlanoB{}$ en el escaneo de la taza) coinciden con
-la inclinación simulada de la mesa, lo que confirma que las ecuaciones
-normales recuperan el plano a partir de las casillas del borde.
-
-\subsection{Verificación de las matrices}
-
-La Tabla~\ref{tab:verif3d} confirma que la implementación cumple las
-propiedades teóricas: el producto $T\,F\,E$ coincide exactamente con $A$, la
-matriz de vista $V$ tiene determinante 1 y es ortogonal hasta el redondeo de la
-aritmética de doble precisión, y el ajuste por mínimos cuadrados recupera un
-plano conocido. Las doce pruebas automáticas del proyecto se ejecutaron sin
-fallos.
-
-\subsection{Interfaz web}
-
-La Figura~\ref{fig:escaneando} muestra la interfaz durante un escaneo continuo
-de la taza en simulación, con la cuadrícula por defecto de 11 $\times$ 8
-cuadros de 30 mm. Abajo, la barra indica dónde debe ir la caja en la fila; en
-la esquina, el mapa de la cuadrícula muestra las filas ya recorridas; detrás,
-la figura 3D se construye al mismo tiempo. La Figura~\ref{fig:interfaz} muestra
-el resultado al terminar las ocho filas.
+La figura~\ref{fig:segmentacion} muestra dos fotos sin fondo neutro: una
+manzana con un lápiz y un fondo con textura, y un grupo de frutas. En ambos
+casos la máscara sigue bien el contorno. Cuando varios objetos se tocan, como
+las frutas de la segunda fila, la segmentación los toma como uno solo.
 
 \begin{figure}[htbp]
-\caption{Escaneo continuo en curso}
-\label{fig:escaneando}
 \centering
-\includegraphics[width=\linewidth]{interfaz_escaneando.jpg}
-\figurenote{Escaneo de la taza en el modo de simulación. Elaboración propia.}
+\includegraphics[width=\linewidth]{segmentacion.jpg}
+\caption{Segmentación sin fondo neutro. De izquierda a derecha: foto original,
+máscara $M$ y objeto sin fondo.}
+\label{fig:segmentacion}
 \end{figure}
+
+Se compararon tres redes de \texttt{rembg} con cuatro fotos de prueba
+(tabla~\ref{tab:redes}). La red U\textsuperscript{2}-Net completa ofrece casi
+la misma calidad que la más precisa en una fracción del tiempo, por lo que se
+eligió como opción por defecto.
+
+\begin{table}[htbp]
+\caption{Comparación de redes de segmentación (cuatro fotos de prueba)}
+\label{tab:redes}
+\begin{tabular}{lcc}
+\toprule
+Red & Tiempo total por foto & Calidad de la máscara \\
+\midrule
+U\textsuperscript{2}-Net pequeña (u2netp) & 0,5--0,6 s & falló en una de las cuatro \\
+U\textsuperscript{2}-Net (u2net) & 1,0--1,2 s & correcta en las cuatro \\
+IS-Net (isnet-general-use) & 5,5--7,5 s & correcta en las cuatro \\
+\bottomrule
+\end{tabular}
+\note{Tiempos medidos en el mismo portátil, incluyendo profundidad y malla.}
+\end{table}
+
+\subsection{Reconstrucción con una fotografía}
+
+La figura~\ref{fig:una-foto} muestra el resultado para la foto de la manzana:
+la malla con la foto como textura y la nube de puntos. La malla tiene
+$N=34\,834$ vértices y $M=69\,664$ caras. La tabla~\ref{tab:tiempos} resume
+los tiempos de cada paso; la mayor parte del tiempo se va en la segmentación,
+mientras que la retroproyección y la malla, que son los pasos de álgebra
+lineal, toman milisegundos gracias a que se calculan con productos de
+matrices.
 
 \begin{figure}[htbp]
-\caption{Interfaz web al terminar el escaneo}
-\label{fig:interfaz}
 \centering
-\includegraphics[width=\linewidth]{interfaz_general.jpg}
-\figurenote{Taza escaneada en el modo de simulación. En el mapa de la esquina,
-el color de cada casilla indica su altura. Elaboración propia.}
+\includegraphics[width=0.49\linewidth]{app_malla.jpg}\hfill
+\includegraphics[width=0.49\linewidth]{app_puntos.jpg}
+\caption{Resultado con una fotografía: malla con textura (izquierda) y nube de
+puntos (derecha), vistas en la página web.}
+\label{fig:una-foto}
 \end{figure}
 
-La Figura~\ref{fig:cuaderno} muestra el panel de cálculos congelado en la
-casilla $(5,3)$, sobre la parte superior de la taza, donde se promediaron 25
-lecturas del escaneo continuo. Con $r = 51{,}9$ mm y $H = 150$ mm, el producto
-por $A$ da $z = -51{,}9 + 150 = 98{,}1$ mm. El plano de la mesa, ajustado con 34
-casillas del borde, vale $3{,}10$ mm en ese punto, de modo que la altura del
-objeto es $h = 98{,}1 - 3{,}10 = 95{,}0$ mm, igual a la altura de la taza
-simulada. El panel también muestra la matriz de vista con los ángulos del
-momento, la proyección del punto en la pantalla y la normal del triángulo,
-$(255{,}1;\;1{,}7;\;900{,}0)$, obtenida con el producto vectorial; con el
-producto punto, ese triángulo tiene un brillo de $0{,}725$.
+\begin{table}[htbp]
+\caption{Tiempo de cada paso con una fotografía (milisegundos)}
+\label{tab:tiempos}
+\begin{tabular}{lrrrrr}
+\toprule
+Foto & Segmentación & Profundidad & Malla & Total & Caras $M$ \\
+\midrule
+Manzana & 609 & 102 & 11 & 722 & 69\,664 \\
+Naranja & 616 & 106 & 12 & 734 & 69\,852 \\
+Frutas & 992 & 223 & 24 & 1\,239 & 73\,684 \\
+\bottomrule
+\end{tabular}
+\note{Mediana de cinco ejecuciones de cada foto.}
+\end{table}
+
+\subsection{Reconstrucción con varias vistas}
+
+Para medir el error se generaron fotos de una caja de $100\times60\times40$ mm
+con una cara de cada color, sobre un fondo de ruido de colores, desde las
+cinco posiciones de la tabla~\ref{tab:rotaciones}. Las fotos pasaron por todo
+el proceso, incluida la segmentación. Como la escala absoluta depende de la
+distancia supuesta $Z_0$, se compararon las proporciones: ancho y fondo
+divididos entre el alto (tabla~\ref{tab:vistas}).
+
+\begin{table}[htbp]
+\caption{Error en las proporciones de la caja según el número de vistas}
+\label{tab:vistas}
+\begin{tabular}{lccc}
+\toprule
+Vistas & Ancho / alto & Fondo / alto & Tiempo \\
+\midrule
+Real & 1,667 & 0,667 & -- \\
+2 (frontal, izquierda) & 1,628 (2,3\,\%) & 0,760 (14,0\,\%) & 0,29 s \\
+3 (+ derecha) & 1,750 (5,0\,\%) & 0,696 (4,5\,\%) & 0,34 s \\
+4 (+ superior) & 1,741 (4,5\,\%) & 0,684 (2,5\,\%) & 0,42 s \\
+5 (+ trasera) & 1,646 (1,2\,\%) & 0,684 (2,6\,\%) & 0,50 s \\
+\bottomrule
+\end{tabular}
+\note{Entre paréntesis, el error relativo. El tiempo es el de la talla y la
+malla; cada foto se segmenta al tomarla (alrededor de 1 s).}
+\end{table}
+
+Con cinco vistas los dos errores quedan por debajo del 3\,\%. La vista
+trasera mejora sobre todo el ancho, porque ve el objeto desde el lado opuesto
+y corrige el efecto de la perspectiva de la foto frontal. La
+figura~\ref{fig:vistas} muestra la captura de las cinco vistas en la página y
+el sólido reconstruido, con el color de cada cara tomado de la foto que mejor
+la ve.
 
 \begin{figure}[htbp]
-\caption{Panel de cálculos: cálculo desglosado de una medición}
-\label{fig:cuaderno}
 \centering
-\includegraphics[width=0.48\linewidth]{interfaz_cuaderno.png}
-\figurenote{Casilla $(5,3)$ del escaneo continuo simulado de la taza. Los
-vectores se muestran redondeados a una cifra decimal. Elaboración propia.}
+\includegraphics[width=0.49\linewidth]{app_vistas.jpg}\hfill
+\includegraphics[width=0.49\linewidth]{app_envolvente.jpg}
+\caption{Modo de cinco vistas: cada foto aparece recortada en su casilla
+(izquierda) y el sólido reconstruido visto desde atrás (derecha).}
+\label{fig:vistas}
 \end{figure}
 
-\subsection{Mediciones con el sensor real}
+\subsection{Pruebas automáticas}
 
-El firmware se cargó en el ESP32 con el sensor conectado. En una primera
-prueba, en el modo de alta precisión del sensor, una de cada dos lecturas
-llegaba marcada como inválida; con el filtro por código de estado y los
-reintentos, las lecturas inválidas desaparecieron. Con el firmware final, en
-el modo por defecto, la interfaz recibió \repTasa{} lecturas por segundo a
-través del puente USB, sin lecturas inválidas. Con la marca a 30 mm/s, la caja
-tarda un segundo en cruzar cada cuadro de 30 mm, así que cada casilla recibe
-unas 24 lecturas. Para medir la repetibilidad se tomaron
-\repN{} mediciones promediadas seguidas con la caja quieta. Su media fue de
-\repMedia{} mm, con valores entre \repMin{} y \repMax{} mm y una desviación
-estándar de \repDesv{} mm entre mediciones. Dentro de cada medición, la
-desviación de las diez lecturas fue en promedio de \repInterna{} mm. La interfaz
-recibió estas mediciones por el puente USB y las convirtió en puntos con la
-matriz $A$, igual que en la simulación.
-
-\ifnum\realHayEscaneo=1
-\subsection{Escaneo de un objeto real}
-
-Con el prototipo se escaneó un objeto real (\realNombre) en una cuadrícula de
-\realNX{}$\times$\realNY{} casillas de \realPaso{} mm, con la caja a \realH{} mm
-de la mesa. Se obtuvieron \realPuntos{} puntos. La Figura~\ref{fig:real3d}
-muestra la superficie reconstruida; la casilla más alta quedó a
-\realAltoMax{} mm de la mesa, y el plano ajustado con las casillas del borde
-tuvo pendientes $a = \realPlanoA{}$ y $b = \realPlanoB{}$.
-
-\begin{figure}[htbp]
-\caption{Superficie reconstruida de un objeto real}
-\label{fig:real3d}
-\centering
-\includegraphics[width=0.85\linewidth]{real3d.pdf}
-\figurenote{Escaneo con el prototipo físico. Altura $h$ de cada casilla después
-de restar el plano de la mesa. Elaboración propia.}
-\end{figure}
-\fi
+Las cinco pruebas del servidor y las dieciséis de la versión anterior pasan.
+En particular, el volumen de la malla de un disco calculado con la
+ecuación~\eqref{eq:volumen} coincide con $\pi r^2$ por el grosor con un error
+menor al 8\,\%, que se debe a que la rejilla aproxima el borde circular con
+segmentos rectos.

@@ -1,26 +1,21 @@
 \newpage
 \section*{Abstract}
 
-This work presents a low-cost 3D scanner built only with an ESP32
-microcontroller and a VL53L0X time-of-flight laser sensor. The sensor sits
-inside a box that looks downward and slides at a fixed height over a grid
-drawn on the table. With a single button, a marker sweeps each row at constant
-speed and the user slides the box after it; each reading is located with an
-affine function of time and averaged in its cell.
-A single $4\times4$ homogeneous matrix turns each cell and its distance into a
-point in space, combining a scaling, a reflection and a translation. The tilt
-of the table is estimated by fitting a plane with least squares to the border
-cells, and the resulting surface is drawn in a web interface with 3D
-rotations, orthogonal projection and shading computed from cross and dot
-products. The interface breaks down these calculations with the numbers of
-each measurement. In simulation, with an empty tilted table, the plane fit
-reduced the height error from \simMesaSin{} mm to \simMesaCon{} mm, and the
-height of a 95 mm mug was measured as \simTazaMax{} mm. With the real sensor,
-ten measurements at the same position varied with a standard deviation of
-\repDesv{} mm. The sensor's cone of about $25^\circ$ smooths object edges,
-which limits lateral resolution. The prototype's parts cost less than eighty
-thousand Colombian pesos.
+Building a three-dimensional model of a real object usually requires expensive
+scanners or dozens of photographs and long processing times. This work
+presents a low-cost 3D mapper that turns a single photograph taken with a
+phone camera into a closed solid in about one second on a laptop. The object
+is separated from the background without a neutral backdrop; the depth of
+each pixel is estimated from its silhouette, and the inverse of the camera
+matrix, $K^{-1}$, maps each pixel $(u,v)$ to a point $(X,Y,Z)$ in space. These
+points form a triangle mesh, stored as a vertex matrix
+$V\in\mathbb{R}^{N\times3}$ and a face matrix $F\in\mathbb{Z}^{M\times3}$, closed
+with a back face and side walls. With five photographs (front, sides, back and
+top), each view is described by a rotation matrix and the object is carved as
+the intersection of the cones defined by its silhouettes. The whole process
+relies on vectors, matrices and systems of linear equations. In our tests a
+photograph is processed in 0.7 to 1.2 seconds and, with five views, the
+proportions of a test box are recovered with less than 3\,\% error.
 
-\noindent\textit{Keywords:} linear algebra, homogeneous matrix, least squares,
-3D rotations, cross product, 3D scanner.
-\newpage
+\textit{Keywords:} linear algebra, camera model, matrix inverse, 3D
+reconstruction, triangle mesh, visual hull.

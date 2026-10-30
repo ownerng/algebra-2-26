@@ -1,155 +1,196 @@
 \section{Marco teórico}
 
-\subsection{Medición de distancia por tiempo de vuelo}
+Esta sección parte de los temas vistos en el curso (vectores, matrices y
+sistemas de ecuaciones lineales) y muestra cómo, con ellos, se describe una
+cámara y se pasa de una imagen plana a puntos del espacio.
 
-El VL53L0X emite pulsos de luz infrarroja de 940 nm y mide el tiempo $\Delta t$
-que tarda la luz en regresar después de reflejarse en una superficie. Como la
-luz recorre la distancia de ida y de vuelta,
+\subsection{La imagen como matriz y el píxel como vector}
+
+Una fotografía digital de $W$ píxeles de ancho y $H$ de alto es una matriz de
+$H\times W$ entradas. Cada entrada guarda un color, que se representa como un
+vector de $\mathbb{R}^3$ con sus componentes roja, verde y azul:
+$\vect{c}=(r,g,b)$, con valores entre 0 y 255. La posición de un píxel se
+escribe como el vector $(u,v)$: $u$ es la columna (crece hacia la derecha) y
+$v$ es la fila (crece hacia abajo).
+
+Separar el objeto del fondo es construir otra matriz del mismo tamaño, la
+\emph{máscara} $M$, con $M_{vu}=1$ si el píxel pertenece al objeto y
+$M_{vu}=0$ si es fondo. La distancia entre dos colores es la norma euclidiana
+de su diferencia, $\lVert\vect{c}_1-\vect{c}_2\rVert$, la misma que mide la
+longitud de un vector en $\mathbb{R}^3$.
+
+\subsection{Vectores en el espacio}
+
+Un punto del espacio es un vector $\vect{p}=(x,y,z)\in\mathbb{R}^3$. Del curso
+se usan tres operaciones \citep{strang2016,lay2016}:
+\begin{itemize}
+  \item La norma $\lVert\vect{p}\rVert=\sqrt{x^2+y^2+z^2}$, que mide distancias.
+  \item El producto punto $\vect{a}\cdot\vect{b}=a_1b_1+a_2b_2+a_3b_3
+        =\lVert\vect{a}\rVert\lVert\vect{b}\rVert\cos\theta$. Si los dos
+        vectores tienen norma 1, el producto punto es el coseno del ángulo
+        entre ellos: vale 1 si apuntan igual y 0 si son perpendiculares.
+  \item El producto cruz $\vect{a}\times\vect{b}$, que da un vector
+        perpendicular a ambos. Para un triángulo con vértices
+        $\vect{p}_0,\vect{p}_1,\vect{p}_2$, el vector
+        $\vect{n}=(\vect{p}_1-\vect{p}_0)\times(\vect{p}_2-\vect{p}_0)$ es su
+        \emph{normal}: indica hacia dónde mira la cara.
+\end{itemize}
+
+\subsection{Sistemas de ecuaciones y forma matricial}
+
+Un sistema de ecuaciones lineales se escribe como $A\vect{x}=\vect{b}$. Si $A$
+es cuadrada y tiene inversa, la solución es única: $\vect{x}=A^{-1}\vect{b}$.
+Cuando $A$ es triangular superior el sistema se resuelve de abajo hacia arriba
+(sustitución regresiva): la última ecuación tiene una sola incógnita, la
+penúltima dos, y así sucesivamente. Por el contrario, si hay menos ecuaciones
+que incógnitas, el sistema tiene infinitas soluciones y hace falta información
+adicional para escoger una.
+
+Otra idea que se usa mucho en el proyecto es que el producto de matrices
+procesa muchos vectores a la vez: si los vectores se ponen como columnas de una
+matriz $P$ de $3\times N$, el producto $AP$ transforma los $N$ vectores en una
+sola operación.
+
+\subsection{Modelo de la cámara estenopeica}
+
+La cámara se modela como un punto (el centro óptico) y un plano de imagen
+\citep{hartley2004}. Se usan ejes de la cámara: $X$ hacia la derecha, $Y$ hacia
+abajo y $Z$ hacia adelante, en la dirección en que mira. Un punto
+$\vect{P}=(X,Y,Z)$ se ve en el píxel
 \begin{equation}
-r = \frac{c\,\Delta t}{2},
-\end{equation}
-donde $c$ es la velocidad de la luz. El haz no es un rayo delgado: el sensor
-recibe la luz de un cono de aproximadamente $25^\circ$ \citep{st2018}. Por eso
-cada medición es un promedio de lo que hay dentro de un círculo cuyo diámetro
-crece con la distancia; a 15 cm, ese círculo mide unos 6,6 cm.
-
-\subsection{Coordenadas homogéneas y transformaciones afines}
-
-Una transformación lineal $T(\vect{v}) = M\vect{v}$ siempre envía el origen al
-origen, así que no puede representar una traslación. Las coordenadas
-homogéneas resuelven este problema agregando una componente igual a 1: el
-punto $(x,y,z)$ se escribe $(x,y,z,1)$, y una transformación afín
-$\vect{p}\mapsto M\vect{p}+\vect{t}$ se convierte en el producto por una matriz
-de $4\times4$ \citep{hartley2004}:
-\begin{equation}
-\begin{bmatrix}\vect{p}'\\ 1\end{bmatrix}
-=
-\begin{bmatrix} M & \vect{t} \\ \vect{0}^{T} & 1 \end{bmatrix}
-\begin{bmatrix}\vect{p}\\ 1\end{bmatrix}.
-\end{equation}
-La ventaja es que varias transformaciones encadenadas se combinan en una sola
-matriz multiplicando sus factores.
-
-En el escáner, la caja está en la casilla $(i,j)$ de una cuadrícula de lado
-$\Delta$, a una altura $H$ sobre la mesa, y mide la distancia $r$ hacia abajo.
-El punto que toca el haz se obtiene con una sola matriz:
-\begin{equation}
-\begin{bmatrix} x\\ y\\ z\\ 1\end{bmatrix}
-=
-\underbrace{\begin{bmatrix}
-\Delta & 0 & 0 & 0\\
-0 & \Delta & 0 & 0\\
-0 & 0 & -1 & H\\
-0 & 0 & 0 & 1
-\end{bmatrix}}_{A}
-\begin{bmatrix} i\\ j\\ r\\ 1\end{bmatrix},
-\qquad
-x = \Delta i,\quad y = \Delta j,\quad z = H - r.
-\label{eq:casilla}
-\end{equation}
-Esta matriz se descompone en tres transformaciones elementales,
-\begin{equation}
-A = T\,F\,E,\qquad
-E = \operatorname{diag}(\Delta,\Delta,1,1),\quad
-F = \operatorname{diag}(1,1,-1,1),\quad
-T = \begin{bmatrix} I_3 & (0,0,H)^{T}\\ \vect{0}^{T} & 1\end{bmatrix}.
-\label{eq:descomposicion}
-\end{equation}
-$E$ es un escalamiento que convierte índices de casilla en milímetros. $F$ es
-una reflexión respecto al plano $xy$: el sensor mide hacia abajo, así que la
-distancia crece en el sentido de $-z$. Su determinante es $-1$, como el de toda
-reflexión, a diferencia de las rotaciones, cuyo determinante es $+1$. $T$ es la
-traslación que sube el origen del haz a la altura $H$.
-
-\subsection{La posición a partir del tiempo}
-
-En el escaneo continuo la caja no se detiene en cada casilla: una marca recorre
-cada fila de la cuadrícula a velocidad constante $v$ y la persona desliza la
-caja siguiéndola. Si la fila $j$ empieza en el instante $t_0$ y tiene largo
-$L = (n_x - 1)\Delta$, la posición de una lectura tomada en el instante $t$ es
-una función afín del tiempo:
-\begin{equation}
-x(t) =
-\begin{cases}
-v\,(t - t_0) & \text{en las filas pares (de izquierda a derecha)},\\
-L - v\,(t - t_0) & \text{en las filas impares (de regreso)},
-\end{cases}
-\qquad y = \Delta\, j .
-\label{eq:tiempo}
-\end{equation}
-Cada lectura se asigna a la casilla más cercana, $i = \operatorname{round}(x/\Delta)$,
-y la distancia de cada casilla es el promedio de todas las lecturas que caen
-en ella. Así, una sola pasada por la fila produce varias lecturas por casilla
-sin que haya que detenerse.
-
-\subsection{Mínimos cuadrados: el plano de la mesa}
-
-Una mesa real no está perfectamente nivelada, ni la caja se desliza siempre a
-la misma altura. Si se toman como referencia las casillas del borde de la
-cuadrícula, donde no hay objeto, sus puntos deberían estar sobre un plano
-$z = ax + by + c$. Con $m$ puntos se obtiene un sistema sobredeterminado
-$M\vect{u} \approx \vect{z}$, con una fila $(x_k, y_k, 1)$ por punto y
-$\vect{u} = (a,b,c)^{T}$. En general no tiene solución exacta, porque las
-mediciones tienen ruido. La solución de mínimos cuadrados minimiza
-$\|M\vect{u}-\vect{z}\|^2$ y cumple las ecuaciones normales
-\citep{lay2016,boyd2018}:
-\begin{equation}
-M^{T}M\,\vect{u} = M^{T}\vect{z},
-\qquad
-M^{T}M =
-\begin{bmatrix}
-\sum x_k^2 & \sum x_k y_k & \sum x_k\\
-\sum x_k y_k & \sum y_k^2 & \sum y_k\\
-\sum x_k & \sum y_k & m
-\end{bmatrix}.
-\label{eq:normales}
-\end{equation}
-Geométricamente, $M\vect{u}$ es la proyección ortogonal de $\vect{z}$ sobre el
-espacio columna de $M$. Una vez hallado el plano, la altura del objeto en cada
-punto es la diferencia entre el punto medido y el plano:
-$h = z - (ax + by + c)$.
-
-\subsection{Rotaciones en $\mathbb{R}^3$ y proyección}
-
-Para ver la figura desde cualquier ángulo se rota alrededor del eje vertical
-un ángulo $\theta$ y luego se inclina un ángulo $\varphi$ alrededor del eje
-horizontal:
-\begin{equation}
-R_z(\theta)=\begin{bmatrix}\cos\theta & -\sin\theta & 0\\ \sin\theta & \cos\theta & 0\\ 0&0&1\end{bmatrix},\quad
-R_x(\varphi)=\begin{bmatrix}1&0&0\\ 0&\cos\varphi & -\sin\varphi\\ 0&\sin\varphi&\cos\varphi\end{bmatrix},\quad
-V = R_x(\varphi)\,R_z(\theta).
-\end{equation}
-Ambas son matrices ortogonales: $R^{T}R = I$ y $\det R = 1$. Por eso la
-rotación conserva distancias y ángulos, y la figura no se deforma al girarla;
-el producto $V$ de dos rotaciones también es una rotación \citep{strang2016}.
-Después de rotar, la pantalla muestra el ancho y la altura y descarta la
-profundidad, lo que equivale a la proyección ortogonal
-\begin{equation}
-\Pi = \begin{bmatrix}1&0&0\\0&0&1\end{bmatrix},\qquad
-\vect{s} = \Pi\,V\,(\vect{p}-\vect{c}),
+u = f\,\frac{X}{Z} + c_x, \qquad v = f\,\frac{Y}{Z} + c_y,
 \label{eq:proyeccion}
 \end{equation}
-donde $\vect{c}$ es el centro de la figura. $\Pi$ es una transformación lineal
-de $\mathbb{R}^3$ en $\mathbb{R}^2$ cuyo núcleo es la dirección de la
-profundidad.
+donde $f$ es la distancia focal en píxeles y $(c_x,c_y)$ es el centro de la
+imagen. Al dividir por $Z$, los objetos lejanos se ven más pequeños.
 
-\subsection{Producto vectorial y producto punto: el sombreado}
+La figura~\ref{fig:camara} muestra la idea: el punto, el centro óptico y el
+píxel están sobre una misma recta (el rayo).
 
-La superficie se forma con triángulos cuyos vértices son puntos medidos en
-casillas vecinas. El producto vectorial de dos lados del triángulo da un
-vector perpendicular a él, su normal:
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[>=Stealth, scale=0.9]
+  \draw[thick] (0,0) circle (2pt) node[below left] {centro óptico};
+  \draw[thick, fill=gray!10] (2,-1.3) -- (2,1.3) -- (2.4,1.6) -- (2.4,-1.0) -- cycle;
+  \node[above] at (2.2,1.6) {imagen};
+  \draw[->] (0,0) -- (7.5,0) node[right] {$Z$};
+  \draw[->] (0,0) -- (0,-1.8) node[below] {$Y$};
+  \draw[thick, blue] (0,0) -- (6.5,1.9);
+  \fill[blue] (2.2,0.64) circle (2pt) node[above left] {$(u,v)$};
+  \fill[red] (4.8,1.4) circle (2pt) node[above] {$\vect{P}$};
+  \fill[red!60] (6.5,1.9) circle (2pt) node[right] {$\vect{P}'$};
+  \node[blue, rotate=16] at (5.4,1.0) {\small mismo rayo};
+\end{tikzpicture}
+\caption{Modelo de cámara estenopeica. Los puntos $\vect{P}$ y $\vect{P}'$ están
+sobre el mismo rayo y se ven en el mismo píxel $(u,v)$: la foto no guarda la
+profundidad.}
+\label{fig:camara}
+\end{figure}
+
+\subsubsection{La matriz intrínseca $K$}
+
+Las ecuaciones \eqref{eq:proyeccion} no son lineales por la división entre
+$Z$, pero se vuelven lineales con \emph{coordenadas homogéneas}: se agrega un
+1 al píxel y se multiplica todo por $Z$. Así, la proyección queda como un
+producto matriz--vector:
 \begin{equation}
-\vect{n} = (B-A)\times(C-A).
+Z\begin{bmatrix} u\\ v\\ 1 \end{bmatrix}
+= \underbrace{\begin{bmatrix} f & 0 & c_x\\ 0 & f & c_y\\ 0 & 0 & 1 \end{bmatrix}}_{K}
+\begin{bmatrix} X\\ Y\\ Z \end{bmatrix}.
+\label{eq:K}
 \end{equation}
-La cara se ve más iluminada cuanto más directamente mire hacia la luz. Si
-$\hat{\vect{n}}$ y $\hat{\boldsymbol{\ell}}$ son la normal y la dirección de la
-luz normalizadas, el producto punto da el coseno del ángulo entre ellas, y ese
-valor es el brillo de la cara (modelo de Lambert):
-\begin{equation}
-\text{brillo} = \max\bigl(0,\ \hat{\vect{n}}\cdot\hat{\boldsymbol{\ell}}\bigr) = \max(0,\cos\gamma).
-\end{equation}
+Si se desarrolla el producto, la primera fila da $Zu=fX+c_xZ$, que es la
+primera ecuación de \eqref{eq:proyeccion} multiplicada por $Z$; la tercera
+fila da la identidad $Z=Z$. La distancia focal sale del ángulo de visión
+horizontal $\alpha$ de la cámara: $f=(W/2)/\tan(\alpha/2)$.
 
-La Tabla~\ref{tab:mapeo-conceptos} resume dónde aparece cada concepto en el
-sistema.
+\subsubsection{La inversa $K^{-1}$ y la retroproyección}
+
+Para ir en sentido contrario, del píxel al espacio, se despeja $\vect{P}$ en
+\eqref{eq:K}. Como $K$ es triangular superior con diagonal $(f,f,1)$, su
+determinante es $f^2\neq0$ y su inversa se obtiene por sustitución regresiva:
+\begin{equation}
+K^{-1} = \begin{bmatrix} 1/f & 0 & -c_x/f\\ 0 & 1/f & -c_y/f\\ 0 & 0 & 1 \end{bmatrix},
+\qquad
+\vect{P} = Z\,K^{-1}\begin{bmatrix} u\\ v\\ 1 \end{bmatrix}.
+\label{eq:retro}
+\end{equation}
+El vector $K^{-1}[u,v,1]^{T}$ es la dirección del rayo que pasa por el píxel
+(con tercera componente igual a 1), y multiplicarlo por $Z$ escoge el punto
+del rayo que está a esa profundidad.
+
+\paragraph{Ejemplo.} Con $f=500$, $c_x=320$ y $c_y=240$, el píxel $(420,340)$
+a una profundidad $Z=500$ mm da
+\[
+\vect{P} = 500\begin{bmatrix} 1/500 & 0 & -0{,}64\\ 0 & 1/500 & -0{,}48\\ 0&0&1\end{bmatrix}
+\begin{bmatrix} 420\\ 340\\ 1\end{bmatrix}
+= 500\begin{bmatrix} 0{,}2\\ 0{,}2\\ 1\end{bmatrix}
+= \begin{bmatrix} 100\\ 100\\ 500\end{bmatrix}\text{ mm}.
+\]
+Si se aplica $K$ a este punto se recupera $500\cdot(420,340,1)$, es decir, el
+mismo píxel: $KK^{-1}=I$.
+
+\paragraph{Por qué falta una ecuación.} Las ecuaciones \eqref{eq:proyeccion}
+son dos y las incógnitas $X,Y,Z$ son tres. El sistema tiene infinitas
+soluciones, una por cada punto del rayo (figura~\ref{fig:camara}). La
+retroproyección solo es posible cuando se conoce o se estima $Z$; en este
+proyecto esa información sale de la silueta del objeto o de otras
+fotografías.
+
+\subsection{Matrices de rotación y varias cámaras}
+
+Una matriz de rotación $R$ de $3\times3$ cambia la orientación de los ejes sin
+deformar: sus filas son vectores de norma 1 y perpendiculares entre sí, por lo
+que $R^{T}R=I$ (su inversa es su transpuesta) y $\det R=1$. Una cámara colocada
+en otro lugar se describe con su rotación $R$ y un vector de traslación
+$\vect{t}$: un punto $\vect{X}$ del mundo pasa a los ejes de esa cámara con
+$R\vect{X}+\vect{t}$ y luego se proyecta con $K$:
+\begin{equation}
+\lambda\begin{bmatrix} u\\ v\\ 1 \end{bmatrix} = K\,(R\,\vect{X} + \vect{t}).
+\label{eq:camara-general}
+\end{equation}
+La posición de esa cámara en el mundo es $\vect{C}=-R^{T}\vect{t}$, que sale de
+despejar el punto que la cámara ve en su propio origen.
+
+\subsection{Determinante y volumen}
+
+El determinante de una matriz de $3\times3$ cuyas filas son
+$\vect{p}_0,\vect{p}_1,\vect{p}_2$ es el volumen (con signo) del
+paralelepípedo que forman, y la sexta parte es el volumen del tetraedro con
+vértices en el origen y en esos tres puntos. Para un sólido cerrado formado por
+triángulos con sus caras hacia afuera, sumar esos volúmenes da el volumen del
+sólido (teorema de la divergencia):
+\begin{equation}
+\mathrm{Vol} = \frac{1}{6}\sum_{\text{caras}} \det\begin{bmatrix}\vect{p}_0\\ \vect{p}_1\\ \vect{p}_2\end{bmatrix}.
+\label{eq:volumen}
+\end{equation}
+El signo del determinante también sirve para saber si un triángulo está bien
+orientado: si una cara está al revés, su aporte es negativo.
+
+\subsection{Herramientas de visión por computador}
+
+Dos pasos del proyecto usan herramientas ya existentes, que se describen solo
+en lo necesario:
+\begin{itemize}
+  \item \textbf{Segmentación.} La biblioteca \texttt{rembg} usa la red neuronal
+        U\textsuperscript{2}-Net \citep{qin2020}, entrenada para encontrar el
+        objeto principal de una foto, y entrega una máscara alfa (de 0 a 255).
+        Si no está disponible, se usa GrabCut \citep{rother2004}, que separa
+        el objeto partiendo de un rectángulo que lo contiene.
+  \item \textbf{Superficie a partir de voxeles.} El algoritmo de
+        \emph{marching cubes} \citep{lorensen1987} recorre una rejilla de
+        cubos y, donde el valor de la rejilla cruza un umbral, coloca
+        triángulos. Así una nube de cubos ocupados se convierte en una malla
+        lisa.
+\end{itemize}
+
+\subsection{Envolvente visual}
+
+Cada silueta, vista desde su cámara, define un cono: el conjunto de puntos del
+espacio que se proyectan dentro de ella. El objeto está dentro de todos los
+conos a la vez, y la intersección de los conos se llama \emph{envolvente
+visual} \citep{laurentini1994}. Con más vistas desde ángulos distintos la
+envolvente se ajusta mejor al objeto, aunque nunca recupera las partes
+cóncavas (por ejemplo, el interior de una taza), porque no cambian la silueta.
 
 \input{tablas/mapeo_conceptos}

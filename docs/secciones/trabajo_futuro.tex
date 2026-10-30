@@ -1,21 +1,15 @@
 \section{Trabajo futuro}
 
-La mejora más directa es reducir el efecto del cono del sensor. El VL53L1X, de
-la misma familia, permite elegir una región de interés más pequeña dentro de su
-campo de visión, lo que haría los bordes más nítidos. Con el sensor actual, una
-alternativa por software es la deconvolución: si se conoce la forma del cono,
-la relación entre la superficie real y las mediciones es un sistema lineal que
-se puede invertir de manera aproximada por mínimos cuadrados con
-regularización.
-
-Para obtener un modelo cerrado del objeto y no solo su vista desde arriba, se
-puede escanear desde varios lados y unir las nubes de puntos. Cada escaneo
-queda en su propio sistema de coordenadas, y la rotación y la traslación que
-los alinean se pueden estimar con el algoritmo ICP, en el que la rotación
-óptima de cada paso se obtiene con la descomposición en valores singulares
-\citep{besl1992,arun1987}.
-
-Por último, la posición de la caja podría medirse en lugar de depender de la
-cuadrícula, por ejemplo con dos sensores de distancia más apuntando a las
-paredes de una guía, lo que permitiría mover la caja libremente y tomar
-mediciones de forma continua.
+\begin{itemize}
+  \item \textbf{Calibrar la cámara.} Medir $f$, $c_x$ y $c_y$ con fotos de un
+        tablero de ajedrez, en lugar de suponer el ángulo de visión. Es un
+        problema de mínimos cuadrados.
+  \item \textbf{Medir la distancia.} Volver a usar el sensor láser de la
+        versión anterior junto al celular para conocer $Z_0$ y obtener medidas
+        reales en milímetros.
+  \item \textbf{Más vistas y una base giratoria.} Con un plato que gire en
+        ángulos conocidos, las matrices de rotación serían exactas y se podrían
+        usar muchas más vistas.
+  \item \textbf{Concavidades.} Combinar la envolvente visual con la
+        profundidad estimada por una red neuronal para recuperar huecos.
+\end{itemize}
