@@ -31,7 +31,8 @@ dentro de su caja.
 
 Un voxel X pertenece al objeto si su proyección cae dentro de la silueta en
 todas las vistas. La superficie se extrae con marching cubes y cada vértice se
-colorea con la foto que lo ve más de frente (mayor n̂·ĉ).
+colorea con el promedio de las fotos que lo ven, pesado por max(0, n̂·ĉ)⁴: la
+que lo ve de frente domina, pero el paso de una foto a otra es gradual.
 """
 
 import re
@@ -61,6 +62,7 @@ ROTACIONES = {
 }
 
 LADO_VOXELES = 180   # voxeles a lo largo del lado mayor de la caja
+EXPONENTE_COLOR = 4  # más alto: cada vértice toma más el color de la foto que lo ve de frente
 MARGEN = 1.3         # la caja de voxeles es un 30 % más grande que el objeto
 # Con tablero: espacio (mm) donde se busca el objeto. Y < 0 está sobre la hoja;
 # lo que queda a menos de 1,5 mm de ella no se talla (ahí la silueta toca la hoja)
@@ -190,9 +192,13 @@ def tallar(vistas: dict[str, Vista], cams: dict[str, Camara], minimo: np.ndarray
 
 
 def colorear(V: np.ndarray, normales: np.ndarray, vistas: dict[str, Vista], cams: dict[str, Camara]) -> np.ndarray:
-    """Color de cada vértice: el de la foto cuya cámara lo ve más de frente."""
+    """Color de cada vértice: promedio de las fotos en cuya silueta cae, pesado
+    por w_v = max(0, n̂·ĉ_v)^EXPONENTE_COLOR. Elegir una sola foto dejaba
+    costuras donde cambia la que gana. Si ninguna lo ve, el de la que mejor lo ve."""
     mejor = np.full(len(V), -np.inf)
     color = np.zeros((len(V), 3), dtype=np.uint8)
+    suma = np.zeros((len(V), 3))
+    total = np.zeros(len(V))
     for n, v in vistas.items():
         hacia = cams[n].centro - V
         hacia /= np.linalg.norm(hacia, axis=1, keepdims=True)
@@ -201,11 +207,17 @@ def colorear(V: np.ndarray, normales: np.ndarray, vistas: dict[str, Vista], cams
         alto, ancho = v.mascara.shape
         u = np.clip(np.round(uv[:, 0]).astype(int), 0, ancho - 1)
         w = np.clip(np.round(uv[:, 1]).astype(int), 0, alto - 1)
-        puntaje = np.where(v.mascara[w, u] > 0, puntaje, puntaje - 2)   # fuera de la silueta: último recurso
+        rgb = v.foto[w, u, ::-1]   # BGR → RGB
+        dentro = v.mascara[w, u] > 0
+        peso = np.where(dentro, np.clip(puntaje, 0, None) ** EXPONENTE_COLOR, 0)
+        suma += peso[:, None] * rgb
+        total += peso
+        puntaje = np.where(dentro, puntaje, puntaje - 2)   # fuera de la silueta: último recurso
         gana = puntaje > mejor
         mejor[gana] = puntaje[gana]
-        color[gana] = v.foto[w[gana], u[gana], ::-1]   # BGR → RGB
-    return color
+        color[gana] = rgb[gana]
+    mezcla = suma / np.maximum(total, 1e-12)[:, None]
+    return np.where(total[:, None] > 1e-6, np.round(mezcla), color).astype(np.uint8)
 
 
 def reconstruir(vistas: dict[str, Vista], p: Parametros | None = None) -> Resultado:

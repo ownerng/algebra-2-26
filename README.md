@@ -94,7 +94,7 @@ Escala:           d_lateral = f·alto / alto_px,   d_superior = f·ancho / ancho
                   d_trasera = f·(ancho / ancho_px + alto / alto_px) / 2
 Centro:           t_v = d_v·K⁻¹·[u_c, v_c, 1]ᵀ
 Talla:            ocupación(X) = min_v silueta_v(proyección de X)   → marching cubes en 0,5
-Color:            el de la vista con mayor n̂·(C_v − p)/‖C_v − p‖,   C_v = −R_vᵀ·t_v
+Color:            Σ_v w_v·foto_v(p) / Σ_v w_v,   w_v = max(0, n̂·(C_v − p)/‖C_v − p‖)⁴,   C_v = −R_vᵀ·t_v
 
 Con el tablero (16 marcadores ArUco, 4 esquinas Xᵢ conocidas cada uno, en el plano Y = 0):
 Pose:             λᵢ·[uᵢ, vᵢ, 1]ᵀ = K·(R·Xᵢ + t)   → solvePnP (IPPE + Levenberg-Marquardt)

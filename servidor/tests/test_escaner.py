@@ -198,3 +198,23 @@ def test_tablero_da_la_pose_y_la_escala_real(monkeypatch):
     # Esfera de 60 mm: la escala sale del tablero, no de una distancia supuesta
     assert np.allclose(r.tamano_mm, 60, rtol=0.12)
     assert r.volumen_mm3 == pytest.approx(4 / 3 * np.pi * 30**3, rel=0.25)
+
+
+def test_color_mezcla_las_vistas_sin_costura():
+    from escaner.multivista import ROTACIONES, Camara, Vista, colorear
+
+    K = matriz_K(200, 200, 60)
+    vistas, cams = {}, {}
+    for n, bgr in (("frontal", (0, 0, 255)), ("derecha", (255, 0, 0))):   # roja y azul
+        foto = np.zeros((200, 200, 3), np.uint8)
+        foto[:] = bgr
+        m = np.ones((200, 200), np.uint8)
+        vistas[n] = Vista(n, foto, m, m * 255, (0, 0, 199, 199), "prueba")
+        cams[n] = Camara(K, ROTACIONES[n], np.array([0.0, 0.0, 400.0]))
+    # Tres vértices en el centro: mirando a la frontal (−Z), a 45° y a la derecha (+X)
+    V = np.zeros((3, 3))
+    N = np.array([[0, 0, -1], [1, 0, -1], [1, 0, 0]], dtype=np.float64)
+    N /= np.linalg.norm(N, axis=1, keepdims=True)
+    c = colorear(V, N, vistas, cams).astype(int)
+    assert c[0].tolist() == [255, 0, 0] and c[2].tolist() == [0, 0, 255]
+    assert abs(c[1, 0] - c[1, 2]) < 10 and c[1, 0] > 100   # a 45°: mitad y mitad, sin salto
