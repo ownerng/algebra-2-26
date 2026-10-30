@@ -119,6 +119,40 @@ def construir(mascara: np.ndarray, Z_frente: np.ndarray, Z_atras: np.ndarray, K:
     )
 
 
+def taubin(V: np.ndarray, F: np.ndarray, iteraciones: int = 10, lam: float = 0.5, mu: float = -0.53) -> np.ndarray:
+    """Suavizado de Taubin. Con W = D⁻¹·A (A: adyacencia de la malla, D: grado
+    de cada vértice), L = W − I lleva cada vértice hacia el promedio de sus
+    vecinos. Un paso V ← V + λ·L·V suaviza pero encoge; el siguiente con μ < −λ
+    infla lo mismo en las ondas largas (la forma) y no en las cortas (los
+    escalones de los voxeles), que quedan atenuadas."""
+    from scipy import sparse
+
+    n = len(V)
+    F = F.astype(np.int64)
+    i, j = F[:, [0, 1, 2, 1, 2, 0]].ravel(), F[:, [1, 2, 0, 0, 1, 2]].ravel()
+    A = sparse.csr_matrix((np.ones(len(i)), (i, j)), shape=(n, n))
+    A.data[:] = 1   # cada arista la comparten dos caras: que cuente una vez
+    W = sparse.diags(1 / np.maximum(A.sum(axis=1).A1, 1)) @ A
+    V = V.astype(np.float64)
+    for _ in range(iteraciones):
+        V = V + lam * (W @ V - V)
+        V = V + mu * (W @ V - V)
+    return V
+
+
+def normales(V: np.ndarray, F: np.ndarray) -> np.ndarray:
+    """Normal unitaria de cada vértice: suma de los productos cruz de sus caras
+    (pesa cada cara por su área). Apunta hacia afuera si las caras están en
+    sentido antihorario visto desde afuera."""
+    F = F.astype(np.int64)
+    t = V[F]
+    n = np.cross(t[:, 1] - t[:, 0], t[:, 2] - t[:, 0])
+    N = np.zeros_like(V, dtype=np.float64)
+    for k in range(3):
+        np.add.at(N, F[:, k], n)
+    return N / np.maximum(np.linalg.norm(N, axis=1, keepdims=True), 1e-12)
+
+
 def volumen(V: np.ndarray, F: np.ndarray) -> float:
     """Volumen de un sólido cerrado (teorema de la divergencia):
     V = Σ det[p₀ p₁ p₂] / 6 sobre todos los triángulos."""

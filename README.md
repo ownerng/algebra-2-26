@@ -94,6 +94,7 @@ Escala:           d_lateral = f·alto / alto_px,   d_superior = f·ancho / ancho
                   d_trasera = f·(ancho / ancho_px + alto / alto_px) / 2
 Centro:           t_v = d_v·K⁻¹·[u_c, v_c, 1]ᵀ
 Talla:            ocupación(X) = min_v silueta_v(proyección de X)   → marching cubes en 0,5
+Suavizado:        Taubin, L = D⁻¹·A − I:  V ← V + 0,5·L·V,  V ← V − 0,53·L·V   (×10, sin encoger)
 Color:            Σ_v w_v·foto_v(p) / Σ_v w_v,   w_v = max(0, n̂·(C_v − p)/‖C_v − p‖)⁴,   C_v = −R_vᵀ·t_v
 
 Con el tablero (16 marcadores ArUco, 4 esquinas Xᵢ conocidas cada uno, en el plano Y = 0):

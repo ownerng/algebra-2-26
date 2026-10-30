@@ -30,7 +30,8 @@ una talla gruesa de todo el espacio sobre el tablero y luego se talla fino
 dentro de su caja.
 
 Un voxel X pertenece al objeto si su proyección cae dentro de la silueta en
-todas las vistas. La superficie se extrae con marching cubes y cada vértice se
+todas las vistas. La superficie se extrae con marching cubes, se suaviza con
+el método de Taubin (quita los escalones sin encoger el objeto) y cada vértice se
 colorea con el promedio de las fotos que lo ven, pesado por max(0, n̂·ĉ)⁴: la
 que lo ve de frente domina, pero el paso de una foto a otra es gradual.
 """
@@ -46,7 +47,7 @@ from skimage.measure import marching_cubes
 
 from . import tablero
 from .geometria import inversa_K, matriz_K
-from .malla import Malla, R_OBJETO, volumen
+from .malla import Malla, R_OBJETO, normales, taubin, volumen
 from .proceso import Parametros, Resultado, SinObjeto, reducir
 from .segmentacion import limpiar, recuadro_px, segmentar
 
@@ -252,13 +253,11 @@ def reconstruir(vistas: dict[str, Vista], p: Parametros | None = None) -> Result
     # Se suaviza la ocupación para que la superficie no quede escalonada; el
     # borde de ceros garantiza una superficie cerrada
     campo = gaussian_filter(np.pad(ocupacion, 2), sigma=0.8)
-    verts, caras, normales, _ = marching_cubes(campo, 0.5, spacing=(paso, paso, paso))
-    P = verts + origen - 2 * paso                       # índices → mm del mundo
-    normales = normales / np.maximum(np.linalg.norm(normales, axis=1, keepdims=True), 1e-9)
-    # Con 'descent' las normales apuntan hacia donde baja la ocupación: afuera
-    if volumen(P, caras) < 0:                           # las caras también deben mirar hacia afuera
+    verts, caras, _, _ = marching_cubes(campo, 0.5, spacing=(paso, paso, paso))
+    P = taubin(verts + origen - 2 * paso, caras)        # índices → mm del mundo, sin escalones
+    if volumen(P, caras) < 0:                           # las caras deben mirar hacia afuera
         caras = caras[:, ::-1]
-    colores = colorear(P, normales, vistas, cams)
+    colores = colorear(P, normales(P, caras), vistas, cams)
     tiempos["malla"] = round((time.perf_counter() - t1) * 1000)
 
     centro = (P.min(axis=0) + P.max(axis=0)) / 2

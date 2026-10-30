@@ -218,3 +218,18 @@ def test_color_mezcla_las_vistas_sin_costura():
     c = colorear(V, N, vistas, cams).astype(int)
     assert c[0].tolist() == [255, 0, 0] and c[2].tolist() == [0, 0, 255]
     assert abs(c[1, 0] - c[1, 2]) < 10 and c[1, 0] > 100   # a 45°: mitad y mitad, sin salto
+
+
+def test_taubin_quita_escalones_sin_encoger():
+    from skimage.measure import marching_cubes
+    from escaner.malla import taubin
+
+    # Esfera voxelizada (binaria): la superficie sale en escalones
+    r = 12.3
+    z, y, x = np.mgrid[-16:17, -16:17, -16:17]
+    V, F, _, _ = marching_cubes((x * x + y * y + z * z <= r * r).astype(np.float32), 0.5)
+    V = V - 16
+    S = taubin(V, F)
+    radio = lambda P: np.linalg.norm(P, axis=1)  # noqa: E731
+    assert radio(S).std() < 0.6 * radio(V).std()        # más redonda (lo que queda es de la voxelización)
+    assert abs(volumen(S, F) / volumen(V, F) - 1) < 0.03  # y del mismo tamaño
