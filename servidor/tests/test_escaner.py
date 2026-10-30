@@ -106,3 +106,20 @@ def test_envolvente_visual_de_una_caja():
     assert np.allclose(tam, medidas, rtol=0.15)
     assert r.volumen_mm3 == pytest.approx(medidas.prod(), rel=0.3)
     assert r.malla.colores.shape == (len(r.malla.V), 3)
+
+
+def test_profundidad_con_disparidad():
+    from escaner.profundidad import estimar
+
+    m = _disco()
+    gris = np.full(m.shape, 128, np.uint8)
+    v, u = np.mgrid[:m.shape[0], :m.shape[1]]
+    centro = (u - 100) ** 2 + (v - 80) ** 2 <= 15 ** 2
+    plana = estimar(m, gris, 400, 1.0, disparidad=np.ones(m.shape, np.float32))
+    bulto = estimar(m, gris, 400, 1.0, disparidad=np.where(centro, 2.0, 1.0).astype(np.float32))
+    # Disparidad plana: solo queda la parte del perfil redondeado (1 − ia)
+    sin_ia = estimar(m, gris, 400, 1.0, detalle=0)
+    assert plana.altura.max() == pytest.approx(0.3 * sin_ia.altura.max(), rel=0.1)
+    # Lo que está más cerca (mayor disparidad) sobresale más
+    assert bulto.altura[centro].mean() > 2 * plana.altura[centro].mean()
+    assert (bulto.Z_frente[m > 0] <= 400).all()

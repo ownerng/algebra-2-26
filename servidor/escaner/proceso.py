@@ -1,7 +1,7 @@
 """Del cuadro de la cámara al sólido 3D, en cuatro pasos:
 
   1. Segmentación  → máscara alfa del objeto (rembg / GrabCut).
-  2. Profundidad   → Z(u, v) a partir de la silueta y los gradientes.
+  2. Profundidad   → Z(u, v) con Depth Anything V2 y la silueta.
   3. Retroproyección → P = Z·K⁻¹·[u, v, 1]ᵀ.
   4. Malla         → V ∈ R^(N×3), F ∈ Z^(M×3), con extrusión trasera y paredes.
 """
@@ -78,7 +78,10 @@ def escanear(bgr: np.ndarray, p: Parametros | None = None) -> Resultado:
     K = matriz_K(ancho, alto, p.fov)
     mm_por_px = p.distancia_mm / K[0, 0]  # un píxel a la distancia Z₀ mide Z₀ / f
     gris = cv2.cvtColor(foto, cv2.COLOR_BGR2GRAY)
-    prof = prof_mod.estimar(mascara, gris, p.distancia_mm, mm_por_px, relieve=p.relieve, detalle=p.detalle)
+    disp = prof_mod.disparidad(foto, mascara)
+    prof = prof_mod.estimar(mascara, gris, p.distancia_mm, mm_por_px, relieve=p.relieve, detalle=p.detalle, disparidad=disp)
+    if disp is not None:
+        metodo += " · Depth Anything V2"
     marca("profundidad")
 
     m = malla_mod.construir(mascara, prof.Z_frente, prof.Z_atras, K, p.distancia_mm)

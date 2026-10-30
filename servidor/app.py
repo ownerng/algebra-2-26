@@ -24,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel
 
-from escaner import segmentacion
+from escaner import profundidad, segmentacion
 from escaner.camara import CamaraRed, camaras_locales
 from escaner.malla import a_obj
 from escaner.multivista import VISTAS, Vista, preparar_vista, reconstruir
@@ -38,6 +38,7 @@ vistas: dict[str, Vista] = {}
 @asynccontextmanager
 async def ciclo(_: FastAPI):
     await asyncio.to_thread(segmentacion.precargar)
+    await asyncio.to_thread(profundidad.precargar)
     yield
     camara.desconectar()
 

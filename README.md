@@ -20,7 +20,8 @@ V ∈ R^(N×3), F ∈ Z^(M×3). Tarda alrededor de un segundo por foto.
 
 1. Instala DroidCam en el celular y ábrelo; anota la **WiFi IP** que muestra.
 2. Ejecuta `./iniciar-web.sh`. La primera vez crea `servidor/.venv`, instala
-   las dependencias y descarga la red de segmentación (~170 MB).
+   las dependencias y descarga las redes de segmentación (~170 MB) y de
+   profundidad (Depth Anything V2, ~100 MB, en `~/.cache/escaner`).
 3. En `http://localhost:3000`, pulsa **Cámara**, escribe la IP y **Conectar**.
    Cuando llega la imagen, el panel se cierra solo.
 4. Pon el objeto dentro del recuadro de la cuadrícula y pulsa **Tomar foto**.
@@ -61,7 +62,8 @@ encuadre. Para otra red: `ESCANER_MODELO=isnet-general-use ./iniciar-web.sh`
 ```
 Segmentación:     máscara M(u,v) ∈ {0,1}  (rembg → apertura/cierre → región mayor → huecos rellenos)
 Profundidad:      d = distancia al borde (|∇d| = 1),  s = d / d_max
-                  h = R·(0,75·√(1 − (1 − s)²) + 0,06·detalle(∇L))
+                  D = disparidad de Depth Anything V2,  r = (D − D_borde) / (D_alto − D_borde) ∈ [0, 1]
+                  h = R·0,75·(0,7·r + 0,3·√(1 − (1 − s)²))      (sin la red: + 0,06·detalle(∇L))
                   Z_frente = Z₀ − g − h,     Z_atrás = Z₀ + g + 0,6·h
 Cámara:           K = [f 0 cx; 0 f cy; 0 0 1],   K⁻¹ = [1/f 0 −cx/f; 0 1/f −cy/f; 0 0 1]
 Retroproyección:  P = Z·K⁻¹·[u, v, 1]ᵀ          (N píxeles a la vez: matriz 3×N)
