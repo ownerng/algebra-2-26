@@ -145,6 +145,97 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   .ficha small { display: none; }
 }
 
+.selector button:disabled { cursor: default; opacity: 0.6; }
+.fila-botones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* Panel de la cámara (izquierda) */
+.panel {
+  position: absolute; top: 0; left: 0; bottom: 0; z-index: 10;
+  width: min(340px, 100%); padding: 18px 20px;
+  background: var(--superficie); border-right: 1px solid var(--borde);
+  box-shadow: 12px 0 32px rgba(0, 0, 0, 0.35);
+  display: flex; flex-direction: column; gap: 16px;
+  animation: entrar 160ms ease-out;
+}
+@keyframes entrar { from { transform: translateX(-16px); opacity: 0; } }
+.panel-cabeza { display: flex; align-items: center; justify-content: space-between; }
+.panel h2 { margin: 0; font-size: 17px; }
+.cerrar { background: none; border: 0; color: var(--tenue); font-size: 16px; cursor: pointer; padding: 4px 8px; }
+.panel form { display: flex; flex-direction: column; gap: 8px; }
+.panel label { font-size: 13px; color: var(--tenue); }
+.panel input {
+  padding: 10px 12px; border-radius: 8px; border: 1px solid var(--borde);
+  background: var(--fondo); color: var(--texto); font-family: var(--mono);
+}
+.ayuda { margin: 0 0 6px; font-size: 13px; color: var(--tenue); }
+.estado { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--tenue); }
+.estado i { width: 8px; height: 8px; border-radius: 50%; background: var(--tenue); flex: none; }
+.estado.ok { color: var(--ok); } .estado.ok i { background: var(--ok); }
+.estado.mal { color: var(--mal); } .estado.mal i { background: var(--mal); }
+
+/* Encuadre: video + cuadrícula, del tamaño máximo que cabe con su proporción */
+.encuadre {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+  gap: 12px; padding: 16px; background: var(--fondo);
+}
+.cuadro-caja { flex: 1; min-height: 0; width: 100%; container-type: size; display: grid; place-items: center; }
+.cuadro {
+  position: relative; width: min(100cqw, 100cqh * var(--ar)); aspect-ratio: var(--ar);
+  border-radius: 10px; overflow: hidden; background: #000;
+}
+.cuadro img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
+.rejilla { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.rejilla line { stroke: var(--rejilla); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.rejilla .marco { fill: none; stroke: var(--marco); stroke-width: 1; stroke-dasharray: 6 6; vector-effect: non-scaling-stroke; opacity: 0.8; }
+.rejilla .esquinas { fill: none; stroke: var(--marco); stroke-width: 3; vector-effect: non-scaling-stroke; }
+.rejilla .centro { stroke: var(--marco); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.procesando {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: rgba(10, 12, 15, 0.6); font-weight: 600;
+}
+.giro { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--borde); border-top-color: var(--acento); animation: girar 0.8s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+.acciones { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.pista { margin: 0; color: var(--tenue); font-size: 13px; }
+.pista a { color: var(--acento); }
+.aviso { margin: 0; color: var(--mal); font-size: 14px; text-align: center; max-width: 520px; }
+
+.vacio {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; color: var(--tenue); text-align: center; padding: 16px;
+}
+.vacio p { margin: 0; }
+
+/* Vista 3D: datos del modelo y controles */
+.ficha {
+  position: absolute; top: 16px; right: 16px; width: 190px; padding: 12px;
+  background: rgba(23, 26, 31, 0.88); border: 1px solid var(--borde); border-radius: 10px;
+  font-size: 13px; backdrop-filter: blur(6px);
+}
+.ficha img {
+  display: block; width: 100%; height: 110px; object-fit: contain; margin-bottom: 10px; border-radius: 6px;
+  background: repeating-conic-gradient(#2a2f37 0% 25%, #1f2329 0% 50%) 0 0 / 14px 14px;
+}
+.ficha dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; }
+.ficha dt { color: var(--tenue); }
+.ficha dd { margin: 0; font-family: var(--mono); text-align: right; }
+.ficha small { display: block; margin-top: 8px; color: var(--tenue); }
+
+.barra-3d {
+  position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center;
+  max-width: calc(100% - 32px);
+}
+.selector { display: inline-flex; padding: 3px; border-radius: 10px; background: var(--superficie); border: 1px solid var(--borde); }
+.selector button { padding: 7px 14px; border: 0; border-radius: 7px; background: none; color: var(--tenue); cursor: pointer; }
+.selector button[aria-pressed="true"] { background: var(--superficie-2); color: var(--texto); }
+
+@media (max-width: 600px) {
+  .ficha { top: 12px; right: 12px; left: 12px; width: auto; display: flex; gap: 12px; align-items: center; }
+  .ficha img { width: 72px; height: 72px; margin: 0; }
+  .ficha small { display: none; }
+}
+
 /* Modo de varias vistas */
 .selector button:disabled { cursor: default; opacity: 0.6; }
 .etiqueta-vista {
@@ -181,3 +272,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
   background: var(--fondo); color: var(--texto); font: inherit;
 }
 .fila-campo .boton { padding: 9px 12px; }
+
+/* Procesamiento: bajo (local) / alto (IA generativa) */
+.calidad { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--tenue); }
+.calidad select {
+  padding: 7px 10px; border-radius: 8px; border: 1px solid var(--borde);
+  background: var(--superficie-2); color: var(--texto); font: inherit;
+}
+@media (max-width: 600px) { .cabecera { gap: 8px; padding: 0 8px; } .calidad { font-size: 0; gap: 0; } .calidad select { font-size: 13px; } }

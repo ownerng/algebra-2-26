@@ -25,6 +25,10 @@ export interface Modelo {
   tamanoMm: [number, number, number];
   volumenCm3: number;
   tiemposMs: Record<string, number>;
+  // Habitaciones: la cámara de la foto (mm, ejes del modelo) y su ángulo de visión vertical
+  vista: { origen: number[]; mira: number[]; fov_v: number } | null;
+  glb: string | null;     // procesamiento alto: URL del modelo generativo (sin V, F)
+  muebles: { glb: string; matriz: number[] }[];   // habitación (alto): cada mueble y su matriz 4 × 4 (por columnas)
 }
 
 async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
@@ -67,26 +71,29 @@ function aModelo(d: Record<string, unknown>): Modelo {
     tamanoMm: d.tamano_mm as Modelo['tamanoMm'],
     volumenCm3: d.volumen_cm3 as number,
     tiemposMs: d.tiempos_ms as Record<string, number>,
+    vista: (d.vista as Modelo['vista']) ?? null,
+    glb: d.glb ? API + (d.glb as string) : null,
+    muebles: ((d.muebles as Modelo['muebles']) ?? []).map((m) => ({ ...m, glb: API + m.glb })),
   };
 }
 
 // Una sola foto: relieve de la silueta con la foto como textura
 export const escanear = async () => aModelo(await pedir('/api/escanear', { method: 'POST' }));
 
-// Varias vistas: cada foto se segmenta al tomarla; al final, la envolvente visual
-export const VISTAS = ['frontal', 'izquierda', 'trasera', 'derecha', 'superior'] as const;
-export type NombreVista = (typeof VISTAS)[number];
-
-// `nombre` es una de VISTAS o, si se ve el tablero en todas, 'extra-N'.
-// `tablero`: se detectó el tablero de marcadores y la pose de la foto es exacta
-export async function tomarVista(nombre: string): Promise<{ recorte: string; tablero: boolean }> {
-  const d = await pedir<{ recorte: string; tablero: boolean }>(`/api/vistas/${nombre}`, { method: 'POST' });
-  return { recorte: `data:image/png;base64,${d.recorte}`, tablero: d.tablero };
+// Habitación: la foto subida o, sin ella, el cuadro actual de la cámara
+export async function escanearHabitacion(foto?: Blob, alto = false) {
+  const datos = new FormData();
+  if (foto) datos.append('foto', foto);
+  datos.append('calidad', alto ? 'alto' : 'bajo');
+  return aModelo(await pedir('/api/habitacion', { method: 'POST', body: datos }));
 }
 
-export const borrarVistas = () => pedir('/api/vistas', { method: 'DELETE' });
-
-export const reconstruir = async () => aModelo(await pedir('/api/reconstruir', { method: 'POST' }));
+// Procesamiento alto: el objeto completo con IA generativa (Hunyuan3D en fal.ai) desde la foto actual
+export async function generar3D() {
+  const datos = new FormData();
+  datos.append('modo', 'una');
+  return aModelo(await pedir('/api/generativo', { method: 'POST', body: datos }));
+}
 
 export const URL_OBJ = `${API}/api/obj`;
 export const URL_TABLERO = `${API}/api/tablero.svg`;

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { borrarVistas, escanear, estadoCamara, reconstruir, tomarVista, URL_OBJ, VISTAS, type Modelo } from './lib/api.ts';
+import { escanear, escanearHabitacion, estadoCamara, generar3D, URL_OBJ, type Modelo } from './lib/api.ts';
 import { PanelCamara } from './componentes/PanelCamara.tsx';
-import { Encuadre, NOMBRES, type Modo } from './componentes/Encuadre.tsx';
+import { Encuadre, type Modo } from './componentes/Encuadre.tsx';
 import { Escena3D, type Mostrar } from './componentes/Escena3D.tsx';
+import { Habitacion } from './componentes/Habitacion.tsx';
 
 const miles = (n: number) => n.toLocaleString('es');
 
@@ -13,15 +14,14 @@ export function App() {
   const [fase, setFase] = useState<'encuadre' | '3d'>('encuadre');
   const [modelo, setModelo] = useState<Modelo | null>(null);
   const [mostrar, setMostrar] = useState<Mostrar>('malla');
+  const [tipo, setTipo] = useState<'objetos' | 'habitaciones'>('objetos');
+  const [girar, setGirar] = useState(false);
+  // Procesamiento alto: IA generativa en fal.ai (objetos completos; en habitaciones, los muebles)
+  const [calidad, setCalidad] = useState<'bajo' | 'alto'>('bajo');
+  const alto = calidad === 'alto';
   const [procesando, setProcesando] = useState('');
   const [error, setError] = useState('');
-  // Modo de varias vistas: recorte de cada vista tomada, si se vio el tablero en
-  // ella, las vistas extra (solo con tablero) y la que toca ahora
   const [modo, setModo] = useState<Modo>('una');
-  const [recortes, setRecortes] = useState<Record<string, string>>({});
-  const [tableros, setTableros] = useState<Record<string, boolean>>({});
-  const [extras, setExtras] = useState<string[]>([]);
-  const [paso, setPaso] = useState<string | null>('frontal');
 
   // Estado de la cámara: al abrir la página y cada pocos segundos
   useEffect(() => {
@@ -55,29 +55,16 @@ export function App() {
     setProcesando('');
   };
 
-  const verModelo = (m: Modelo) => { setModelo(m); setFase('3d'); };
+  const verModelo = (m: Modelo) => { setModelo(m); setGirar(false); setFase('3d'); };
 
-  const tomarFoto = () => trabajar('Segmentando y reconstruyendo…', async () => verModelo(await escanear()));
+  const tomarFoto = () => alto
+    ? trabajar('Generando modelo completo (1–4 min)…', async () => verModelo(await generar3D()))
+    : trabajar('Segmentando y reconstruyendo…', async () => verModelo(await escanear()));
 
-  const tomarVistaActual = () => trabajar(`Segmentando la vista ${paso ? NOMBRES(paso).toLowerCase() : ''}…`, async () => {
-    if (!paso) return;
-    const { recorte, tablero } = await tomarVista(paso);
-    const nuevos = { ...recortes, [paso]: recorte };
-    setRecortes(nuevos);
-    setTableros({ ...tableros, [paso]: tablero });
-    setPaso([...VISTAS, ...extras].find((n) => !nuevos[n]) ?? null);
-  });
+  const tomarHabitacion = (foto?: Blob) => trabajar(alto ? 'Generando habitación completa (3–5 min)…' : 'Calculando profundidad y relleno…',
+    async () => verModelo(await escanearHabitacion(foto, alto)));
 
-  const agregarExtra = () => { const n = `extra-${extras.length + 1}`; setExtras([...extras, n]); setPaso(n); };
-
-  const reconstruir3D = () => trabajar('Tallando voxeles con las vistas…', async () => verModelo(await reconstruir()));
-
-  const reiniciarVistas = () => {
-    void borrarVistas().catch(() => {});
-    setRecortes({}); setTableros({}); setExtras([]); setPaso('frontal'); setError('');
-  };
-
-  const cambiarModo = (m: Modo) => { setModo(m); setError(''); if (m === 'vistas' && !recortes.frontal) reiniciarVistas(); };
+  const cambiarModo = (m: Modo) => { setModo(m); setError(''); };
 
   return (
     <div className="app">
@@ -85,16 +72,33 @@ export function App() {
         <button type="button" className={'boton-camara' + (panel ? ' activo' : '')} aria-expanded={panel} onClick={() => setPanel(!panel)}>
           <i className={'punto' + (conectada ? ' ok' : '')} aria-hidden="true" />Cámara
         </button>
+        <div className="selector" role="group" aria-label="Qué escanear">
+          {(['objetos', 'habitaciones'] as const).map((t) => (
+            <button key={t} type="button" aria-pressed={tipo === t} disabled={!!procesando}
+              onClick={() => { setTipo(t); setError(''); setFase('encuadre'); }}>
+              {t === 'objetos' ? 'Objetos' : 'Habitaciones'}
+            </button>
+          ))}
+        </div>
+        <label className="calidad">
+          Procesamiento
+          <select value={alto ? 'alto' : 'bajo'} disabled={!!procesando} onChange={(ev) => setCalidad(ev.currentTarget.value as 'bajo' | 'alto')}>
+            <option value="bajo">Bajo</option>
+            <option value="alto">Alto</option>
+          </select>
+        </label>
       </header>
 
       <main className="escenario">
-        <Escena3D modelo={fase === '3d' ? modelo : null} mostrar={mostrar} />
+        <Escena3D modelo={fase === '3d' ? modelo : null} mostrar={mostrar} girar={girar} />
 
-        {fase === 'encuadre' && (conectada
+        {fase === 'encuadre' && tipo === 'habitaciones' && (
+          <Habitacion conectada={conectada} conexion={conexion} procesando={procesando} error={error} enviar={(f) => void tomarHabitacion(f)} />
+        )}
+
+        {fase === 'encuadre' && tipo === 'objetos' && (conectada
           ? <Encuadre conexion={conexion} procesando={procesando} error={error} modo={modo} cambiarModo={cambiarModo}
-              tomarFoto={() => void tomarFoto()} recortes={recortes} tableros={tableros} extras={extras} agregarExtra={agregarExtra}
-              paso={paso} elegirPaso={setPaso}
-              tomarVista={() => void tomarVistaActual()} reconstruir={() => void reconstruir3D()} reiniciar={reiniciarVistas} />
+              tomarFoto={() => void tomarFoto()} />
           : <div className="vacio"><p>Conecta la cámara para encuadrar el objeto.</p>
               <button type="button" className="boton primario" onClick={() => setPanel(true)}>Configurar cámara</button></div>)}
 
@@ -105,7 +109,9 @@ export function App() {
               <dl>
                 <dt>V</dt><dd>{miles(modelo.N)} × 3</dd>
                 <dt>F</dt><dd>{miles(modelo.M)} × 3</dd>
-                <dt>Tamaño</dt><dd>{modelo.tamanoMm.map((x) => Math.round(x)).join(' × ')} mm</dd>
+                <dt>Tamaño</dt><dd>{modelo.glb ? '—' : modelo.vista
+                  ? modelo.tamanoMm.map((x) => (x / 1000).toFixed(1)).join('×') + ' m'
+                  : modelo.tamanoMm.map((x) => Math.round(x)).join(' × ') + ' mm'}</dd>
                 <dt>Tiempo</dt><dd>{(Object.values(modelo.tiemposMs).reduce((a, b) => a + b, 0) / 1000).toFixed(1)} s</dd>
               </dl>
               <small>{modelo.metodo}</small>
@@ -118,8 +124,15 @@ export function App() {
                   </button>
                 ))}
               </div>
-              <a className="boton" href={URL_OBJ} download="objeto.obj">.obj</a>
-              <button type="button" className="boton disparo" onClick={() => { setError(''); setFase('encuadre'); }}>{modo === 'vistas' ? 'Volver a las vistas' : 'Nueva foto'}</button>
+              {modelo.vista && (
+                <button type="button" className="boton" aria-pressed={girar} onClick={() => setGirar(!girar)}>{girar ? 'Detener giro' : 'Girar'}</button>
+              )}
+              {modelo.glb
+                ? <a className="boton" href={modelo.glb} download="objeto.glb">.glb</a>
+                : <a className="boton" href={URL_OBJ} download={modelo.vista ? 'habitacion.obj' : 'objeto.obj'}>.obj</a>}
+              <button type="button" className="boton disparo" onClick={() => { setError(''); setFase('encuadre'); }}>
+                Nueva foto
+              </button>
             </div>
           </>
         )}
