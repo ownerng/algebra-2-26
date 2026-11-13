@@ -42,6 +42,8 @@ class Resultado:
     tamano_mm: tuple[float, float, float]
     volumen_mm3: float
     tiempos: dict[str, float] = field(default_factory=dict)
+    vista: dict | None = None   # habitaciones: desde dónde se tomó la foto, para el visor
+    muebles: list | None = None  # habitaciones (alto): (GLB, matriz 4 × 4 por columnas) de cada mueble generado
 
 
 class SinObjeto(Exception):

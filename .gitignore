@@ -33,3 +33,7 @@ web/.env
 servidor/.venv/
 __pycache__/
 .pytest_cache/
+
+# Datos locales y logs
+data/
+logs.txt

@@ -41,41 +41,38 @@ instalar nada: el servidor pide el video al iPhone a través de `usbmuxd`
 La pestaña USB también lista las cámaras del computador (/dev/video*), por
 ejemplo la webcam, para probar.
 
-### Con 5 vistas
-
-Elige **5 vistas** arriba de la cámara y toma las fotos dando una vuelta al
-objeto: **frontal**, **lateral izquierda** (muévete a tu izquierda),
-**trasera**, **lateral derecha** y al final la **superior** (desde arriba,
-con la parte de arriba del celular hacia el fondo).
-Cada foto se segmenta al tomarla y aparece en su casilla; toca una casilla para
-repetirla. **Reconstruir 3D** talla el objeto con las siluetas (también sirve
-con la frontal y al menos otra vista). Intenta mantener la misma distancia en
-todas las fotos y el objeto centrado en el recuadro.
-
-### Con el tablero de marcadores (más preciso)
-
-Imprime el tablero (enlace **tablero impreso** en el modo de vistas, o
-`http://localhost:8000/api/tablero.svg`) **al 100 %** y comprueba con una regla
-que cada marcador mida 30 mm (si no, `ESCANER_MARCADOR_MM=<lo que mide>`). Pon
-el objeto en el centro de la hoja, con el lado FRENTE hacia la foto frontal.
-
-Si el tablero se ve en una foto, su casilla muestra ▦: esa foto trae su pose
-exacta (solvePnP), así que ya no hace falta mantener la distancia ni los
-ángulos, el modelo sale en milímetros reales y, con el tablero en todas las
-fotos, **+ Vista extra** añade más vistas desde cualquier ángulo (8–12 fotos
-dan un tallado bastante más fino). La hoja se quita de la silueta comparando
-cada píxel con lo que se vería del tablero (homografía del plano); un objeto
-blanco o negro puede confundirse con la parte de la hoja de su mismo color.
-No recortes el borde blanco de la hoja: los marcadores lo necesitan.
-
 ### Calibrar la cámara (una vez por cámara y resolución)
 
+Imprime el tablero (`http://localhost:8000/api/tablero.svg`) **al 100 %** y
+comprueba con una regla que cada marcador mida 30 mm (si no,
+`ESCANER_MARCADOR_MM=<lo que mide>`); no recortes el borde blanco de la hoja.
 Elige **Calibrar**, muestra el tablero a la cámara desde ángulos distintos
 (inclinado, cerca, lejos y que caiga en cada esquina de la imagen) y pulsa
 **Capturar** en cada uno: 10–15 fotos. **Calcular** halla la matriz K real y la
 distorsión del lente y la guarda en `~/.cache/escaner/calibracion.json`; desde
 ahí los dos modos la usan (la ficha del modelo dice «K calibrada») en lugar del
 ángulo de visión supuesto de 65°. Un error por debajo de ~1 px es bueno.
+
+### Procesamiento alto (IA generativa, solo objetos)
+
+Arriba, **Procesamiento → Alto**: en lugar del cálculo local, la foto del objeto va a Hunyuan3D v3.1 Pro en
+fal.ai, que devuelve el objeto completo con textura (.glb), parte de atrás
+incluida. Tarda 1–4 min y cuesta ~US$0,38 por modelo. Necesita una clave de
+fal.ai en el servidor (nunca en el repo):
+
+```bash
+FAL_KEY=tu_clave servidor/.venv/Scripts/uvicorn app:app --app-dir servidor --port 8000
+```
+
+### Habitaciones
+
+Arriba, elige **Habitaciones**: toma la foto con la cámara o súbela desde el
+equipo. Funciona mejor desde una esquina o la puerta, con el celular horizontal
+a la altura del pecho y el piso a la vista. Usa tres redes (se descargan solas
+la primera vez, ~230 MB): Depth Anything V2 Metric Indoor (profundidad en
+metros), SegFormer-B2 (qué es cada píxel: pared, piso, sofá…) y LaMa (inventa
+lo que hay detrás de los muebles). El visor arranca desde el punto de la foto;
+arrastra para mirar alrededor o pulsa **Girar** para que se meza solo.
 
 No hace falta un fondo neutro: la segmentación usa rembg (U²-Net), y si no
 está disponible cae a GrabCut de OpenCV, inicializado con el recuadro de
@@ -115,6 +112,18 @@ Talla:            gruesa en todo el espacio sobre la hoja → fina en la caja de
 Calibración (Zhang): cada foto del tablero da H = K·[r₁ r₂ t]; como r₁ ⊥ r₂ y ‖r₁‖ = ‖r₂‖,
                   h₁ᵀ·B·h₂ = 0,  h₁ᵀ·B·h₁ = h₂ᵀ·B·h₂,  B = K⁻ᵀK⁻¹   → B por mínimos cuadrados → K
                   y se refina con la distorsión (cv2.calibrateCamera). Al reducir la foto por s: K' = diag(s, s, 1)·K
+
+Habitación (una foto):
+Profundidad:      Z(u, v) en metros (Depth Anything V2 Metric Indoor),   P = Z·K⁻¹·[u, v, 1]ᵀ
+Planos:           RANSAC (3 puntos → n = (b − a) × (c − a)) por clase de SegFormer (piso, techo, paredes) y
+                  mínimos cuadrados: n = último vector singular de los puntos centrados (SVD)
+Maqueta:          rayo r = K⁻¹·[u, v, 1]ᵀ ∩ plano n·P = d  →  Z = d / (n·r)
+Cuarto vacío:     Z_vacío = min { d_k / (n_k·r) > 0 }   (cuarto convexo: el corte más cercano)
+Bordes:           en el salto, Z = Σ w·Z·[misma clase] / Σ w·[misma clase]   (convolución normalizada)
+Cortes:           de canto |n̂·r̂| < sen 5°  y  Z_max / Z_min > 1,12
+Capa de atrás:    malla con Z_vacío detrás de los muebles, textura de LaMa
+Enderezar:        R = I + [v]ₓ + [v]ₓ²/(1 + c),   v = n × arriba,  c = n·arriba   (Rodrigues: R·n = arriba)
+Altura de cámara: −d, con el plano n·P = d
 ```
 
 En el modo de 1 foto, Z₀ (400 mm) es supuesto, así que el tamaño en milímetros

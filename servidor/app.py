@@ -14,12 +14,18 @@
   POST /api/calibracion/foto  (foto opcional)        → suma una foto del tablero
   POST /api/calibracion/calcular                     → calibra (K y distorsión) y la guarda
   DELETE /api/calibracion                            → borra las fotos y la calibración
+  POST /api/habitacion        (foto opcional, calidad: bajo | alto) → maqueta 3D de una habitación
+  GET  /api/mueble/{i}                               → GLB de un mueble generado (habitación, alto)
+  POST /api/generativo        {modo: una | vistas}   → objeto completo con IA generativa (fal.ai)
+  GET  /api/glb                                      → último modelo generativo en .glb
 
 Uso:  servidor/.venv/bin/uvicorn app:app --app-dir servidor --port 8000
 """
 
 import asyncio
 import base64
+import time
+import urllib.error
 from contextlib import asynccontextmanager
 
 import cv2
@@ -29,14 +35,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from escaner import calibracion, profundidad, segmentacion, tablero
+from escaner import calibracion, generativo, habitacion, profundidad, segmentacion, tablero
 from escaner.camara import CamaraRed, camaras_locales
 from escaner.malla import a_obj
 from escaner.multivista import VISTAS, Vista, es_vista, preparar_vista, reconstruir
-from escaner.proceso import MARCO, Parametros, Resultado, SinObjeto, escanear
+from escaner.proceso import MARCO, Parametros, Resultado, SinObjeto, escanear, reducir
 
 camara = CamaraRed()
 ultimo: Resultado | None = None
+ultimo_glb: bytes | None = None
+ultimos_muebles: list[bytes] = []
 vistas: dict[str, Vista] = {}
 
 
@@ -129,6 +137,8 @@ def respuesta(r: Resultado) -> dict:
         "tamano_mm": [round(x, 1) for x in r.tamano_mm],
         "volumen_cm3": round(r.volumen_mm3 / 1000, 1),
         "tiempos_ms": r.tiempos,
+        "vista": r.vista,
+        "muebles": [{"glb": f"/api/mueble/{i}?t={int(time.time())}", "matriz": M} for i, (_, M) in enumerate(r.muebles or [])],
     }
 
 
@@ -183,6 +193,72 @@ async def reconstruir_vistas(distancia_mm: float = Form(400.0)) -> dict:
     except SinObjeto as e:
         raise HTTPException(422, str(e)) from e
     return respuesta(ultimo)
+
+
+@app.post("/api/habitacion")
+async def escanear_habitacion(foto: UploadFile | None = File(None), calidad: str = Form("bajo")) -> dict:
+    global ultimo, ultimos_muebles
+    bgr = await leer_foto(foto)
+    try:
+        ultimo = await asyncio.to_thread(habitacion.reconstruir, bgr, None, calidad == "alto")
+    except SinObjeto as e:
+        raise HTTPException(503, str(e)) from e
+    ultimos_muebles = [glb for glb, _ in ultimo.muebles or []]
+    return respuesta(ultimo)
+
+
+@app.get("/api/mueble/{i}")
+def descargar_mueble(i: int) -> Response:
+    if not 0 <= i < len(ultimos_muebles):
+        raise HTTPException(404, "no hay ese mueble")
+    return Response(ultimos_muebles[i], media_type="model/gltf-binary")
+
+
+@app.post("/api/generativo")
+async def escanear_generativo(modo: str = Form("una"), foto: UploadFile | None = File(None)) -> dict:
+    """Procesamiento alto: la foto del objeto (o la frontal y la trasera de las
+    vistas) va a Hunyuan3D en fal.ai, que devuelve el objeto completo."""
+    global ultimo_glb
+    t = time.perf_counter()
+    trasera = None
+    if modo == "vistas":
+        if not vistas:
+            raise HTTPException(409, "toma al menos una vista")
+        fr = vistas.get("frontal") or next(iter(vistas.values()))
+        bgr, alfa = fr.foto, fr.alfa
+        if "trasera" in vistas:
+            trasera = generativo.imagen(vistas["trasera"].foto, vistas["trasera"].alfa)
+    else:
+        bgr = await leer_foto(foto)
+        mascara, alfa, _ = await asyncio.to_thread(segmentacion.segmentar, reducir(bgr), MARCO)
+        if mascara.sum() < 100:
+            raise HTTPException(422, "no se distinguió el objeto; ponlo dentro del recuadro")
+        # El recorte sale de la foto original, con todo su detalle
+        alfa = cv2.resize(alfa, (bgr.shape[1], bgr.shape[0]), interpolation=cv2.INTER_LINEAR)
+    try:
+        glb = await asyncio.to_thread(generativo.generar, generativo.imagen(bgr, alfa), trasera)
+    except generativo.SinClave as e:
+        raise HTTPException(503, str(e)) from e
+    except urllib.error.HTTPError as e:
+        raise HTTPException(502, f"fal.ai respondió {e.code}: {e.read()[:300].decode(errors='replace')}") from e
+    except (urllib.error.URLError, TimeoutError) as e:
+        raise HTTPException(502, f"no se pudo hablar con fal.ai: {e}") from e
+    ultimo_glb = glb
+    N, M = generativo.contar(glb)
+    return {
+        "V": "", "F": "", "uv": None, "colores": None, "N": N, "M": M, "n_frente": 0, "caras": {}, "K": [],
+        "foto": imagen_b64(reducir(bgr), ".jpg"), "recorte": recorte_b64(bgr, alfa),
+        "metodo": "Hunyuan3D v3.1 Pro (fal.ai)" + (" · frente y trasera" if trasera else ""),
+        "tamano_mm": [0, 0, 0], "volumen_cm3": 0, "tiempos_ms": {"generacion": round((time.perf_counter() - t) * 1000)},
+        "vista": None, "glb": f"/api/glb?t={int(time.time())}",
+    }
+
+
+@app.get("/api/glb")
+def descargar_glb() -> Response:
+    if ultimo_glb is None:
+        raise HTTPException(404, "todavía no hay modelo generativo")
+    return Response(ultimo_glb, media_type="model/gltf-binary", headers={"Content-Disposition": 'attachment; filename="objeto.glb"'})
 
 
 @app.get("/api/obj", response_class=PlainTextResponse)

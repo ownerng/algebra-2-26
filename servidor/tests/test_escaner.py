@@ -271,3 +271,122 @@ def test_calibracion_recupera_K(tmp_path, monkeypatch):
     finally:
         calibracion.borrar()
     assert calibracion.actual is None and not (tmp_path / "calibracion.json").exists()
+
+
+def test_habitacion_endereza_el_piso_y_corta_los_bordes():
+    """Cuarto de 5 × 6 m con la cámara a 1.4 m, inclinada 15° hacia abajo y 5°
+    de lado, y una caja delante de la pared del fondo."""
+    import cv2
+    from escaner.habitacion import LADO, alinear, capa_oculta, construir, maqueta, nitida
+
+    ancho, alto = 480, 360
+    K = matriz_K(ancho, alto, 65)
+    cab, lad = np.radians(-15), np.radians(5)   # cab < 0: mira hacia abajo (y apunta abajo)
+    Rx = np.array([[1, 0, 0], [0, np.cos(cab), -np.sin(cab)], [0, np.sin(cab), np.cos(cab)]])
+    Rz = np.array([[np.cos(lad), -np.sin(lad), 0], [np.sin(lad), np.cos(lad), 0], [0, 0, 1]])
+    R = Rz @ Rx                                    # de la cámara al mundo (y hacia abajo)
+    u, v = np.meshgrid(np.arange(ancho), np.arange(alto))
+    r = (inversa_K(K) @ np.stack([u.ravel(), v.ravel(), np.ones(u.size)])).T   # rayos con z = 1
+    w = r @ R.T
+    # Paredes del cuarto (eje, posición): la cámara está dentro, gana el corte positivo más cercano
+    t = np.full(len(r), np.inf)
+    clase = np.zeros(len(r), np.int32)              # etiquetas de ADE20K: pared 0, piso 3, techo 5, sofá 23
+    for eje, pos, c in ((0, -2.5, 0), (0, 2.5, 0), (1, 1.4, 3), (1, -1.2, 5), (2, 5.0, 0), (2, -1.0, 0)):
+        s = pos / w[:, eje]
+        clase = np.where((s > 0) & (s < t), c, clase)
+        t = np.where((s > 0) & (s < t), s, t)
+    vacio_real = t.reshape(alto, ancho).copy()
+    s = 3.0 / w[:, 2]                              # caja: cara de enfrente en z = 3
+    P = s[:, None] * w
+    caja = (s > 0) & (np.abs(P[:, 0]) < 0.6) & (P[:, 1] > 0.5)
+    clase = np.where(caja & (s < t), 23, clase).reshape(alto, ancho)
+    t = np.where(caja & (s < t), s, t)
+    piso_real = np.isclose((t[:, None] * w)[:, 1], 1.4)
+    Z = t.reshape(alto, ancho).astype(np.float32)   # z del rayo es 1: Z = t (m)
+
+    malla, vista, altura = construir(Z, K)
+    assert abs(altura - 1400) < 30
+    paso = int(np.ceil(ancho / LADO))
+    nodos = piso_real.reshape(alto, ancho)[::paso, ::paso].ravel()
+    y = malla.V[nodos, 1]
+    assert y.std() < 10 and abs(y.mean() + 1400) < 30      # piso plano y horizontal
+    filas, cols = np.ceil(alto / paso), np.ceil(ancho / paso)
+    cortadas = 2 * (filas - 1) * (cols - 1) - len(malla.F)
+    assert 0 < cortadas < 0.05 * 2 * (filas - 1) * (cols - 1)   # solo en el borde de la caja
+    assert vista["fov_v"] > 40
+
+    # Capa de atrás: detrás de la caja (a 3 m) está el fondo, más lejos
+    Z_suave = cv2.GaussianBlur(Z, (0, 0), 2)    # la red suaviza los saltos así
+    Z_nitida = nitida(Z_suave, K[0, 0])
+    assert np.abs(Z_nitida - Z)[en_caja_borde := np.abs(Z_suave - Z) > 0.3].mean() < 0.3 * np.abs(Z_suave - Z)[en_caja_borde].mean()
+    _, detras, Z_fondo = capa_oculta(Z_nitida, K[0, 0])
+    en_caja = caja.reshape(alto, ancho) & (Z < 3.2)
+    junto_caja = cv2.dilate(en_caja.astype(np.uint8), np.ones((13, 13), np.uint8)) > 0
+    assert detras[en_caja].mean() > 0.15 and junto_caja[detras].mean() > 0.9   # franja del borde de la caja
+    assert np.median(Z_fondo[detras] / Z[detras]) > 1.2
+    con_fondo, _, _ = construir(Z, K, Z_fondo, detras)
+    assert len(con_fondo.V) > len(malla.V) and len(con_fondo.uv) == len(con_fondo.V)
+
+    # Maqueta: con ruido de 2 %, el piso vuelve a su plano, y detrás de la caja
+    # sale el cuarto vacío
+    ruido = Z * (1 + 0.02 * np.random.default_rng(1).standard_normal(Z.shape)).astype(np.float32)
+    plano, vacio = maqueta(ruido, K, clase, np.random.default_rng(0))
+    piso_px = piso_real.reshape(alto, ancho)
+    assert np.abs(plano[piso_px] / Z[piso_px] - 1).mean() < 0.005
+    assert np.median(np.abs(vacio[en_caja] / vacio_real[en_caja] - 1)) < 0.02
+    # Bordes según los objetos: la franja difuminada vuelve al lado de su clase
+    alineada = alinear(Z_suave, clase, K[0, 0])
+    assert np.abs(alineada - Z)[en_caja_borde].mean() < 0.3 * np.abs(Z_suave - Z)[en_caja_borde].mean()
+    # Dentro de un mueble solo se cortan los saltos grandes: la caja (3 m)
+    # contra el piso de atrás (~3,3 m) queda unida; contra la pared (5 m), no
+    todo_mueble, _, _ = construir(Z, K, mueble=np.ones_like(Z, bool))
+    assert len(malla.F) < len(todo_mueble.F) < 2 * (filas - 1) * (cols - 1)
+
+
+def test_generativo_prepara_la_foto_y_cuenta_el_glb():
+    """Sin red: la imagen que va a fal.ai y la lectura del GLB que vuelve."""
+    import base64
+    import json
+
+    import cv2
+    from escaner.generativo import contar, imagen
+
+    foto = np.zeros((300, 400, 3), np.uint8)
+    alfa = np.zeros((300, 400), np.uint8)
+    alfa[100:200, 150:220] = 255
+    png = cv2.imdecode(np.frombuffer(base64.b64decode(imagen(foto, alfa).split(",")[1]), np.uint8), cv2.IMREAD_COLOR)
+    assert png.shape[0] == png.shape[1] == int(100 * 1.15)        # cuadrado con margen
+    assert png[0, 0].tolist() == [255, 255, 255] and png[57, 57].tolist() == [0, 0, 0]
+
+    g = json.dumps({"accessors": [{"count": 8}, {"count": 36}], "meshes": [
+        {"primitives": [{"attributes": {"POSITION": 0}, "indices": 1}]}]}).encode()
+    g += b" " * (-len(g) % 4)
+    glb = b"glTF" + (2).to_bytes(4, "little") + (20 + len(g)).to_bytes(4, "little") + len(g).to_bytes(4, "little") + b"JSON" + g
+    assert contar(glb) == (8, 12)
+
+    # La caja pasa por la transformación del nodo: +90° en x lleva z a y
+    from escaner.generativo import caja
+    g = json.dumps({"accessors": [{"count": 8, "min": [-1, -2, -0.3], "max": [1, 2, 0]}],
+                    "meshes": [{"primitives": [{"attributes": {"POSITION": 0}}]}],
+                    "nodes": [{"mesh": 0, "rotation": [0.7071068, 0, 0, 0.7071068]}]}).encode()
+    g += b" " * (-len(g) % 4)
+    glb = b"glTF" + (2).to_bytes(4, "little") + (20 + len(g)).to_bytes(4, "little") + len(g).to_bytes(4, "little") + b"JSON" + g
+    cmin, cmax = caja(glb)
+    assert np.allclose(cmin, [-1, 0, -2], atol=1e-5) and np.allclose(cmax, [1, 0.3, 2], atol=1e-5)
+
+
+def test_colocar_mueble_en_la_maqueta():
+    """Un GLB de 2 × 1 × 1 (frente hacia +z) va donde se ve el mueble: apoyado en
+    el piso, con su alto real y el frente mirando a la cámara (en el origen)."""
+    from escaner.habitacion import colocar
+
+    cmin, cmax = np.array([-1.0, -0.5, -0.5]), np.array([1.0, 0.5, 0.5])
+    for cx in (0.0, 2000.0):
+        y = np.linspace(-1400, -500, 50)
+        V = np.stack([np.full(50, cx), y, np.full(50, -3000.0)], axis=1)   # lo que se ve: su frente
+        M = colocar(V, -1400.0, cmin, cmax)
+        frente = M @ [0, -0.5, 0.5, 1]
+        assert np.allclose(frente[:3], [cx, -1400, -3000], atol=1)          # frente abajo, sobre lo visto
+        assert abs((M @ [0, 0.5, 0, 1])[1] + 500) < 20                       # alto real: 900 mm
+        d = M[:3, :3] @ [0, 0, 1]
+        assert np.dot(d / np.linalg.norm(d), -np.array([cx, 0, -3000]) / np.hypot(cx, 3000)) > 0.999   # mira a la cámara
