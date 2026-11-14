@@ -1,0 +1,52 @@
+\subsubsection{Resolución del paso 2: la profundidad del casco, de la disparidad a $Z$}\label{sec:casco-profundidad}
+
+Para cada píxel con $M_{vu}=1$ se calculan cuatro números (las ecuaciones del Paso~2 de la metodología). Con los
+valores globales $d_{\max}=257{,}814$ píxeles (la mayor distancia al borde de la silueta),
+$\text{mm/px}=Z_0/f=400/753{,}449=0{,}5309$ y $R=d_{\max}\cdot\text{mm/px}=136{,}871$ mm, y con
+$D_{\text{borde}}=3{,}5367$ y $D_{\text{alto}}=5{,}8436$ (mediana de la disparidad en el borde y percentil 99 dentro del casco),
+el píxel A se calcula así:
+\begin{align*}
+s&=\frac{d}{d_{\max}}=\frac{213{,}327}{257{,}814}=0{,}82745,\\
+p(s)&=\sqrt{1-(1-s)^2}=\sqrt{1-(0{,}17255)^2}=0{,}98500,\\
+r&=\frac{D-D_{\text{borde}}}{D_{\text{alto}}-D_{\text{borde}}}=\frac{5{,}3068-3{,}5367}{5{,}8436-3{,}5367}=0{,}76731,\\
+h&=0{,}75\,R\,(0{,}7\,r+0{,}3\,p)=0{,}75\cdot136{,}871\cdot0{,}83262=85{,}47\ \text{mm}.
+\end{align*}
+El valor guardado, $h=85{,}44$ mm, es el de la fórmula después de un suavizado gaussiano que quita escalones. Con
+$g=0{,}10\,R=13{,}687$ mm (medio grosor):
+\begin{align*}
+Z_{\text{frente}}&=Z_0-g-h=400-13{,}687-85{,}44=300{,}87\ \text{mm},\\
+Z_{\text{atrás}}&=Z_0+g+0{,}6\,h=400+13{,}687+0{,}6\cdot85{,}44=464{,}95\ \text{mm}.
+\end{align*}
+El cuadro~\ref{tab:casco-prof} reúne los tres píxeles, la figura~\ref{fig:casco-etapas} muestra las matrices completas
+($I$, $M$, $D$ y $Z_{\text{frente}}$) y la figura~\ref{fig:casco-perfil} sigue la fila del píxel A.
+
+\begin{table}[htbp]
+\caption{Profundidad de los tres píxeles de ejemplo (longitudes en mm)}
+\label{tab:casco-prof}
+\centering\small
+\begin{tabular}{@{}lrrrrrrrr@{}}
+\toprule
+Píxel & $d$ (px) & $s$ & $p(s)$ & $D$ & $r$ & $h$ & $Z_{\text{frente}}$ & $Z_{\text{atrás}}$ \\
+\midrule
+A & 213{,}33 & 0{,}8274 & 0{,}9850 & 5{,}3068 & 0{,}7673 & 85{,}44 & 300{,}87 & 464{,}95 \\
+B & 77{,}00 & 0{,}2987 & 0{,}7128 & 5{,}3516 & 0{,}7867 & 78{,}37 & 307{,}94 & 460{,}71 \\
+C & 5{,}60 & 0{,}0217 & 0{,}2073 & 2{,}7236 & 0{,}0000 & 7{,}17 & 379{,}14 & 417{,}99 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{casco_etapas.jpg}
+\caption{Matrices del casco: foto $I$, máscara $M$, disparidad $D(u,v)$ de la red y profundidad $Z_{\text{frente}}(u,v)$
+en milímetros (solo dentro de la máscara).}
+\label{fig:casco-etapas}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.82\linewidth]{casco_perfil.jpg}
+\caption{Fila $v=576$ (la del píxel A y el C): la disparidad $D$ (arriba) se convierte en las profundidades $Z_{\text{frente}}$ y
+$Z_{\text{atrás}}$ (abajo); el espesor del sólido es la diferencia entre ambas.}
+\label{fig:casco-perfil}
+\end{figure}

@@ -81,6 +81,8 @@ recuadro de encuadre.}
 \label{fig:encuadre}
 \end{figure}
 
+\input{secciones/paso0_casco}
+
 \subsection{Paso 1: segmentación}
 
 La red U\textsuperscript{2}-Net (a través de \texttt{rembg}) entrega un valor
@@ -89,6 +91,10 @@ luego se limpia la máscara: se quitan puntos sueltos, se rellenan los huecos y
 se conserva la región conectada que más se superpone con el recuadro de
 encuadre. Si la red no está disponible, GrabCut hace la segmentación a partir
 del recuadro. Ninguno de los dos necesita un fondo neutro.
+
+\input{secciones/paso1_casco}
+
+\input{secciones/paso1_vectores}
 
 \subsection{Paso 2: profundidad}
 
@@ -126,6 +132,8 @@ El objeto se supone a una distancia $Z_0=400$ mm, de modo que un píxel mide
 $Z_0/f$ milímetros. La cara frontal queda en $Z_{\text{frente}}=Z_0-g-h$ y la
 trasera en $Z_{\text{atrás}}=Z_0+g+0{,}6\,h$, donde $g$ es medio grosor.
 
+\input{secciones/paso2_casco}
+
 \subsection{Paso 3: retroproyección con \texorpdfstring{$K^{-1}$}{K inversa}}
 
 La matriz $K$ se arma con el tamaño de la foto y un ángulo de visión de
@@ -148,6 +156,14 @@ Al final, los puntos se llevan a los ejes del objeto ($x$ a la derecha, $y$
 hacia arriba, $z$ hacia la cámara) con $\vect{p}=R_o(\vect{P}-\vect{c})$, donde
 $\vect{c}$ es el centro del objeto y $R_o=\operatorname{diag}(1,-1,-1)$, que
 es una rotación de $180^\circ$ alrededor del eje $x$ ($\det R_o=1$).
+
+\input{secciones/paso3a_casco}
+
+\input{secciones/paso3a_vectores}
+
+\input{secciones/paso3b_casco}
+
+\input{secciones/paso3b_vectores}
 
 \subsection{Paso 4: la malla \texorpdfstring{$V$, $F$}{V, F}}
 
@@ -172,11 +188,13 @@ Con esto cada arista queda compartida por exactamente dos triángulos, y la
 malla es un sólido cerrado cuyo volumen se calcula con la
 ecuación~\eqref{eq:volumen}. La foto se usa como textura del frente.
 
+\input{secciones/paso4_casco}
+
+\input{secciones/paso4_vectores}
+
 \input{secciones/metodologia_algebra}
 
-\input{secciones/casco_matematica}
-
-\input{secciones/vectores_casco}
+\input{secciones/resumen_casco}
 
 \subsection{Procesamiento alto}
 
@@ -197,16 +215,26 @@ minutos. Este modo se usa solo con objetos.
 Para una habitación se usa la misma idea que para un objeto, llevar cada píxel
 al espacio con $K^{-1}$, pero la profundidad se obtiene de otra forma: se
 aprovecha que el piso, las paredes y el techo son planos. El proceso tiene seis
-pasos, que se desarrollan con números reales en la sección «\nameref{sec:sala}», y los
-vectores que intervienen (rayos, normales, ejes de giro) están en la sección «\nameref{sec:vectores-casco}».
+pasos. Cada uno se explica primero y se resuelve enseguida con los números de una sala real: las matrices
+($K$, $K^{-1}$, $R$), los vectores (rayos, normales, ejes de giro) y sus operaciones, con figuras.
 
-\paragraph{Paso 1: profundidad en metros y clases.} La red Depth Anything V2
+
+\input{secciones/paso0_sala}
+
+\subsubsection{Paso 1: profundidad en metros y clases}
+
+La red Depth Anything V2
 entrega la distancia $Z(u,v)$ de cada píxel en metros, y cada píxel se lleva al
 espacio con la ecuación~\eqref{eq:retro}: $\vect{P}=Z\,K^{-1}[u,v,1]^{T}$. Al
 mismo tiempo, SegFormer indica la clase de cada píxel: piso, pared, techo o un
 mueble.
 
-\paragraph{Paso 2: planos del cuarto.} La red tiene ruido, así que los puntos
+
+\input{secciones/paso1_sala}
+
+\subsubsection{Paso 2: planos del cuarto}
+
+La red tiene ruido, así que los puntos
 del piso no quedan exactamente sobre un plano. Para cada superficie (piso,
 techo y hasta cuatro paredes) se buscan $\vect{n}$ y $d$ en la
 ecuación~\eqref{eq:plano}: se toman tres puntos al azar de esa clase, se
@@ -214,7 +242,12 @@ calcula la normal con el producto cruz y se cuenta cuántos puntos quedan cerca
 del plano. Esto se repite muchas veces y se conserva el plano que más puntos
 explica \citep{fischler1981}; después se ajusta con todos esos puntos.
 
-\paragraph{Paso 3: intersección rayo--plano.} Cada píxel del piso, del techo o
+
+\input{secciones/paso2_sala}
+
+\subsubsection{Paso 3: intersección rayo--plano}
+
+Cada píxel del piso, del techo o
 de una pared cambia su profundidad por la del plano, con la
 ecuación~\eqref{eq:rayo-plano}: $Z=d/(\vect{n}\cdot\vect{r})$. Así las
 superficies del cuarto quedan perfectamente planas. Con los mismos planos se
@@ -222,7 +255,12 @@ calcula también el \emph{cuarto vacío}: para un píxel tapado por un mueble, l
 que hay detrás es el plano más cercano que corta su rayo, es decir, el menor de
 los valores $d_k/(\vect{n}_k\cdot\vect{r})$ que sean positivos.
 
-\paragraph{Paso 4: malla.} Sobre toda la foto se coloca una rejilla de hasta
+
+\input{secciones/paso3_sala}
+
+\subsubsection{Paso 4: malla}
+
+Sobre toda la foto se coloca una rejilla de hasta
 480 nodos por lado y cada celda se divide en dos triángulos, con las mismas
 matrices $V$ y $F$ de los objetos y la foto como textura. Donde un mueble tapa
 la pared, la profundidad cambia de golpe y los triángulos que unen ambos lados
@@ -230,12 +268,22 @@ quedan muy estirados. Esos triángulos se reconocen porque la cámara los ve
 casi de canto (el producto punto entre su normal y el rayo es casi cero) y
 porque $Z$ salta más de un 12\,\%; se eliminan.
 
-\paragraph{Paso 5: zonas ocultas.} Al girar el modelo se vería lo que la foto
+
+\input{secciones/paso4_sala}
+
+\subsubsection{Paso 5: zonas ocultas}
+
+Al girar el modelo se vería lo que la foto
 no tiene, detrás de los muebles. Ahí se agrega una segunda capa de triángulos
 con la profundidad del cuarto vacío, y su textura la rellena la red LaMa
 \citep{suvorov2022}.
 
-\paragraph{Paso 6: enderezar la escena.} El celular casi nunca está derecho,
+
+\input{secciones/paso5_sala}
+
+\subsubsection{Paso 6: enderezar la escena}
+
+El celular casi nunca está derecho,
 así que el piso sale inclinado. Con la normal del piso $\vect{n}$ se construye
 la rotación $R$ de la ecuación~\eqref{eq:enderezar} (fórmula de rotación de
 Rodrigues) y todos los vértices se giran con un solo producto de matrices. Como
@@ -243,7 +291,7 @@ $R^{T}R=I$, el giro no deforma la habitación. Si $\vect{n}$ tiene norma 1, la
 altura de la cámara sobre el piso es $|d|$, la distancia del origen (la
 cámara) al plano del piso.
 
-\input{secciones/habitacion_matematica}
+\input{secciones/paso6_sala}
 
 \subsection{Interfaz de usuario}
 

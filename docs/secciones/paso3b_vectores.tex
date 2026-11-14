@@ -1,0 +1,22 @@
+\paragraph{Del punto de la cámara al objeto.} Para pasar de los ejes de la cámara a los del objeto se resta el vector $\vect{c}$ (el centro
+del sólido) y se gira con $R_o$. Con $\vect{c}=\begin{pmatrix} -3{,}4 \\ -36{,}1 \\ 379{,}5 \end{pmatrix}$ mm,
+\begin{equation}
+\vect{p}_{\text{obj}}=R_o(\vect{P}-\vect{c}),\qquad R_o=\operatorname{diag}(1,-1,-1),
+\end{equation}
+que cambia el signo de las componentes $y$ y $z$ (un giro de $180^\circ$ alrededor de $x$) sin cambiar la norma. En el cuadro~\ref{tab:objeto-vec}
+se ve para los tres puntos de ejemplo.
+
+\begin{table}[htbp]
+\caption{Los tres puntos del casco en los ejes de la cámara $\vect{P}$, restados del centro $\vect{c}$ y girados $R_o(\vect{P}-\vect{c})$ (mm)}
+\label{tab:objeto-vec}
+\centering\footnotesize
+\begin{tabular}{@{}cp{3.7cm}p{3.7cm}p{3.7cm}@{}}
+\toprule
+Punto & $\vect{P}$ & $\vect{P}-\vect{c}$ & $R_o(\vect{P}-\vect{c})$ \\
+\midrule
+A & $(3{,}2,\,-25{,}6,\,300{,}9)$ & $(6{,}5,\,10{,}5,\,-78{,}7)$ & $(6{,}5,\,-10{,}5,\,78{,}7)$ \\
+B & $(-12{,}3,\,-139{,}0,\,307{,}9)$ & $(-8{,}9,\,-102{,}9,\,-71{,}6)$ & $(-8{,}9,\,102{,}9,\,71{,}6)$ \\
+C & $(-130{,}3,\,-32{,}2,\,379{,}1)$ & $(-127{,}0,\,3{,}9,\,-0{,}4)$ & $(-127{,}0,\,-3{,}9,\,0{,}4)$ \\
+\bottomrule
+\end{tabular}
+\end{table}

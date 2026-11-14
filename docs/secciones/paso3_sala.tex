@@ -1,0 +1,88 @@
+\paragraph{Con los números de la sala: intersección rayo--plano.} Para que los planos queden perfectamente planos, el píxel cambia su profundidad por la del plano. El
+punto del plano sobre el rayo es $\vect{P}=t\,\vect{r}$ con $\hat{\vect{n}}\cdot\vect{P}=d$, y de ahí $t\,(\hat{\vect{n}}\cdot\vect{r})=d$, es decir
+\begin{equation}
+Z=\frac{d}{\hat{\vect{n}}\cdot\vect{r}} .
+\end{equation}
+Para el píxel del piso, $\vect{r}=\begin{pmatrix} 0{,}2004 \\ 0{,}2681 \\ 1 \end{pmatrix}$ y $\hat{\vect{n}}\cdot\vect{r}=(0{,}0100)(0{,}2004)+(-0{,}9982)(0{,}2681)+(-0{,}0587)(1)=-0{,}3244$, así que
+\begin{equation}
+Z=\frac{-1{,}210}{-0{,}3244}=3{,}730\ \text{m},\qquad \vect{P}=3{,}730\cdot\begin{pmatrix} 0{,}2004 \\ 0{,}2681 \\ 1 \end{pmatrix}=\begin{pmatrix} 0{,}748 \\ 1 \\ 3{,}730 \end{pmatrix}\ \text{m},
+\end{equation}
+frente a $Z=3{,}851$ m de la red (una diferencia de 3{,}1\,\%). La figura~\ref{fig:hab-rayoplano} lo muestra en un corte lateral. El cuadro~\ref{tab:hab-int}
+repite la cuenta para el piso, la pared y el techo. Las cuentas solo valen si $\hat{\vect{n}}\cdot\vect{r}\neq0$ (el rayo no es paralelo al plano) y $Z>0$ (el
+plano está delante de la cámara).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{hab_rayo_plano.jpg}
+\caption{Corte lateral de la sala: el rayo $\vect{r}=K^{-1}\vect{p}$ del píxel del piso corta el plano $\hat{\vect{n}}\cdot\vect{P}=d$ en
+$Z=d/(\hat{\vect{n}}\cdot\vect{r})$; la distancia $|d|$ del origen al plano es la altura de la cámara.}
+\label{fig:hab-rayoplano}
+\end{figure}
+
+\begin{table}[htbp]
+\caption{Intersección rayo--plano para tres píxeles: $\hat{\vect{n}}\cdot\vect{r}$, $d$ (m), $Z=d/(\hat{\vect{n}}\cdot\vect{r})$ (m), $Z$ de la red (m) y distancia entre el punto de la red y el del plano (cm)}
+\label{tab:hab-int}
+\centering\small
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+ & Plano & $\hat{\vect{n}}\cdot\vect{r}$ & $d$ & $Z$ del plano & $Z$ de la red & Dist. \\
+\midrule
+Piso & piso & $-0{,}3244$ & $-1{,}210$ & $3{,}730$ & $3{,}851$ & $12{,}7$ \\
+Pared & pared 1 & $0{,}4641$ & $2{,}191$ & $4{,}721$ & $4{,}698$ & $2{,}5$ \\
+Techo & techo & $0{,}4123$ & $2{,}088$ & $5{,}064$ & $5{,}023$ & $4{,}3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{La misma cuenta como sistema de ecuaciones.} Hallar $\vect{P}=(X,Y,Z)$ en el rayo del píxel $(u,v)$ y en el plano $\hat{\vect{n}}\cdot\vect{P}=d$ es
+un sistema lineal de $3\times3$: las dos filas de arriba son la proyección $K\vect{P}=Z\vect{p}$ reescrita, $fX+(c_x-u)Z=0$ y $fY+(c_y-v)Z=0$, y la de abajo es el plano.
+Para el píxel del piso,
+\begin{equation}
+\underbrace{\begin{pmatrix}753{,}449&0&-151\\0&753{,}449&-202\\0{,}0100&-0{,}9982&-0{,}0587\end{pmatrix}}_{A}
+\begin{pmatrix}X\\Y\\Z\end{pmatrix}=\begin{pmatrix}0\\0\\-1{,}210\end{pmatrix}.
+\end{equation}
+Su determinante es $\det A=f^{2}\,(\hat{\vect{n}}\cdot\vect{r})=(567\,685)(-0{,}3244)=-184\,145{,}3$ (se desarrolla por la primera columna y sale $f^2$ por el producto punto), que es distinto de
+cero justamente cuando el rayo no es paralelo al plano; entonces $A$ es invertible y $\vect{P}=A^{-1}\vect{b}=\begin{pmatrix} 0{,}748 \\ 1{,}000 \\ 3{,}730 \end{pmatrix}$ m, el mismo punto de arriba. Es decir: la intersección
+rayo--plano es un sistema $3\times3$ con solución única, y la fórmula $Z=d/(\hat{\vect{n}}\cdot\vect{r})$ es su solución despejada.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{hab_planitud.jpg}
+\caption{Izquierda: desviación de los puntos de cada superficie respecto de su plano antes (puntos de la red) y después de la intersección rayo--plano (escala
+logarítmica). Derecha: cuánto cambia la profundidad, en promedio, al reemplazarla por la del plano.}
+\label{fig:hab-planitud}
+\end{figure}
+
+La figura~\ref{fig:hab-planitud} resume el efecto en los seis planos: antes, los puntos del piso se desviaban 0{,}9 cm de su plano y los de las paredes entre 2{,}5 y 14{,}8 cm; después, la
+desviación es menor que $10^{-3}$ cm (cero, hasta el redondeo). La profundidad de la red cambia entre 0{,}8\,\% y 2{,}8\,\% al pasar al plano.
+
+\paragraph{El cuarto vacío.} Con los mismos planos se calcula qué hay \emph{detrás} de cada mueble. Para un píxel tapado, el rayo corta todos los planos del cuarto en
+$t_k=d_k/(\hat{\vect{n}}_k\cdot\vect{r})$, y los valores negativos (planos detrás de la cámara) se descartan; el verdadero fondo es el menor $t_k$ positivo. Para el píxel del sofá,
+$\vect{r}=\begin{pmatrix} -0{,}4075 \\ 0{,}1871 \\ 1 \end{pmatrix}$ y el cuadro~\ref{tab:hab-vacio} da los seis cortes; el menor positivo es 4{,}85 m (el piso), muy lejos del sofá ($Z=2{,}79$ m),
+de modo que detrás del sofá se pone el piso a esa profundidad (figura~\ref{fig:hab-vacio}).
+
+\begin{table}[htbp]
+\caption{Cortes del rayo del píxel del sofá con cada plano: $t_k=d_k/(\hat{\vect{n}}_k\cdot\vect{r})$ y si queda delante de la cámara}
+\label{tab:hab-vacio}
+\centering\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Plano & $\hat{\vect{n}}_k\cdot\vect{r}$ & $d_k$ (m) & $t_k$ (m) & $t_k>0$ \\
+\midrule
+Piso & $-0{,}250$ & $-1{,}210$ & $4{,}85$ & sí \\
+Techo & $-0{,}162$ & $2{,}088$ & $-12{,}85$ & no \\
+Pared 1 & $0{,}435$ & $2{,}191$ & $5{,}04$ & sí \\
+Pared 2 & $0{,}358$ & $-1{,}788$ & $-4{,}99$ & no \\
+Pared 3 & $1{,}039$ & $7{,}079$ & $6{,}82$ & sí \\
+Pared 4 & $0{,}509$ & $-1{,}240$ & $-2{,}44$ & no \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{hab_vacio.jpg}
+\caption{Izquierda: cortes del rayo del píxel del sofá con los seis planos; se elige el menor positivo. Derecha: vista desde arriba del rayo, el sofá y el
+fondo que queda detrás de él.}
+\label{fig:hab-vacio}
+\end{figure}

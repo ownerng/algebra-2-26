@@ -1,0 +1,80 @@
+\subsubsection{Resolución del paso 3: la matriz $K$ y su inversa con los valores del casco}\label{sec:casco-camara}
+
+El ángulo de visión horizontal que usa el programa es $\alpha=65^\circ$ y la foto mide $W=960$ píxeles de ancho
+y $H=1280$ de alto. La distancia focal en píxeles y el centro de la imagen son
+\begin{align*}
+f &= \frac{W/2}{\tan(\alpha/2)}=\frac{480}{\tan(32{,}5^\circ)}=\frac{480}{0{,}63707}=753{,}449\ \text{píxeles},\\
+c_x&=\frac{W}{2}=480,\qquad c_y=\frac{H}{2}=640 .
+\end{align*}
+Con ellos la matriz de la cámara y su determinante son
+\begin{equation}
+K=\begin{pmatrix} 753{,}449 & 0 & 480 \\ 0 & 753{,}449 & 640 \\ 0 & 0 & 1 \end{pmatrix},\qquad \det K=f\cdot f\cdot1=f^2=567\,685{,}5\neq0,
+\end{equation}
+así que $K$ es invertible. Su inversa se calcula con Gauss--Jordan (sección «\nameref{sec:inversa}»), con solo tres
+operaciones entre filas, porque $K$ ya es triangular:
+Se parte de la matriz aumentada $[K\mid I]$:
+\begin{equation*}
+\left(\begin{array}{ccc|ccc} 753{,}449 & 0 & 480 & 1 & 0 & 0\\ 0 & 753{,}449 & 640 & 0 & 1 & 0\\ 0&0&1&0&0&1\end{array}\right).
+\end{equation*}
+Se resta $c_x$ veces la fila 3 a la fila 1 y $c_y$ veces la fila 3 a la fila 2 ($F_1\leftarrow F_1-c_xF_3$, $F_2\leftarrow F_2-c_yF_3$):
+\begin{equation*}
+\left(\begin{array}{ccc|ccc} 753{,}449 & 0 & 0 & 1 & 0 & -480\\ 0 & 753{,}449 & 0 & 0 & 1 & -640\\ 0&0&1&0&0&1\end{array}\right).
+\end{equation*}
+Y se dividen las filas 1 y 2 entre $f$ ($F_1\leftarrow F_1/f$, $F_2\leftarrow F_2/f$):
+\begin{equation*}
+\left(\begin{array}{ccc|ccc} 1&0&0& 0{,}001327 & 0 & -0{,}637070\\ 0&1&0& 0 & 0{,}001327 & -0{,}849427\\ 0&0&1&0&0&1\end{array}\right).
+\end{equation*}
+Entonces
+\begin{equation}
+K^{-1}=\begin{pmatrix} 0{,}001327 & 0 & -0{,}637070 \\ 0 & 0{,}001327 & -0{,}849427 \\ 0 & 0 & 1 \end{pmatrix} .
+\end{equation}
+La comprobación numérica $KK^{-1}=I$ da
+\begin{equation}
+KK^{-1}=\begin{pmatrix} 753{,}449 & 0 & 480 \\ 0 & 753{,}449 & 640 \\ 0 & 0 & 1 \end{pmatrix}\begin{pmatrix} 0{,}001327 & 0 & -0{,}637070 \\ 0 & 0{,}001327 & -0{,}849427 \\ 0 & 0 & 1 \end{pmatrix}=\begin{pmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \\ 0 & 0 & 1 \end{pmatrix} .
+\end{equation}
+
+
+\subsubsection{Resolución del paso 3: de píxeles a puntos 3D}\label{sec:casco-retro}
+
+\paragraph{Un píxel.} El píxel A se escribe en coordenadas homogéneas, $\vect{p}_A=(u,v,1)^T=\begin{pmatrix} 488 \\ 576 \\ 1 \end{pmatrix}$, y su rayo es
+\begin{equation}
+\vect{r}_A=K^{-1}\vect{p}_A=\begin{pmatrix} 0{,}001327 & 0 & -0{,}637070 \\ 0 & 0{,}001327 & -0{,}849427 \\ 0 & 0 & 1 \end{pmatrix}\begin{pmatrix} 488 \\ 576 \\ 1 \end{pmatrix}=\begin{pmatrix} 0{,}010618 \\ -0{,}084943 \\ 1 \end{pmatrix} .
+\end{equation}
+El punto 3D es el rayo multiplicado por la profundidad $Z_{\text{frente}}=300{,}87$ mm:
+\begin{equation}
+\vect{P}_A=Z\,\vect{r}_A=300{,}87\cdot\begin{pmatrix} 0{,}010618 \\ -0{,}084943 \\ 1 \end{pmatrix}=\begin{pmatrix} 3{,}195 \\ -25{,}557 \\ 300{,}871 \end{pmatrix}\ \text{mm}.
+\end{equation}
+Es decir, A está a $3{,}19$ mm a la derecha, $25{,}56$ mm arriba del eje de la cámara y a $300{,}87$ mm al frente.
+Para comprobarlo se proyecta de nuevo: $K\vect{P}_A=\begin{pmatrix} 146825{,}0 \\ 173301{,}6 \\ 300{,}9 \end{pmatrix}=Z\,\vect{p}_A$, y al dividir entre $Z$ se recupera el píxel $(488,576,1)$.
+
+\paragraph{Por qué hace falta $Z$: el sistema $2\times3$.} Las dos ecuaciones de la proyección, con $\vect{P}=(X,Y,Z)^T$ desconocido y
+el píxel A conocido, forman el sistema homogéneo
+\begin{equation}
+\begin{pmatrix}f&0&c_x-u\\0&f&c_y-v\end{pmatrix}\begin{pmatrix}X\\Y\\Z\end{pmatrix}=
+\begin{pmatrix} 753{,}449 & 0 & -8 \\ 0 & 753{,}449 & 64 \end{pmatrix}\begin{pmatrix}X\\Y\\Z\end{pmatrix}=\begin{pmatrix}0\\0\end{pmatrix}.
+\end{equation}
+Su matriz tiene rango $2$ y hay $3$ incógnitas, así que queda una variable libre. Al despejar:
+$X=\tfrac{u-c_x}{f}Z=0{,}010618\,Z$ y $Y=\tfrac{v-c_y}{f}Z=-0{,}084943\,Z$, es decir, toda la solución es la recta
+$\vect{P}=Z\,(0{,}010618,\,-0{,}084943,\,1)^T=Z\,\vect{r}_A$: el rayo. El espacio nulo de la matriz es justamente el vector $\vect{r}_A$ que dio $K^{-1}\vect{p}_A$.
+
+\paragraph{Vectores de los rayos.} La longitud del rayo A es $\lVert\vect{r}_A\rVert=1{,}00366$ y su ángulo con el eje óptico es
+$\arctan\sqrt{(0{,}010618)^2+(-0{,}084943)^2}=4{,}893^\circ$. El ángulo entre los rayos de A y C sale del producto punto:
+\begin{equation}
+\cos\theta=\frac{\vect{r}_A\cdot\vect{r}_C}{\lVert\vect{r}_A\rVert\,\lVert\vect{r}_C\rVert}=
+\frac{1{,}00357}{1{,}00366\cdot1{,}06084}=0{,}94256\ \Rightarrow\ \theta=19{,}51^\circ .
+\end{equation}
+
+\paragraph{Muchos píxeles a la vez.} En el programa no se calcula píxel por píxel. Para cinco píxeles del casco, repartidos
+a lo largo de la máscara, se apilan como columnas de una matriz $H$ de $3\times5$ y se multiplica una sola vez:
+\begin{equation}
+H=\begin{pmatrix} 530 & 662 & 537 & 723 & 443 \\ 191 & 406 & 549 & 696 & 953 \\ 1 & 1 & 1 & 1 & 1 \end{pmatrix},
+\end{equation}
+\begin{equation}
+K^{-1}H=\begin{pmatrix} 0{,}0664 & 0{,}2416 & 0{,}0757 & 0{,}3225 & -0{,}0491 \\ -0{,}5959 & -0{,}3106 & -0{,}1208 & 0{,}0743 & 0{,}4154 \\ 1 & 1 & 1 & 1 & 1 \end{pmatrix} .
+\end{equation}
+Multiplicar a la derecha por la matriz diagonal $\operatorname{diag}(Z_1,\dots,Z_5)$, con
+$(Z_1,\dots,Z_5)=\begin{pmatrix} 380{,}39 & 312{,}13 & 298{,}65 & 354{,}57 & 335{,}32 \end{pmatrix}$ mm, escala cada columna por su profundidad:
+\begin{equation}
+P=K^{-1}H\,\operatorname{diag}(Z_1,\dots,Z_5)=\begin{pmatrix} 25{,}24 & 75{,}40 & 22{,}59 & 114{,}36 & -16{,}47 \\ -226{,}68 & -96{,}94 & -36{,}07 & 26{,}35 & 139{,}30 \\ 380{,}39 & 312{,}13 & 298{,}65 & 354{,}57 & 335{,}32 \end{pmatrix}\ \text{mm}.
+\end{equation}
+Con los $32\,657$ nodos de la malla el procedimiento es el mismo, con una matriz $H$ de $3\times32\,657$.

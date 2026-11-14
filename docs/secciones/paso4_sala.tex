@@ -1,0 +1,39 @@
+\paragraph{Con los números de la sala: la malla y los triángulos que se cortan.} Sobre la foto se coloca una rejilla de un nodo cada 2 píxeles: $480\times320=153\,600$ nodos que,
+llevados al espacio con $\vect{P}=Z\,K^{-1}\vect{p}$, son las filas de la matriz de vértices $V$. Cada celda se divide en dos triángulos y en total hay
+$2(480-1)(320-1)=305\,602$ triángulos. Donde un mueble tapa una pared, $Z$ salta de golpe (figura~\ref{fig:hab-corte}, izquierda) y los triángulos que unen los dos lados
+quedan estirados, como cortinas, y vistos casi de canto. Un triángulo se elimina si cumple las dos condiciones siguientes, calculadas con vectores:
+\begin{itemize}
+  \item se ve de canto: $\lvert\hat{\vect{n}}\cdot\hat{\vect{c}}_t\rvert<\operatorname{sen}5^\circ=0{,}087$, con $\hat{\vect{n}}$ su normal (producto cruz de dos lados) y $\hat{\vect{c}}_t$ el
+        rayo hacia su centro, y
+  \item la profundidad salta: $Z_{\max}/Z_{\min}>1{,}12$.
+\end{itemize}
+Con un triángulo del piso, de vértices en los píxeles $(576,548)$, $(576,550)$, $(578,548)$, los lados (en mm) son $\vect{e}_1=\begin{pmatrix} -2 \\ 1{,}1 \\ -16 \end{pmatrix}$ y $\vect{e}_2=\begin{pmatrix} 6{,}7 \\ 1{,}7 \\ 5{,}5 \end{pmatrix}$ y
+\begin{align*}
+n_x&=e_{1y}e_{2z}-e_{1z}e_{2y}=1{,}1\cdot5{,}5-\left(-16{,}0\right)\cdot1{,}7=33{,}25,\\
+n_y&=e_{1z}e_{2x}-e_{1x}e_{2z}=\left(-16{,}0\right)\cdot6{,}7-\left(-2{,}0\right)\cdot5{,}5=-96{,}20,\\
+n_z&=e_{1x}e_{2y}-e_{1y}e_{2x}=\left(-2{,}0\right)\cdot1{,}7-1{,}1\cdot6{,}7=-10{,}77,
+\end{align*}
+es decir $\vect{n}=\begin{pmatrix} 33{,}2 \\ -96{,}2 \\ -10{,}8 \end{pmatrix}$ de norma $102{,}4$; el vector hacia el centro es $\vect{c}_t=\begin{pmatrix} 868{,}4 \\ 2054{,}2 \\ 6768{,}5 \end{pmatrix}$ ($\lVert\vect{c}_t\rVert=7126{,}4$), y
+\begin{equation}
+\lvert\hat{\vect{n}}\cdot\hat{\vect{c}}_t\rvert=\frac{241\,636}{(102{,}4)(7126{,}4)}=0{,}331>0{,}087,\qquad \frac{Z_{\max}}{Z_{\min}}=1{,}010<1{,}12,
+\end{equation}
+así que el triángulo \emph{se conserva}. Con un triángulo del salto entre el sofá y la pared, en los píxeles $(344,370)$, $(342,372)$, $(344,372)$,
+$\vect{e}_1=\begin{pmatrix} 438{,}4 \\ -154 \\ -2492{,}4 \end{pmatrix}$ y $\vect{e}_2=\begin{pmatrix} -1{,}7 \\ 18{,}7 \\ 9{,}7 \end{pmatrix}$ y
+\begin{align*}
+n_x&=e_{1y}e_{2z}-e_{1z}e_{2y}=\left(-154{,}0\right)\cdot9{,}7-\left(-2492{,}4\right)\cdot18{,}7=45\,114{,}1,\\
+n_y&=e_{1z}e_{2x}-e_{1x}e_{2z}=\left(-2492{,}4\right)\cdot\left(-1{,}7\right)-438{,}4\cdot9{,}7=-15{,}40,\\
+n_z&=e_{1x}e_{2y}-e_{1y}e_{2x}=438{,}4\cdot18{,}7-\left(-154{,}0\right)\cdot\left(-1{,}7\right)=7\,936{,}3,
+\end{align*}
+es decir $\vect{n}=\begin{pmatrix} 45114{,}1 \\ -15{,}4 \\ 7936{,}3 \end{pmatrix}$ de norma $45806{,}8$; con $\vect{c}_t=\begin{pmatrix} -3248 \\ 1219{,}5 \\ 17930{,}9 \end{pmatrix}$ ($\lVert\vect{c}_t\rVert=18263{,}5$),
+\begin{equation}
+\lvert\hat{\vect{n}}\cdot\hat{\vect{c}}_t\rvert=\frac{4\,244\,669}{(45806{,}8)(18263{,}5)}=0{,}005<0{,}087,\qquad \frac{Z_{\max}}{Z_{\min}}=1{,}58>1{,}12,
+\end{equation}
+y el triángulo \emph{se elimina}. De los 305\,602 triángulos se eliminaron 2\,612 (0{,}85\,\%) y quedaron 302\,990 en la capa de adelante.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{hab_corte.jpg}
+\caption{Izquierda: profundidad a lo largo de la fila $v=370$ de la foto; el salto del sofá a la pared del fondo es donde se cortan los triángulos. Derecha:
+$|\hat{\vect{n}}\cdot\hat{\vect{c}}_t|$ de un triángulo del piso (se conserva) y de uno del salto (se elimina) frente al umbral $\operatorname{sen}5^\circ$.}
+\label{fig:hab-corte}
+\end{figure}

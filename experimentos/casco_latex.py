@@ -869,12 +869,11 @@ def metodologia_algebra(v, extra):
     tri = mal["triangulo"]
     rgbA, rgbB = extra["rgbA"], extra["rgbB"]
     plantilla = r"""
-\subsection{Matrices, vectores e inversas en el proceso}\label{sec:algebra-proceso}
+\subsection{Resumen: matrices, vectores e inversas del proceso}\label{sec:algebra-proceso}
 
-Todo el proceso del mapeador es álgebra lineal: cada paso es una operación entre matrices y vectores, y cada vez que hay que
-deshacer una transformación aparece una inversa. Esta subsección reúne en un solo lugar las matrices, los vectores y las inversas
-que se usan, con los valores de la foto del casco; la teoría está en el marco teórico (sección «\nameref{sec:inversa}») y el
-desarrollo paso a paso, en la sección «\nameref{sec:casco}».
+Los cuatro pasos anteriores se resolvieron con matrices y vectores, y cada vez que hay que deshacer una transformación aparece una
+inversa. Esta subsección recoge en un solo lugar lo que ya se calculó en cada paso, con los valores de la foto del casco; la teoría
+está en el marco teórico (sección «\nameref{sec:inversa}»).
 
 \paragraph{Matrices del proceso.} El cuadro~\ref{tab:matrices-proceso} muestra las matrices en el orden en que se crean. Los tamaños
 cuadran en cada producto: la retroproyección de los $N$ píxeles se hace de una vez con

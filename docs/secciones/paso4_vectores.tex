@@ -1,0 +1,25 @@
+\paragraph{Los vectores de un triángulo y el producto cruz.} Cada triángulo de la malla se describe con tres vértices, y dos de sus lados son
+vectores, $\vect{e}_1=\vect{p}_1-\vect{p}_0$ y $\vect{e}_2=\vect{p}_2-\vect{p}_0$. Con los vértices del triángulo de ejemplo,
+\begin{equation}
+\vect{e}_1=\begin{pmatrix} -0{,}0033 \\ -1{,}1582 \\ -0{,}2729 \end{pmatrix}\ \text{mm},\qquad \vect{e}_2=\begin{pmatrix} 1{,}1917 \\ -0{,}0189 \\ 0{,}1548 \end{pmatrix}\ \text{mm}.
+\end{equation}
+El producto cruz $\vect{n}=\vect{e}_1\times\vect{e}_2$ da un vector perpendicular al triángulo; sus componentes son
+\begin{align*}
+n_x&=e_{1y}e_{2z}-e_{1z}e_{2y}=\left(-1{,}1582\right)\cdot0{,}1548-\left(-0{,}2729\right)\cdot\left(-0{,}0189\right)=-0{,}18445,\\
+n_y&=e_{1z}e_{2x}-e_{1x}e_{2z}=\left(-0{,}2729\right)\cdot1{,}1917-\left(-0{,}0033\right)\cdot0{,}1548=-0{,}32470,\\
+n_z&=e_{1x}e_{2y}-e_{1y}e_{2x}=\left(-0{,}0033\right)\cdot\left(-0{,}0189\right)-\left(-1{,}1582\right)\cdot1{,}1917=1{,}38029,
+\end{align*}
+es decir $\vect{n}=\begin{pmatrix} -0{,}1844 \\ -0{,}3247 \\ 1{,}3803 \end{pmatrix}$. Su norma es $\lVert\vect{n}\rVert=1{,}4299$, que es el doble del área del triángulo (área $=0{,}7150$ mm$^{2}$), y
+el vector unitario es $\hat{\vect{n}}=\vect{n}/\lVert\vect{n}\rVert=\begin{pmatrix} -0{,}1290 \\ -0{,}2271 \\ 0{,}9653 \end{pmatrix}$. Como $\vect{n}$ es perpendicular al triángulo, su producto punto
+con los dos lados debe ser cero: $\hat{\vect{n}}\cdot\vect{e}_1=0{,}0\times10^{0}$ y $\hat{\vect{n}}\cdot\vect{e}_2=-2{,}8\times10^{-17}$ (los ceros de la
+máquina vienen de redondear a cuatro decimales). Y el producto punto de la normal con el rayo hacia el centro del triángulo,
+$\vect{c}_t=\vect{p}_0+\vect{p}_1+\vect{p}_2=\begin{pmatrix} 0{,}536 \\ 0{,}044 \\ 241{,}535 \end{pmatrix}$, dice si la cámara lo ve de frente o de canto:
+$\lvert\hat{\vect{n}}\cdot\hat{\vect{c}}_t\rvert=0{,}9650$ (un valor cercano a $1$ es de frente y cercano a $0$, de canto).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{vec_triangulo.jpg}
+\caption{Triángulo de la malla del casco: los lados $\vect{e}_1$ y $\vect{e}_2$, la normal unitaria $\hat{\vect{n}}$ del producto cruz y
+las operaciones con vectores (norma, producto punto con los lados y área).}
+\label{fig:vec-triangulo}
+\end{figure}

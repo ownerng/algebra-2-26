@@ -1,0 +1,11 @@
+\subsubsection{Resolución del paso 1: la máscara $M$ del casco}\label{sec:casco-mascara}
+
+La red U$^2$-Net entrega para cada píxel un valor $\alpha_{vu}\in[0,255]$; la máscara es la matriz de $1280\times960$ entradas
+\begin{equation}
+M_{vu}=\begin{cases}1&\text{si }\alpha_{vu}>127,\\0&\text{si no,}\end{cases}
+\end{equation}
+que luego se limpia (se quitan puntos sueltos, se rellenan huecos y se conserva la región conectada que más se
+superpone con el recuadro). Para el casco, la suma de las entradas de $M$ es
+$\sum M_{vu}=293\,960$ píxeles, que es el 23{,}92\,\% de los $1\,228\,800$ píxeles de la foto, y la región ocupa las columnas
+$u\in[204,743]$ y las filas $v\in[191,953]$ (una caja de $540\times763$ píxeles). Cada uno de esos píxeles
+será un punto del espacio.

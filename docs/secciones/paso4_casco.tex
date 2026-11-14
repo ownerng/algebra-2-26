@@ -1,0 +1,47 @@
+\subsubsection{Resolución del paso 4: la malla $V$, $F$ del casco}\label{sec:casco-malla}
+
+Sobre la caja de $540\times763$ píxeles se coloca una rejilla con un nodo cada $3$ píxeles (el paso es $\lceil\max(540,763)/300\rceil=3$, para
+tener a lo sumo 300 nodos por lado). Los nodos que caen dentro de la máscara son $32\,657$ ($\approx293\,960/9$, pues cada nodo representa
+$3\times3$ píxeles). Cada uno se retroproyecta dos veces: una a $Z_{\text{frente}}$ y otra a $Z_{\text{atrás}}$, así que
+$V$ tiene $2\cdot32\,657=65\,314$ filas. Las primeras filas de $V$ (en mm, ejes del objeto) y de $F$ (índices de fila de $V$) son
+\begin{equation}
+V=\begin{pmatrix} 29{,}062 & 190{,}855 & -0{,}855 \\ 30{,}618 & 190{,}904 & -0{,}864 \\ 32{,}170 & 190{,}719 & -0{,}891 \\ 16{,}906 & 189{,}386 & -0{,}890 \end{pmatrix}\ \text{mm},\qquad F=\begin{pmatrix} 0 & 11 & 1 \\ 1 & 12 & 2 \\ 3 & 21 & 4 \\ 4 & 22 & 5 \end{pmatrix} .
+\end{equation}
+Cada celda de la rejilla con sus cuatro esquinas dentro del casco se divide en dos triángulos; la parte de atrás repite los mismos
+triángulos con el orden invertido, y las paredes unen el contorno. Quedan 64\,549 caras en el frente, 64\,549 atrás y 1\,526 en las
+paredes: $M=130\,624$ triángulos en total.
+
+\paragraph{Comprobación de que la malla es un sólido cerrado.} En una malla cerrada de triángulos cada arista es de dos caras, así que el número de aristas es
+$E=3M/2=195\,936$. La característica de Euler de una superficie cerrada sin agujeros (como una esfera) es $\chi=V-E+F=2$; aquí
+$\chi=65\,314-195\,936+130\,624=2$.
+
+\paragraph{Un triángulo en detalle.} Se toma el triángulo $16\,135$ del frente (el más cercano al centro del casco), de la fila $F_{16\,135}=( 16260,\,16429,\,16261 )$ de $F$
+(figura~\ref{fig:casco-malla-zoom}). Sus vértices, como filas de una matriz de $3\times3$, y los dos lados que salen de $\vect{p}_0$ son
+\begin{equation}
+\begin{pmatrix}\vect{p}_0\\\vect{p}_1\\\vect{p}_2\end{pmatrix}=\begin{pmatrix} -0{,}2174 & 0{,}4069 & 80{,}5510 \\ -0{,}2207 & -0{,}7513 & 80{,}2780 \\ 0{,}9743 & 0{,}3880 & 80{,}7058 \end{pmatrix},
+\end{equation}
+\begin{equation}
+\vect{e}_1=\vect{p}_1-\vect{p}_0=\begin{pmatrix} -0{,}0033 \\ -1{,}1582 \\ -0{,}2729 \end{pmatrix},\qquad \vect{e}_2=\vect{p}_2-\vect{p}_0=\begin{pmatrix} 1{,}1917 \\ -0{,}0189 \\ 0{,}1548 \end{pmatrix} .
+\end{equation}
+Su normal es el producto cruz, que se calcula con el determinante simbólico de la regla de Sarrus:
+\begin{equation}
+\vect{n}=\vect{e}_1\times\vect{e}_2=\begin{vmatrix}\vect{i}&\vect{j}&\vect{k}\\ -0{,}0033&-1{,}1582&-0{,}2729\\ 1{,}1917&-0{,}0189&0{,}1548\end{vmatrix}=\begin{pmatrix} -0{,}1844 \\ -0{,}3248 \\ 1{,}3803 \end{pmatrix},
+\end{equation}
+y se normaliza dividiendo entre su longitud $\lVert\vect{n}\rVert=1{,}4299$:
+\begin{equation}
+\hat{\vect{n}}=\frac{\vect{n}}{\lVert\vect{n}\rVert}=\frac{1}{1{,}4299}\begin{pmatrix} -0{,}1844 \\ -0{,}3248 \\ 1{,}3803 \end{pmatrix}=\begin{pmatrix} -0{,}1290 \\ -0{,}2271 \\ 0{,}9653 \end{pmatrix} .
+\end{equation}
+Como $\hat n_z>0$, la cara mira hacia el observador (hacia $+z$), que es lo correcto para el frente. El volumen del tetraedro que forma este
+triángulo con el origen es la sexta parte del determinante de la matriz de sus vértices:
+\begin{equation}
+\frac{1}{6}\det\begin{pmatrix}\vect{p}_0\\\vect{p}_1\\\vect{p}_2\end{pmatrix}=\frac{111{,}093}{6}=18{,}516\ \text{mm}^3 .
+\end{equation}
+Sumando esa cantidad sobre las $M$ caras se obtiene el volumen del casco,
+$V_{\text{casco}}=\frac16\sum\det[\vect{p}_0\ \vect{p}_1\ \vect{p}_2]=9\,224\,864\ \text{mm}^3\approx9{,}22$ litros.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.62\linewidth]{casco_malla_zoom.jpg}
+\caption{Zona de la malla $F$ alrededor del triángulo del ejemplo (en naranja), con sus vértices $\vect{p}_0$, $\vect{p}_1$ y $\vect{p}_2$.}
+\label{fig:casco-malla-zoom}
+\end{figure}

@@ -1,0 +1,79 @@
+\paragraph{Con los números de la sala: ajustar planos a los puntos con RANSAC.} El piso, el techo y las paredes son planos, es decir, conjuntos de puntos $\vect{P}$ que cumplen
+$\vect{n}\cdot\vect{P}=d$ con $\vect{n}$ de norma $1$. Como la red tiene ruido, los puntos no caen exactamente en un plano, y se busca el
+plano que más puntos explica con el método RANSAC, que repite tres pasos:
+(1) tomar tres puntos al azar de la misma clase, (2) calcular el plano que pasa por ellos con el producto cruz y (3) contar cuántos de los demás puntos
+están a menos de una tolerancia de ese plano. Para el piso, el primer intento con una muestra de $20\,000$ puntos de la clase «piso» tomó los
+píxeles $(456,\,423)$, $(687,\,538)$ y $(501,\,415)$, que en el espacio son
+\begin{equation}
+\vect{P}_0=\begin{pmatrix} -0{,}199 \\ 0{,}853 \\ 6{,}243 \end{pmatrix},\quad \vect{P}_1=\begin{pmatrix} 0{,}952 \\ 1{,}003 \\ 3{,}465 \end{pmatrix},\quad \vect{P}_2=\begin{pmatrix} 0{,}182 \\ 0{,}823 \\ 6{,}527 \end{pmatrix}\ \text{m},
+\end{equation}
+y dos lados del triángulo que forman son
+\begin{equation}
+\vect{e}_1=\vect{P}_1-\vect{P}_0=\begin{pmatrix} 1{,}151 \\ 0{,}149 \\ -2{,}778 \end{pmatrix},\qquad \vect{e}_2=\vect{P}_2-\vect{P}_0=\begin{pmatrix} 0{,}381 \\ -0{,}030 \\ 0{,}284 \end{pmatrix} .
+\end{equation}
+El producto cruz $\vect{n}=\vect{e}_1\times\vect{e}_2$ es perpendicular a los dos y, por tanto, al plano. Sus componentes son
+\begin{align*}
+n_x&=e_{1y}e_{2z}-e_{1z}e_{2y}=0{,}149\cdot0{,}284-\left(-2{,}778\right)\cdot\left(-0{,}030\right)=-0{,}0410,\\
+n_y&=e_{1z}e_{2x}-e_{1x}e_{2z}=\left(-2{,}778\right)\cdot0{,}381-1{,}151\cdot0{,}284=-1{,}3853,\\
+n_z&=e_{1x}e_{2y}-e_{1y}e_{2x}=1{,}151\cdot\left(-0{,}030\right)-0{,}149\cdot0{,}381=-0{,}0913,
+\end{align*}
+es decir $\vect{n}=\begin{pmatrix} -0{,}041 \\ -1{,}385 \\ -0{,}091 \end{pmatrix}$, con norma $\lVert\vect{n}\rVert=1{,}389$. Se divide entre la norma para que quede de longitud $1$ y se elige el signo
+para que apunte hacia arriba (el eje $y$ de la cámara apunta hacia abajo), y $d$ sale del producto punto con cualquiera de los tres puntos:
+\begin{equation}
+\hat{\vect{n}}=\frac{\vect{n}}{\lVert\vect{n}\rVert}=\begin{pmatrix} -0{,}0295 \\ -0{,}9974 \\ -0{,}0657 \end{pmatrix},\qquad d=\hat{\vect{n}}\cdot\vect{P}_0=-1{,}255\ \text{m}.
+\end{equation}
+La tolerancia es el 2\,\% de la mediana de $Z$ de la muestra, 7{,}0 cm, y 19\,413 de los 20\,000 puntos de la muestra quedaron dentro de ella
+(97{,}1\,\%): el plano es muy bueno. Con todos esos puntos se vuelve a ajustar el plano por mínimos cuadrados (el vector singular del menor valor
+singular de los puntos centrados, el mismo SVD que se usa en la sección «\nameref{sec:inversa}») y queda el plano final del piso. El método repite esto
+para el techo y hasta cuatro paredes. El cuadro~\ref{tab:hab-planos} reúne los seis planos y las figuras~\ref{fig:hab-ransac} y~\ref{fig:hab-planos} los muestran.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{hab_ransac.jpg}
+\caption{Izquierda: tres puntos del piso, los lados $\vect{e}_1$ y $\vect{e}_2$ de su triángulo y la normal $\hat{\vect{n}}$ del producto cruz.
+Derecha: distancia de los puntos de la muestra a ese plano; los que quedan a la izquierda de la línea roja votan por él.}
+\label{fig:hab-ransac}
+\end{figure}
+
+\begin{table}[htbp]
+\caption{Planos ajustados en la sala: normal unitaria $\hat{\vect{n}}$, constante $d$ (m), ángulo de la normal con la vertical y píxeles que quedaron sobre el plano}
+\label{tab:hab-planos}
+\centering\small
+\begin{tabular}{@{}lp{5.2cm}rrr@{}}
+\toprule
+Plano & $\hat{\vect{n}}=(n_x,n_y,n_z)$ & $d$ & Ángulo & Píxeles \\
+\midrule
+Piso & $(0{,}0100,\,-0{,}9982,\,-0{,}0587)$ & $-1{,}210$ & $3{,}4^\circ$ & $61\,102$ \\
+Techo & $(-0{,}0073,\,-0{,}9997,\,0{,}0217)$ & $2{,}088$ & $1{,}3^\circ$ & $47\,065$ \\
+Pared 1 & $(-0{,}9993,\,-0{,}0184,\,0{,}0309)$ & $2{,}191$ & $88{,}9^\circ$ & $84\,756$ \\
+Pared 2 & $(-0{,}9937,\,-0{,}1087,\,-0{,}0263)$ & $-1{,}788$ & $83{,}8^\circ$ & $73\,902$ \\
+Pared 3 & $(-0{,}2504,\,-0{,}1255,\,0{,}9600)$ & $7{,}079$ & $82{,}8^\circ$ & $50\,474$ \\
+Pared 4 & $(-0{,}9937,\,-0{,}0270,\,0{,}1089)$ & $-1{,}240$ & $88{,}5^\circ$ & $12\,566$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{hab_planos.jpg}
+\caption{Los puntos de cada plano, vistos desde arriba y de lado, con la cámara en el origen. El piso (azul) sube suavemente hacia el fondo, el techo
+(naranja) y las paredes forman las otras caras del cuarto.}
+\label{fig:hab-planos}
+\end{figure}
+
+\paragraph{Qué dicen las normales.} Las normales son vectores y el producto punto dice cómo se cruzan los planos. La del piso es
+$\hat{\vect{n}}_{\text{piso}}=\begin{pmatrix} 0{,}0100 \\ -0{,}9982 \\ -0{,}0587 \end{pmatrix}$; la de la pared de la izquierda, $\hat{\vect{n}}_1=\begin{pmatrix} -0{,}9993 \\ -0{,}0184 \\ 0{,}0309 \end{pmatrix}$. Su producto punto es
+\begin{equation}
+\hat{\vect{n}}_{\text{piso}}\cdot\hat{\vect{n}}_1=0{,}0066\quad\Longrightarrow\quad\theta=\arccos(0{,}0066)=89{,}6^\circ,
+\end{equation}
+casi perpendiculares, como deben ser un piso y una pared. Entre la pared izquierda y la del fondo, $\hat{\vect{n}}_1\cdot\hat{\vect{n}}_3=0{,}282$ y el ángulo es
+$73{,}6^\circ$: no son $90^\circ$ exactos porque el programa supone un ángulo de visión de $65^\circ$ y la red tiene error, y eso inclina un poco los
+planos lejanos (figura~\ref{fig:hab-normales}). El techo es casi paralelo al piso ($4{,}7^\circ$). Además, el valor $|d|$ de la normal del piso es la
+\emph{altura de la cámara}: $|d|=1{,}210$ m.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{hab_normales.jpg}
+\caption{Las normales de cuatro planos como vectores unitarios (izquierda) y el ángulo entre cada par de planos, calculado con el producto punto (derecha).}
+\label{fig:hab-normales}
+\end{figure}

@@ -1,0 +1,23 @@
+\paragraph{Resumen: matrices, vectores e inversas del proceso.} El cuadro~\ref{tab:resumen-algebra} reúne los objetos
+matemáticos que aparecieron, su tamaño con el casco y cómo se usa o se invierte cada uno.
+
+\begin{table}[htbp]
+\caption{Matrices, vectores e inversas del proceso, con los valores del casco}
+\label{tab:resumen-algebra}
+\centering\small
+\begin{tabular}{@{}p{2.3cm}p{3.0cm}p{4.2cm}p{4.0cm}@{}}
+\toprule
+Objeto & Tamaño & Valor en el casco & Inversa o uso \\
+\midrule
+$I$ (foto) & $1280\times960\times3$ & 3\,686\,400 números & el JPEG se decodifica con $C^{T}$ y $T^{-1}$ \\
+$M$ (máscara) & $1280\times960$ & 293\,960 píxeles con 1 & filtra los píxeles que se retroproyectan \\
+$K$ & $3\times3$ & $f=753{,}449$, $(c_x,c_y)=(480,640)$ & $K^{-1}$ con $1/f=0{,}001327$, $-c_x/f=-0{,}637070$, $-c_y/f=-0{,}849427$ \\
+$\vect{r}$ (rayo) & $3\times1$ & $\vect{r}_A=(0{,}011,\,-0{,}085,\,1{,}000)^{T}$ & $K^{-1}\vect{p}$; norma $1{,}00366$ \\
+$H$ & $3\times N$ & $3\times32\,657$ & $K^{-1}H\operatorname{diag}(Z)$ en un solo producto \\
+$\operatorname{diag}(Z)$ & $N\times N$ & $Z\in[284,381]$ mm & inversa $\operatorname{diag}(1/Z)$ \\
+$R_o$ & $3\times3$ & $\operatorname{diag}(1,-1,-1)$ & $R_o^{-1}=R_o^{T}=R_o$ \\
+$V$, $F$ & $N\times3$, $M\times3$ & $65\,314$ y $130\,624$ filas & $\tfrac16\sum\det$ da el volumen: 9{,}22 L \\
+$\mathcal{M}$ (alto) & $4\times4$ & rotación $R_x(90^\circ)$ & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ \\
+\bottomrule
+\end{tabular}
+\end{table}

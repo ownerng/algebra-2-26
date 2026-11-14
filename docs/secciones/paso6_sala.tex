@@ -1,0 +1,58 @@
+\paragraph{Con los números de la sala: enderezar la escena con una rotación.} El celular casi nunca está derecho, y la normal del piso medida no es exactamente vertical. La del piso es
+$\hat{\vect{n}}=\begin{pmatrix} 0{,}00963 \\ -0{,}99828 \\ -0{,}05776 \end{pmatrix}$ y la vertical es $\vect{m}=\begin{pmatrix} 0 \\ -1 \\ 0 \end{pmatrix}$ (hacia arriba, en los ejes de la cámara). Se busca la rotación $R$ que lleva $\hat{\vect{n}}$ a $\vect{m}$ con la
+fórmula de Rodrigues, $R=I+[\vect{v}]_\times+[\vect{v}]_\times^{2}/(1+c)$, donde
+\begin{equation}
+\vect{v}=\hat{\vect{n}}\times\vect{m}=\begin{pmatrix} -0{,}05776 \\ 0 \\ -0{,}00963 \end{pmatrix},\qquad c=\hat{\vect{n}}\cdot\vect{m}=0{,}998284,
+\end{equation}
+y el ángulo del giro es $\theta=\arccos c=3{,}36^\circ$ (es decir, la cámara estaba inclinada $3{,}36^\circ$). Las matrices son
+\begin{equation}
+[\vect{v}]_\times=\begin{pmatrix} 0 & 0{,}00963 & 0 \\ -0{,}00963 & 0 & 0{,}05776 \\ 0 & -0{,}05776 & 0 \end{pmatrix},\qquad [\vect{v}]_\times^{2}=\begin{pmatrix} -0{,}00009 & 0 & 0{,}00056 \\ 0 & -0{,}00343 & 0 \\ 0{,}00056 & 0 & -0{,}00334 \end{pmatrix} ,
+\end{equation}
+y, sumando con $1/(1+c)=0{,}5004$,
+\begin{equation}
+R=\begin{pmatrix} 0{,}99995 & 0{,}00963 & 0{,}00028 \\ -0{,}00963 & 0{,}99828 & 0{,}05776 \\ 0{,}00028 & -0{,}05776 & 0{,}99833 \end{pmatrix} .
+\end{equation}
+La comprobación es que $R\hat{\vect{n}}=\begin{pmatrix} 0 \\ -1 \\ 0 \end{pmatrix}=\vect{m}$, que $\det R=1{,}000000$ y que $R^{T}R=I$ (coincide con la identidad con diferencias menores que $10^{-8}$): la rotación no
+deforma el cuarto. Después se compone con el cambio de ejes del visor $R_o=\operatorname{diag}(1,-1,-1)$ y todos los vértices se giran con un solo producto de matrices,
+\begin{equation}
+V_{\text{giro}}=V\,G^{T},\qquad G=R_oR=\begin{pmatrix} 0{,}99995 & 0{,}00963 & 0{,}00028 \\ 0{,}00963 & -0{,}99828 & -0{,}05776 \\ -0{,}00028 & 0{,}05776 & -0{,}99833 \end{pmatrix} .
+\end{equation}
+Los puntos del piso tenían una dispersión de la coordenada vertical de $67{,}6$ mm y quedan con $6{,}5$ mm, alrededor de la altura $y=-1\,207$ mm, que es la altura de la cámara sobre el
+piso ($1{,}21$ m, igual a $|d|$). Los vectores $\hat{\vect{n}}$, $\vect{m}$ y $\vect{v}$ y las cifras anteriores están en la figura~\ref{fig:vec-rodrigues}, y el antes y el después del piso, en la figura~\ref{fig:hab-rotacion}.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{vec_rodrigues.jpg}
+\caption{Los vectores de la rotación de Rodrigues: la normal medida del piso $\hat{\vect{n}}$, la vertical $\vect{m}$ y el eje de giro $\vect{v}=\hat{\vect{n}}\times\vect{m}$, perpendicular a los dos.}
+\label{fig:vec-rodrigues}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{hab_rotacion.jpg}
+\caption{Puntos del piso antes de girar (inclinados, en los ejes de la cámara), después de girar con $G=R_oR$ (horizontales) y distribución de su altura.}
+\label{fig:hab-rotacion}
+\end{figure}
+
+\paragraph{Los vectores de la habitación en un cuadro.} El cuadro~\ref{tab:vec-hab} reúne los vectores que aparecieron y la operación con la que se
+obtuvo cada uno.
+
+\begin{table}[htbp]
+\caption{Vectores del proceso de una habitación y operación con la que se obtienen}
+\label{tab:vec-hab}
+\centering\small
+\begin{tabular}{@{}p{2.5cm}p{4.0cm}p{3.1cm}p{4.2cm}@{}}
+\toprule
+Vector & Qué representa & Valor en la sala & Operación \\
+\midrule
+$\vect{r}=K^{-1}\vect{p}$ & dirección del rayo de un píxel & $\begin{pmatrix} 0{,}2004 \\ 0{,}2681 \\ 1 \end{pmatrix}$ (píxel del piso) & producto matriz--vector; norma $1{,}0545$ \\
+$\vect{P}=Z\,\vect{r}$ & punto 3D del píxel & $\begin{pmatrix} 0{,}75 \\ 1 \\ 3{,}73 \end{pmatrix}$ m & producto por un escalar \\
+$\vect{e}_1,\ \vect{e}_2$ & dos lados del triángulo de RANSAC & $\lVert\vect{e}_1\rVert=3{,}01$ m & resta de puntos \\
+$\hat{\vect{n}}$ & normal de un plano & $\begin{pmatrix} -0{,}0295 \\ -0{,}9974 \\ -0{,}0657 \end{pmatrix}$ & producto cruz y norma \\
+$\hat{\vect{n}}_i\cdot\hat{\vect{n}}_j$ & ángulo entre dos planos & $0{,}0066$ (piso--pared) & producto punto \\
+$t_k=d_k/(\hat{\vect{n}}_k\cdot\vect{r})$ & corte del rayo con un plano & $4{,}85$ m (detrás del sofá) & producto punto y división \\
+$\vect{v}=\hat{\vect{n}}\times\vect{m}$ & eje del giro que endereza la sala & $\begin{pmatrix} -0{,}058 \\ 0 \\ -0{,}010 \end{pmatrix}$ & producto cruz \\
+$\hat{\vect{n}}\cdot\hat{\vect{c}}_t$ & si un triángulo se ve de canto & $0{,}331$ (piso), $0{,}005$ (salto) & producto punto con el rayo al centro \\
+\bottomrule
+\end{tabular}
+\end{table}

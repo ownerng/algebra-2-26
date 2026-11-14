@@ -1,0 +1,18 @@
+\paragraph{El color como vector.} El color de un píxel también es un vector, de $\mathbb{R}^{3}$: $\vect{c}=(R,G,B)^{T}$. En la foto, los
+píxeles A, B y C tienen $\vect{c}_A=\begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix}$, $\vect{c}_B=\begin{pmatrix} 231 \\ 231 \\ 243 \end{pmatrix}$ y $\vect{c}_C=\begin{pmatrix} 199 \\ 143 \\ 90 \end{pmatrix}$. La resta de dos colores es un vector y su norma
+mide qué tan distintos son:
+\begin{equation}
+\vect{c}_B-\vect{c}_A=\begin{pmatrix} 230 \\ 230 \\ 242 \end{pmatrix},\qquad \lVert\vect{c}_B-\vect{c}_A\rVert=\sqrt{230^2+230^2+242^2}=405{,}4 .
+\end{equation}
+El producto punto da otra información: $\cos\theta=\vect{c}_A\cdot\vect{c}_B/(\lVert\vect{c}_A\rVert\lVert\vect{c}_B\rVert)=0{,}9997$ entre A y B y
+$0{,}9554$ entre A y C. Dos colores grises, uno casi negro y el otro casi blanco, apuntan en la misma dirección de $\mathbb{R}^{3}$ (coseno $\approx1$)
+aunque estén muy lejos entre sí (norma de la diferencia grande): el coseno mide la dirección, es decir el \emph{tono}, y la norma de la
+diferencia mide cuánto cambia el color (figura~\ref{fig:vec-colores}). La segmentación usa esa diferencia para separar el casco del escritorio.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{vec_colores.jpg}
+\caption{Los colores de los píxeles A, B y C como vectores de $\mathbb{R}^{3}$ (izquierda), y norma de la diferencia y coseno del ángulo
+entre cada par (derecha).}
+\label{fig:vec-colores}
+\end{figure}

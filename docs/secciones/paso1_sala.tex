@@ -1,0 +1,59 @@
+\paragraph{Con los números de la sala: profundidad en metros y clase de cada píxel.} La red Depth Anything V2 entrega una matriz $Z$ de $640\times960$ números con
+la distancia en metros de cada píxel al plano de la cámara: va de 1{,}40 m (la mesa de centro) a 7{,}50 m (el fondo), con media de 4{,}38 m,
+y tardó 1\,583 ms. SegFormer entrega otra matriz del mismo tamaño con la clase de cada píxel (24 clases distintas en esta foto, en 3\,692 ms); las
+del cuarto se cuentan en el cuadro~\ref{tab:hab-clases} y las dos matrices se ven en la figura~\ref{fig:hab-etapas}.
+
+\begin{table}[htbp]
+\caption{Píxeles de la foto de la sala que pertenecen a cada superficie del cuarto}
+\label{tab:hab-clases}
+\centering\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Clase & Píxeles & Parte de la foto \\
+\midrule
+Pared & $186\,555$ & $30{,}4$\,\% \\
+Piso & $61\,644$ & $10{,}0$\,\% \\
+Techo & $47\,065$ & $7{,}7$\,\% \\
+Ventana & $36\,010$ & $5{,}9$\,\% \\
+Espejo & $8\,894$ & $1{,}4$\,\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{hab_etapas.jpg}
+\caption{De la foto a las matrices del proceso: foto, profundidad $Z(u,v)$ de la red, clase de cada píxel y planos ajustados (un color por plano).}
+\label{fig:hab-etapas}
+\end{figure}
+
+\paragraph{De los píxeles a vectores.} Cada píxel se convierte en un vector con $\vect{r}=K^{-1}\vect{p}$ (como en la
+sección «\nameref{sec:casco-retro}») y luego en un punto $\vect{P}=Z\,\vect{r}$. El cuadro~\ref{tab:hab-rayos} muestra los cuatro píxeles de la figura~\ref{fig:hab-entrada},
+y la retroproyección de los cuatro a la vez es un solo producto de matrices, $P=K^{-1}H\operatorname{diag}(Z_1,\dots,Z_4)$, con $H$ de $3\times4$ (cada
+columna es un píxel):
+\begin{equation}
+H=\begin{pmatrix} 631 & 154 & 432 & 173 \\ 522 & 288 & 26 & 461 \\ 1 & 1 & 1 & 1 \end{pmatrix},
+\end{equation}
+\begin{equation}
+K^{-1}H=\begin{pmatrix} 0{,}2003 & -0{,}4327 & -0{,}0638 & -0{,}4075 \\ 0{,}2680 & -0{,}0425 & -0{,}3902 & 0{,}1870 \\ 1 & 1 & 1 & 1 \end{pmatrix},
+\end{equation}
+\begin{equation}
+P=K^{-1}H\begin{pmatrix}3{,}85&0&0&0\\0&4{,}70&0&0\\0&0&5{,}02&0\\0&0&0&2{,}79\end{pmatrix}=\begin{pmatrix} 0{,}771 & -2{,}033 & -0{,}321 & -1{,}136 \\ 1{,}032 & -0{,}200 & -1{,}960 & 0{,}521 \\ 3{,}851 & 4{,}698 & 5{,}023 & 2{,}788 \end{pmatrix}\ \text{m} .
+\end{equation}
+Las columnas de $P$ son los puntos del piso, de la pared, del techo y del sofá en los ejes de la cámara.
+
+\begin{table}[htbp]
+\caption{Cuatro píxeles de la sala como vectores: píxel $(u,v)$, rayo $\vect{r}=K^{-1}\vect{p}$, su norma, el ángulo con el eje óptico y la profundidad $Z$ de la red (m)}
+\label{tab:hab-rayos}
+\centering\small
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+ & $(u,v)$ & $\vect{r}=K^{-1}\vect{p}$ & $\lVert\vect{r}\rVert$ & $\theta$ & $Z$ \\
+\midrule
+Piso & $(631,\,522)$ & $(0{,}2004,\,0{,}2681,\,1)$ & $1{,}055$ & $18{,}5^\circ$ & $3{,}85$ \\
+Pared & $(154,\,288)$ & $(-0{,}4327,\,-0{,}0425,\,1)$ & $1{,}090$ & $23{,}5^\circ$ & $4{,}70$ \\
+Techo & $(432,\,26)$ & $(-0{,}0637,\,-0{,}3902,\,1)$ & $1{,}075$ & $21{,}6^\circ$ & $5{,}02$ \\
+Sofá & $(173,\,461)$ & $(-0{,}4075,\,0{,}1871,\,1)$ & $1{,}096$ & $24{,}2^\circ$ & $2{,}79$ \\
+\bottomrule
+\end{tabular}
+\end{table}

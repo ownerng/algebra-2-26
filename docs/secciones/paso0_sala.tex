@@ -1,0 +1,33 @@
+\subsubsection{La sala de ejemplo}\label{sec:sala}
+
+Igual que con el casco, cada paso de la reconstrucción se resuelve a continuación, dentro del mismo paso, con una fotografía real y con los números que produce el programa. La
+foto es una sala con un sofá, una mesa de centro y un mueble de televisión (figura~\ref{fig:hab-entrada}), tomada de Wikimedia Commons
+(autor: Shixart1985, licencia CC BY 2.0, \texttt{commons.wikimedia.org}). Se reduce a $960\times640$ píxeles ($N_p=614\,400$ píxeles) y se procesa con el
+programa tal como está (procesamiento bajo); cada etapa se ejecutó por separado
+(\texttt{experimentos/habitacion\_paso\_a\_paso.py}). En la figura~\ref{fig:hab-flujo} están los seis pasos y los objetos matemáticos de cada uno.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{hab_entrada.jpg}
+\caption{Foto de la sala reducida a $960\times640$ píxeles, con los ejes $u$ (columna) y $v$ (fila), el centro $(c_x,c_y)$ y los cuatro píxeles
+(piso, pared, techo y sofá) que se siguen en las cuentas.}
+\label{fig:hab-entrada}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth]{hab_flujo.jpg}
+\caption{Los seis pasos de la reconstrucción de una habitación y el objeto matemático de cada uno.}
+\label{fig:hab-flujo}
+\end{figure}
+
+
+\paragraph{La cámara de la sala.} Con el ángulo de visión $\alpha=65^\circ$ y $W=960$, la distancia focal es $f=(W/2)/\tan(\alpha/2)=753{,}449$ píxeles,
+$(c_x,c_y)=(480,320)$ y
+\begin{equation}
+K=\begin{pmatrix} 753{,}449 & 0 & 480 \\ 0 & 753{,}449 & 320 \\ 0 & 0 & 1 \end{pmatrix},\qquad \det K=f^2=567\,685{,}5,
+\end{equation}
+\begin{equation}
+K^{-1}=\begin{pmatrix} 0{,}001327 & 0 & -0{,}637070 \\ 0 & 0{,}001327 & -0{,}424714 \\ 0 & 0 & 1 \end{pmatrix} .
+\end{equation}
+Son los mismos valores que en el casco porque la foto tiene el mismo ancho; solo cambia $c_y$ porque la altura es otra.
