@@ -1,0 +1,128 @@
+
+\subsection{Los vectores del proceso, uno por uno (casco)}\label{sec:vectores-casco}
+
+Las matrices del proceso se aplican siempre sobre \emph{vectores}, y es con los vectores con los que se hacen las tres operaciones
+del curso: la norma $\lVert\vect{a}\rVert$, el producto punto $\vect{a}\cdot\vect{b}$ y el producto cruz $\vect{a}\times\vect{b}$.
+Esta subsección sigue, con los números del casco, cada vector que aparece desde el píxel hasta la malla y dice qué significa cada operación.
+
+\paragraph{Del píxel al rayo.} Un píxel es el vector $\vect{p}=(u,v,1)^{T}$ (coordenadas homogéneas). Al multiplicarlo por $K^{-1}$ se obtiene
+el vector $\vect{r}=K^{-1}\vect{p}=((u-c_x)/f,\ (v-c_y)/f,\ 1)^{T}$, que apunta desde la cámara hacia el punto del mundo que vio ese píxel. Para
+el píxel A, $(u,v)=(488,576)$, por ejemplo,
+\begin{equation}
+\vect{r}_A=\begin{pmatrix}\dfrac{488-480}{753{,}449}\\[2mm]\dfrac{576-640}{753{,}449}\\[1mm]1\end{pmatrix}=\begin{pmatrix} 0{,}0106 \\ -0{,}0849 \\ 1 \end{pmatrix} .
+\end{equation}
+La \emph{norma} de $\vect{r}$ es la longitud de ese vector, $\lVert\vect{r}_A\rVert=\sqrt{(0{,}0106)^2+(-0{,}0849)^2+1^2}=1{,}0037$, y el ángulo
+que forma con el eje óptico $\vect{e}_z=(0,0,1)^{T}$ sale del producto punto:
+\begin{equation}
+\cos\theta_A=\frac{\vect{r}_A\cdot\vect{e}_z}{\lVert\vect{r}_A\rVert\,\lVert\vect{e}_z\rVert}=\frac{1}{1{,}0037}=0{,}9964,\qquad \theta_A=4{,}89^\circ .
+\end{equation}
+Cuanto más lejos del centro está el píxel, más inclinado es su rayo (cuadro~\ref{tab:rayos-casco} y figura~\ref{fig:vec-rayos}).
+
+\begin{table}[htbp]
+\caption{Los tres píxeles del casco como vectores: píxel $\vect{p}$, rayo $\vect{r}=K^{-1}\vect{p}$, su norma, su ángulo con el eje óptico y la profundidad $Z$ (mm)}
+\label{tab:rayos-casco}
+\centering\small
+\begin{tabular}{@{}clcccc@{}}
+\toprule
+Píxel & $\vect{p}=(u,v,1)$ & $\vect{r}=K^{-1}\vect{p}$ & $\lVert\vect{r}\rVert$ & $\theta$ & $Z$ \\
+\midrule
+A & $(488,\,576,\,1)$ & $(0{,}0106,\,-0{,}0849,\,1)$ & $1{,}0037$ & $4{,}89^\circ$ & $300{,}9$ \\
+B & $(450,\,300,\,1)$ & $(-0{,}0398,\,-0{,}4513,\,1)$ & $1{,}0978$ & $24{,}37^\circ$ & $307{,}9$ \\
+C & $(221,\,576,\,1)$ & $(-0{,}3438,\,-0{,}0849,\,1)$ & $1{,}0608$ & $19{,}50^\circ$ & $379{,}1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Del rayo al punto.} Multiplicar el rayo por la profundidad lo estira hasta el punto del casco: $\vect{P}=Z\,\vect{r}$. Es una
+multiplicación de un vector por un escalar, y el resultado conserva la dirección. Para A, con $Z=300{,}87$ mm,
+\begin{equation}
+\vect{P}_A=300{,}87\cdot\begin{pmatrix} 0{,}0106 \\ -0{,}0849 \\ 1 \end{pmatrix}=\begin{pmatrix} 3{,}19 \\ -25{,}56 \\ 300{,}87 \end{pmatrix}\ \text{mm},
+\end{equation}
+y su norma, $\lVert\vect{P}_A\rVert=301{,}97$ mm, es la distancia real de la cámara a ese punto (mayor que $Z$ porque el rayo está inclinado:
+$\lVert\vect{P}\rVert=Z\lVert\vect{r}\rVert$).
+
+\paragraph{Producto punto entre dos rayos.} El ángulo entre los rayos de dos píxeles se calcula igual. Para A y C,
+\begin{equation}
+\vect{r}_A\cdot\vect{r}_C=(0{,}0106)(-0{,}3438)+(-0{,}0849)(-0{,}0849)+1\cdot1=1{,}0036,
+\end{equation}
+\begin{equation}
+\cos\theta_{AC}=\frac{1{,}0036}{(1{,}0037)(1{,}0608)}=0{,}9426,
+\end{equation}
+es decir $\theta_{AC}=19{,}51^\circ$. En la figura~\ref{fig:vec-rayos} están los ángulos de los tres píxeles con el eje óptico y entre sí.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{vec_rayos.jpg}
+\caption{Izquierda: los rayos $\vect{r}_A$, $\vect{r}_B$ y $\vect{r}_C$ (con componente $z=1$) cruzan el plano de la imagen, y sus puntos
+$\vect{P}=Z\vect{r}$ están más lejos sobre el mismo rayo. Derecha: ángulos de cada rayo con el eje óptico y entre rayos, calculados con el
+producto punto.}
+\label{fig:vec-rayos}
+\end{figure}
+
+\paragraph{El color como vector.} El color de un píxel también es un vector, de $\mathbb{R}^{3}$: $\vect{c}=(R,G,B)^{T}$. En la foto, los
+píxeles A, B y C tienen $\vect{c}_A=\begin{pmatrix} 1 \\ 1 \\ 1 \end{pmatrix}$, $\vect{c}_B=\begin{pmatrix} 231 \\ 231 \\ 243 \end{pmatrix}$ y $\vect{c}_C=\begin{pmatrix} 199 \\ 143 \\ 90 \end{pmatrix}$. La resta de dos colores es un vector y su norma
+mide qué tan distintos son:
+\begin{equation}
+\vect{c}_B-\vect{c}_A=\begin{pmatrix} 230 \\ 230 \\ 242 \end{pmatrix},\qquad \lVert\vect{c}_B-\vect{c}_A\rVert=\sqrt{230^2+230^2+242^2}=405{,}4 .
+\end{equation}
+El producto punto da otra información: $\cos\theta=\vect{c}_A\cdot\vect{c}_B/(\lVert\vect{c}_A\rVert\lVert\vect{c}_B\rVert)=0{,}9997$ entre A y B y
+$0{,}9554$ entre A y C. Dos colores grises, uno casi negro y el otro casi blanco, apuntan en la misma dirección de $\mathbb{R}^{3}$ (coseno $\approx1$)
+aunque estén muy lejos entre sí (norma de la diferencia grande): el coseno mide la dirección, es decir el \emph{tono}, y la norma de la
+diferencia mide cuánto cambia el color (figura~\ref{fig:vec-colores}). La segmentación usa esa diferencia para separar el casco del escritorio.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{vec_colores.jpg}
+\caption{Los colores de los píxeles A, B y C como vectores de $\mathbb{R}^{3}$ (izquierda), y norma de la diferencia y coseno del ángulo
+entre cada par (derecha).}
+\label{fig:vec-colores}
+\end{figure}
+
+\paragraph{Los vectores de un triángulo y el producto cruz.} Cada triángulo de la malla se describe con tres vértices, y dos de sus lados son
+vectores, $\vect{e}_1=\vect{p}_1-\vect{p}_0$ y $\vect{e}_2=\vect{p}_2-\vect{p}_0$. Con los vértices del triángulo de ejemplo,
+\begin{equation}
+\vect{e}_1=\begin{pmatrix} -0{,}0033 \\ -1{,}1582 \\ -0{,}2729 \end{pmatrix}\ \text{mm},\qquad \vect{e}_2=\begin{pmatrix} 1{,}1917 \\ -0{,}0189 \\ 0{,}1548 \end{pmatrix}\ \text{mm}.
+\end{equation}
+El producto cruz $\vect{n}=\vect{e}_1\times\vect{e}_2$ da un vector perpendicular al triángulo; sus componentes son
+\begin{align*}
+n_x&=e_{1y}e_{2z}-e_{1z}e_{2y}=\left(-1{,}1582\right)\cdot0{,}1548-\left(-0{,}2729\right)\cdot\left(-0{,}0189\right)=-0{,}18445,\\
+n_y&=e_{1z}e_{2x}-e_{1x}e_{2z}=\left(-0{,}2729\right)\cdot1{,}1917-\left(-0{,}0033\right)\cdot0{,}1548=-0{,}32470,\\
+n_z&=e_{1x}e_{2y}-e_{1y}e_{2x}=\left(-0{,}0033\right)\cdot\left(-0{,}0189\right)-\left(-1{,}1582\right)\cdot1{,}1917=1{,}38029,
+\end{align*}
+es decir $\vect{n}=\begin{pmatrix} -0{,}1844 \\ -0{,}3247 \\ 1{,}3803 \end{pmatrix}$. Su norma es $\lVert\vect{n}\rVert=1{,}4299$, que es el doble del área del triángulo (área $=0{,}7150$ mm$^{2}$), y
+el vector unitario es $\hat{\vect{n}}=\vect{n}/\lVert\vect{n}\rVert=\begin{pmatrix} -0{,}1290 \\ -0{,}2271 \\ 0{,}9653 \end{pmatrix}$. Como $\vect{n}$ es perpendicular al triángulo, su producto punto
+con los dos lados debe ser cero: $\hat{\vect{n}}\cdot\vect{e}_1=0{,}0\times10^{0}$ y $\hat{\vect{n}}\cdot\vect{e}_2=-2{,}8\times10^{-17}$ (los ceros de la
+máquina vienen de redondear a cuatro decimales). Y el producto punto de la normal con el rayo hacia el centro del triángulo,
+$\vect{c}_t=\vect{p}_0+\vect{p}_1+\vect{p}_2=\begin{pmatrix} 0{,}536 \\ 0{,}044 \\ 241{,}535 \end{pmatrix}$, dice si la cámara lo ve de frente o de canto:
+$\lvert\hat{\vect{n}}\cdot\hat{\vect{c}}_t\rvert=0{,}9650$ (un valor cercano a $1$ es de frente y cercano a $0$, de canto).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.97\linewidth]{vec_triangulo.jpg}
+\caption{Triángulo de la malla del casco: los lados $\vect{e}_1$ y $\vect{e}_2$, la normal unitaria $\hat{\vect{n}}$ del producto cruz y
+las operaciones con vectores (norma, producto punto con los lados y área).}
+\label{fig:vec-triangulo}
+\end{figure}
+
+\paragraph{Del punto de la cámara al objeto.} Para pasar de los ejes de la cámara a los del objeto se resta el vector $\vect{c}$ (el centro
+del sólido) y se gira con $R_o$. Con $\vect{c}=\begin{pmatrix} -3{,}4 \\ -36{,}1 \\ 379{,}5 \end{pmatrix}$ mm,
+\begin{equation}
+\vect{p}_{\text{obj}}=R_o(\vect{P}-\vect{c}),\qquad R_o=\operatorname{diag}(1,-1,-1),
+\end{equation}
+que cambia el signo de las componentes $y$ y $z$ (un giro de $180^\circ$ alrededor de $x$) sin cambiar la norma. En el cuadro~\ref{tab:objeto-vec}
+se ve para los tres puntos de ejemplo.
+
+\begin{table}[htbp]
+\caption{Los tres puntos del casco en los ejes de la cámara $\vect{P}$, restados del centro $\vect{c}$ y girados $R_o(\vect{P}-\vect{c})$ (mm)}
+\label{tab:objeto-vec}
+\centering\footnotesize
+\begin{tabular}{@{}cp{3.7cm}p{3.7cm}p{3.7cm}@{}}
+\toprule
+Punto & $\vect{P}$ & $\vect{P}-\vect{c}$ & $R_o(\vect{P}-\vect{c})$ \\
+\midrule
+A & $(3{,}2,\,-25{,}6,\,300{,}9)$ & $(6{,}5,\,10{,}5,\,-78{,}7)$ & $(6{,}5,\,-10{,}5,\,78{,}7)$ \\
+B & $(-12{,}3,\,-139{,}0,\,307{,}9)$ & $(-8{,}9,\,-102{,}9,\,-71{,}6)$ & $(-8{,}9,\,102{,}9,\,71{,}6)$ \\
+C & $(-130{,}3,\,-32{,}2,\,379{,}1)$ & $(-127{,}0,\,3{,}9,\,-0{,}4)$ & $(-127{,}0,\,-3{,}9,\,0{,}4)$ \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -263,9 +263,13 @@ def construir(Z: np.ndarray, K: np.ndarray, Z_fondo: np.ndarray | None = None, d
         uv = np.vstack([uv * [1, 0.5] + [0, 0.5], uv2 * [1, 0.5]])
         P, F = np.vstack([P, P2]), np.vstack([F, F2 + n_frente])
 
-    # Piso: entre los puntos del tercio de abajo de la foto (solo la capa de adelante)
+    # Piso: entre los puntos del tercio de abajo de la foto que no son muebles (solo la capa de adelante)
     R, altura = np.eye(3), None
-    plano = piso(P[:n_frente][v > 0.65 * alto], np.random.default_rng(semilla))
+    abajo = v > 0.65 * alto
+    if mueble is not None:   # sin muebles: una mesa de centro también es un plano horizontal
+        libre = abajo & ~mueble[v, u]
+        abajo = libre if libre.sum() > 0.05 * abajo.sum() else abajo
+    plano = piso(P[:n_frente][abajo], np.random.default_rng(semilla))
     if plano is not None:
         n, dist = plano
         R, altura = girar_a(n, ARRIBA), -dist

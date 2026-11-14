@@ -176,6 +176,8 @@ ecuación~\eqref{eq:volumen}. La foto se usa como textura del frente.
 
 \input{secciones/casco_matematica}
 
+\input{secciones/vectores_casco}
+
 \subsection{Procesamiento alto}
 
 La página permite elegir entre procesamiento \textbf{bajo} y \textbf{alto}. El
@@ -195,7 +197,8 @@ minutos. Este modo se usa solo con objetos.
 Para una habitación se usa la misma idea que para un objeto, llevar cada píxel
 al espacio con $K^{-1}$, pero la profundidad se obtiene de otra forma: se
 aprovecha que el piso, las paredes y el techo son planos. El proceso tiene seis
-pasos.
+pasos, que se desarrollan con números reales en la sección «\nameref{sec:sala}», y los
+vectores que intervienen (rayos, normales, ejes de giro) están en la sección «\nameref{sec:vectores-casco}».
 
 \paragraph{Paso 1: profundidad en metros y clases.} La red Depth Anything V2
 entrega la distancia $Z(u,v)$ de cada píxel en metros, y cada píxel se lleva al
@@ -239,6 +242,8 @@ Rodrigues) y todos los vértices se giran con un solo producto de matrices. Como
 $R^{T}R=I$, el giro no deforma la habitación. Si $\vect{n}$ tiene norma 1, la
 altura de la cámara sobre el piso es $|d|$, la distancia del origen (la
 cámara) al plano del piso.
+
+\input{secciones/habitacion_matematica}
 
 \subsection{Interfaz de usuario}
 
