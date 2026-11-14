@@ -88,6 +88,7 @@ export function PanelCamara({ conectada, alConectar, cerrar }: { conectada: bool
               Conecta el iPhone por cable y abre DroidCam en él, con la pantalla encendida. Aparecerá
               <b> iPhone por cable</b>; no hace falta WiFi ni instalar nada.
               {usb && !usb.some((c) => c.droidcam) && ' Todavía no aparece: revisa el cable, desbloquea el iPhone y pulsa ↻.'}
+              {elegida?.ruta.includes('/ttyUSB') && ' Para la ESP32-CAM basta el cable USB-serial (firmware/camara_esp32).'}
               {elegida && !elegida.droidcam && ' (Esta es una cámara del computador; también sirve para probar.)'}
             </p>
           </>

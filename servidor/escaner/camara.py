@@ -5,6 +5,8 @@
     (no hace falta instalar nada).
   • USB: una cámara del computador (/dev/videoN), por ejemplo la que crea el
     cliente de DroidCam para Linux o la webcam; se lee con OpenCV.
+  • ESP32-CAM por USB: el firmware (firmware/camara_esp32) manda los JPEG por el
+    puerto serial (/dev/ttyUSBN) a 1 Mbaud, sin WiFi.
 
 DroidCam solo acepta un cliente a la vez, así que el servidor abre una única
 conexión en un hilo, guarda el último cuadro (JPEG) y lo reparte: a la página
@@ -23,6 +25,8 @@ import numpy as np
 from . import usbmux
 
 PUERTO_DROIDCAM = 4747
+BAUDIOS_ESP32 = 1_000_000
+PREFIJOS_SERIAL = ("/dev/ttyUSB", "/dev/ttyACM")
 
 
 def url_de(ip: str) -> str:
@@ -38,6 +42,8 @@ def url_de(ip: str) -> str:
 def camaras_locales() -> list[dict]:
     """iPhones por cable y cámaras del computador (/dev/video*), con su nombre."""
     lista = [{"ruta": f"ios:{i}", "nombre": "iPhone por cable (DroidCam)", "droidcam": True} for i in usbmux.iphones()]
+    for ruta in sorted(p for pre in PREFIJOS_SERIAL for p in glob.glob(pre + "*")):
+        lista.append({"ruta": ruta, "nombre": "ESP32-CAM por USB", "droidcam": True})
     for ruta in sorted(glob.glob("/dev/video*"), key=lambda r: int(r.removeprefix("/dev/video") or 0)):
         nombre_sys = f"/sys/class/video4linux/{os.path.basename(ruta)}/name"
         try:
@@ -61,6 +67,9 @@ class CamaraRed:
         self.jpeg: bytes | None = None
         self.t_cuadro = 0.0
         self.error = ""
+        self.espejo = False
+        self.voltear = False
+        self._serial = None
         self._hilo: threading.Thread | None = None
         self._parar = threading.Event()
         self._nuevo = threading.Condition()
@@ -73,10 +82,11 @@ class CamaraRed:
         """Abre el video por WiFi (IP) o USB ('/dev/videoN') y espera el primer cuadro."""
         self.desconectar()
         ip = ip.strip()
-        usb = ip.startswith(("/dev/video", "ios:"))
+        usb = ip.startswith(("/dev/video", "ios:") + PREFIJOS_SERIAL)
         self.url, self.error, self.jpeg = (ip if usb else url_de(ip)), "", None
         self._parar = threading.Event()
-        lector = self._leer_usb if ip.startswith("/dev/video") else self._leer_ios if ip.startswith("ios:") else self._leer
+        lector = (self._leer_usb if ip.startswith("/dev/video") else self._leer_ios if ip.startswith("ios:")
+                  else self._leer_serial if ip.startswith(PREFIJOS_SERIAL) else self._leer)
         self._hilo = threading.Thread(target=lector, args=(self.url, self._parar), daemon=True)
         self._hilo.start()
         limite = time.monotonic() + espera
@@ -85,9 +95,22 @@ class CamaraRed:
                 break
             time.sleep(0.1)
         if not self.conectada and not self.error:
-            self.error = ("no llegó imagen; abre DroidCam en el celular y déjalo en pantalla" if usb
+            self.error = ("no llegó imagen; revisa el cable o que sea la cámara y no otro dispositivo" if ip.startswith(PREFIJOS_SERIAL)
+                          else "no llegó imagen; abre DroidCam en el celular y déjalo en pantalla" if usb
                           else "no llegó imagen; revisa la IP y que DroidCam esté abierto en el celular")
         return self.conectada
+
+    def orientar(self, espejo: bool, voltear: bool) -> None:
+        """Orientación de la imagen; en la ESP32-CAM se aplica en el sensor (también a las fotos)."""
+        self.espejo, self.voltear = espejo, voltear
+        self._enviar_orientacion()
+
+    def _enviar_orientacion(self) -> None:
+        if self._serial is not None:
+            try:
+                self._serial.write((b"h" if self.espejo else b"H") + (b"v" if self.voltear else b"V"))
+            except Exception:
+                pass
 
     def desconectar(self) -> None:
         self._parar.set()
@@ -140,6 +163,32 @@ class CamaraRed:
                             raise ConnectionError("el iPhone cerró el video")
                         yield trozo
                 self._repartir(trozos(), parar)
+        self._reintentar(abrir, parar)
+
+    def _leer_serial(self, ruta: str, parar: threading.Event) -> None:
+        """ESP32-CAM por el cable: el puerto serial entrega JPEG uno tras otro."""
+        import serial   # pyserial; solo se necesita con esta cámara
+
+        def abrir():
+            # DTR y RTS en bajo antes de abrir: así el adaptador no reinicia la placa
+            with serial.Serial(None, BAUDIOS_ESP32, timeout=4) as puerto:
+                puerto.port, puerto.dtr, puerto.rts = ruta, False, False
+                puerto.open()
+                self._serial = puerto
+                def trozos():
+                    orientada = False
+                    while True:
+                        if not orientada and self.jpeg is not None:   # ya arrancó: aplica la orientación
+                            orientada = True
+                            self._enviar_orientacion()
+                        trozo = puerto.read(max(1, puerto.in_waiting))
+                        if not trozo:
+                            raise ConnectionError(f"{ruta} dejó de enviar imagen")
+                        yield trozo
+                try:
+                    self._repartir(trozos(), parar)
+                finally:
+                    self._serial = None
         self._reintentar(abrir, parar)
 
     def _leer_usb(self, ruta: str, parar: threading.Event) -> None:

@@ -2,8 +2,8 @@
 // recuadro central donde el servidor lo busca. Dos modos: una sola foto (el
 // procesamiento alto/bajo decide cómo se reconstruye) o calibrar la cámara con el tablero.
 
-import { useState } from 'react';
-import { MARCO, VIDEO } from '../lib/api.ts';
+import { useEffect, useState } from 'react';
+import { MARCO, VIDEO, estadoCamara, orientarCamara } from '../lib/api.ts';
 import { Calibracion } from './Calibracion.tsx';
 
 export type Modo = 'una' | 'calibrar';
@@ -14,11 +14,18 @@ interface Props {
   error: string;
   modo: Modo;
   cambiarModo: (m: Modo) => void;
-  tomarFoto: () => void;
+  tomarFoto: (foto?: Blob) => void;   // sin foto: el cuadro actual de la cámara
 }
 
 export function Encuadre(p: Props) {
   const [proporcion, setProporcion] = useState(4 / 3);
+  const [giro, setGiro] = useState({ espejo: false, voltear: false });
+  useEffect(() => { estadoCamara().then((e) => setGiro({ espejo: e.espejo, voltear: e.voltear })).catch(() => {}); }, [p.conexion]);
+  const girar = (cambio: Partial<typeof giro>) => {
+    const nuevo = { ...giro, ...cambio };
+    setGiro(nuevo);
+    orientarCamara(nuevo.espejo, nuevo.voltear).catch(() => {});
+  };
   const [x0, y0, x1, y1] = MARCO.map((f) => f * 100) as [number, number, number, number];
   const esquina = 4;
   const ocupado = !!p.procesando;
@@ -28,6 +35,11 @@ export function Encuadre(p: Props) {
       <div className="selector" role="group" aria-label="Modo de captura">
         <button type="button" aria-pressed={p.modo === 'una'} disabled={ocupado} onClick={() => p.cambiarModo('una')}>1 foto</button>
         <button type="button" aria-pressed={p.modo === 'calibrar'} disabled={ocupado} onClick={() => p.cambiarModo('calibrar')}>Calibrar</button>
+      </div>
+
+      <div className="selector" role="group" aria-label="Orientación de la imagen">
+        <button type="button" aria-pressed={giro.espejo} onClick={() => girar({ espejo: !giro.espejo })}>Espejo ⇋</button>
+        <button type="button" aria-pressed={giro.voltear} onClick={() => girar({ voltear: !giro.voltear })}>Voltear ⇅</button>
       </div>
 
       <div className="cuadro-caja">
@@ -54,7 +66,12 @@ export function Encuadre(p: Props) {
             {p.error && <p className="aviso" role="alert">{p.error}</p>}
             <p className="pista">Pon el objeto dentro del recuadro</p>
             <div className="fila-botones">
-              <button type="button" className="boton disparo" disabled={ocupado} onClick={p.tomarFoto}>{ocupado ? 'Procesando…' : 'Tomar foto'}</button>
+              <label className="boton" aria-disabled={ocupado}>
+                Subir foto
+                <input type="file" accept="image/*" hidden disabled={ocupado}
+                  onChange={(ev) => { const f = ev.currentTarget.files?.[0]; ev.currentTarget.value = ''; if (f) p.tomarFoto(f); }} />
+              </label>
+              <button type="button" className="boton disparo" disabled={ocupado} onClick={() => p.tomarFoto()}>{ocupado ? 'Procesando…' : 'Tomar foto'}</button>
             </div>
           </>
         )}

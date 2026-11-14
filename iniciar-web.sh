@@ -2,6 +2,8 @@
 # Abre el escáner 3D: el servidor en Python (http://localhost:8000: cámara,
 # segmentación y malla) y la página (http://localhost:3000).
 cd "$(dirname "$0")"
+# Claves (FAL_KEY de fal.ai) en .env, que git ignora
+[ -f .env ] && { set -a; . ./.env; set +a; }
 [ -d servidor/.venv ] || python3 -m venv servidor/.venv
 # Instala lo que falte (rápido si ya está todo)
 servidor/.venv/bin/pip install -q -r servidor/requirements.txt

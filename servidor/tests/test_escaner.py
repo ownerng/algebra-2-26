@@ -390,3 +390,38 @@ def test_colocar_mueble_en_la_maqueta():
         assert abs((M @ [0, 0.5, 0, 1])[1] + 500) < 20                       # alto real: 900 mm
         d = M[:3, :3] @ [0, 0, 1]
         assert np.dot(d / np.linalg.norm(d), -np.array([cx, 0, -3000]) / np.hypot(cx, 3000)) > 0.999   # mira a la cámara
+
+
+def test_camara_esp32_por_serial(monkeypatch):
+    """El lector serial recupera los JPEG que manda el ESP32-CAM, aun con basura del arranque delante."""
+    import os, pty, threading, time
+    import cv2
+    from escaner import camara as cam_mod
+
+    maestro, esclavo = pty.openpty()
+    ruta = os.ttyname(esclavo)
+    monkeypatch.setattr(cam_mod, "PREFIJOS_SERIAL", (ruta,))
+
+    imagen = np.full((48, 64, 3), (30, 120, 220), np.uint8)
+    jpeg = cv2.imencode(".jpg", imagen)[1].tobytes()
+    fin = threading.Event()
+
+    def firmware():
+        os.write(maestro, b"ets Jul 29 2019 rst:0x1 (POWERON_RESET)\r\n")   # arranque de la placa
+        while not fin.is_set():
+            os.write(maestro, jpeg)
+            time.sleep(0.05)
+    hilo = threading.Thread(target=firmware, daemon=True)
+    hilo.start()
+
+    c = cam_mod.CamaraRed()
+    try:
+        assert c.conectar(ruta, espera=5), c.error
+        foto = c.foto()
+        assert foto.shape == (48, 64, 3)
+        assert abs(int(foto[..., 2].mean()) - 220) < 8     # canal rojo (BGR)
+    finally:
+        fin.set()
+        c.desconectar()
+        os.close(maestro)
+        os.close(esclavo)

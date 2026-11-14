@@ -8,7 +8,7 @@ export const VIDEO = `${API}/api/camara/video`;
 // usa el mismo para elegir el objeto (servidor/escaner/proceso.py)
 export const MARCO = [0.2, 0.15, 0.8, 0.85] as const;
 
-export interface EstadoCamara { conectada: boolean; url: string | null; error: string }
+export interface EstadoCamara { conectada: boolean; url: string | null; error: string; espejo: boolean; voltear: boolean }
 
 export interface Modelo {
   V: Float32Array;        // N × 3 (mm): x derecha, y arriba, z hacia la cámara
@@ -45,6 +45,9 @@ async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
 
 export const estadoCamara = () => pedir<EstadoCamara>('/api/camara/estado');
 
+export const orientarCamara = (espejo: boolean, voltear: boolean) =>
+  pedir<EstadoCamara>('/api/camara/orientacion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ espejo, voltear }) });
+
 export interface CamaraUsb { ruta: string; nombre: string; droidcam: boolean }
 
 export const camarasUsb = () => pedir<CamaraUsb[]>('/api/camara/usb');
@@ -77,8 +80,13 @@ function aModelo(d: Record<string, unknown>): Modelo {
   };
 }
 
-// Una sola foto: relieve de la silueta con la foto como textura
-export const escanear = async () => aModelo(await pedir('/api/escanear', { method: 'POST' }));
+// Una sola foto: relieve de la silueta con la foto como textura.
+// La foto subida o, sin ella, el cuadro actual de la cámara
+export async function escanear(foto?: Blob) {
+  const datos = new FormData();
+  if (foto) datos.append('foto', foto);
+  return aModelo(await pedir('/api/escanear', { method: 'POST', body: datos }));
+}
 
 // Habitación: la foto subida o, sin ella, el cuadro actual de la cámara
 export async function escanearHabitacion(foto?: Blob, alto = false) {
@@ -88,10 +96,11 @@ export async function escanearHabitacion(foto?: Blob, alto = false) {
   return aModelo(await pedir('/api/habitacion', { method: 'POST', body: datos }));
 }
 
-// Procesamiento alto: el objeto completo con IA generativa (Hunyuan3D en fal.ai) desde la foto actual
-export async function generar3D() {
+// Procesamiento alto: el objeto completo con IA generativa (Hunyuan3D en fal.ai) desde la foto subida o la actual
+export async function generar3D(foto?: Blob) {
   const datos = new FormData();
   datos.append('modo', 'una');
+  if (foto) datos.append('foto', foto);
   return aModelo(await pedir('/api/generativo', { method: 'POST', body: datos }));
 }
 

@@ -1,7 +1,8 @@
 """Servidor del escáner 3D (FastAPI).
 
   POST /api/camara/conectar   {"ip": "192.168.1.5"}  → abre DroidCam
-  GET  /api/camara/usb                               → cámaras del computador (USB)
+  GET  /api/camara/usb                               → cámaras del computador (USB) y ESP32-CAM (/dev/ttyUSBn)
+  POST /api/camara/orientacion {"espejo": bool, "voltear": bool} → gira la imagen (ESP32-CAM)
   GET  /api/camara/estado                            → ¿hay imagen?
   GET  /api/camara/video                             → vista previa MJPEG
   POST /api/escanear          (foto opcional)        → malla V, F en base64
@@ -52,7 +53,9 @@ vistas: dict[str, Vista] = {}
 async def ciclo(_: FastAPI):
     calibracion.cargar()
     await asyncio.to_thread(segmentacion.precargar)
-    await asyncio.to_thread(profundidad.precargar)
+    # Las redes de profundidad pesan cientos de MB: se bajan en segundo plano para que
+    # el servidor (y la cámara) estén disponibles al instante
+    asyncio.create_task(asyncio.to_thread(profundidad.precargar))
     yield
     camara.desconectar()
 
@@ -65,8 +68,13 @@ class PedidoConexion(BaseModel):
     ip: str
 
 
+class PedidoOrientacion(BaseModel):
+    espejo: bool
+    voltear: bool
+
+
 def estado() -> dict:
-    return {"conectada": camara.conectada, "url": camara.url, "error": camara.error, "marco": MARCO}
+    return {"espejo": camara.espejo, "voltear": camara.voltear, "conectada": camara.conectada, "url": camara.url, "error": camara.error, "marco": MARCO}
 
 
 @app.get("/api/camara/usb")
@@ -84,6 +92,12 @@ async def conectar(p: PedidoConexion) -> dict:
     if not p.ip.strip():
         raise HTTPException(400, "escribe la IP del celular o elige una cámara USB")
     await asyncio.to_thread(camara.conectar, p.ip)
+    return estado()
+
+
+@app.post("/api/camara/orientacion")
+def orientar(p: PedidoOrientacion) -> dict:
+    camara.orientar(p.espejo, p.voltear)
     return estado()
 
 

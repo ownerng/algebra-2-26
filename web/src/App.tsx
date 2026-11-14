@@ -57,9 +57,9 @@ export function App() {
 
   const verModelo = (m: Modelo) => { setModelo(m); setGirar(false); setFase('3d'); };
 
-  const tomarFoto = () => alto
-    ? trabajar('Generando modelo completo (1–4 min)…', async () => verModelo(await generar3D()))
-    : trabajar('Segmentando y reconstruyendo…', async () => verModelo(await escanear()));
+  const tomarFoto = (foto?: Blob) => alto
+    ? trabajar('Generando modelo completo (1–4 min)…', async () => verModelo(await generar3D(foto)))
+    : trabajar('Segmentando y reconstruyendo…', async () => verModelo(await escanear(foto)));
 
   const tomarHabitacion = (foto?: Blob) => trabajar(alto ? 'Generando habitación completa (3–5 min)…' : 'Calculando profundidad y relleno…',
     async () => verModelo(await escanearHabitacion(foto, alto)));
@@ -98,9 +98,17 @@ export function App() {
 
         {fase === 'encuadre' && tipo === 'objetos' && (conectada
           ? <Encuadre conexion={conexion} procesando={procesando} error={error} modo={modo} cambiarModo={cambiarModo}
-              tomarFoto={() => void tomarFoto()} />
-          : <div className="vacio"><p>Conecta la cámara para encuadrar el objeto.</p>
-              <button type="button" className="boton primario" onClick={() => setPanel(true)}>Configurar cámara</button></div>)}
+              tomarFoto={(f) => void tomarFoto(f)} />
+          : <div className="vacio"><p>Conecta la cámara para encuadrar el objeto, o sube una foto.</p>
+              <div className="fila-botones">
+                <button type="button" className="boton primario" onClick={() => setPanel(true)}>Configurar cámara</button>
+                <label className="boton" aria-disabled={!!procesando}>
+                  {procesando ? 'Procesando…' : 'Subir foto'}
+                  <input type="file" accept="image/*" hidden disabled={!!procesando}
+                    onChange={(ev) => { const f = ev.currentTarget.files?.[0]; ev.currentTarget.value = ''; if (f) void tomarFoto(f); }} />
+                </label>
+              </div>
+              {error && <p className="aviso" role="alert">{error}</p>}</div>)}
 
         {fase === '3d' && modelo && (
           <>

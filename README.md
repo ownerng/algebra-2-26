@@ -41,6 +41,20 @@ instalar nada: el servidor pide el video al iPhone a través de `usbmuxd`
 La pestaña USB también lista las cámaras del computador (/dev/video*), por
 ejemplo la webcam, para probar.
 
+### ESP32-CAM por cable (sin WiFi)
+
+Una ESP32-CAM (AI Thinker) conectada por un adaptador USB-serial (FTDI o la
+base MB) manda el video por el mismo cable. Se graba una sola vez:
+
+```
+cd firmware/camara_esp32 && pio run -t upload      # PlatformIO (pip install platformio)
+```
+
+En la página: **Cámara → USB**, elige **ESP32-CAM por USB** (`ttyUSB0`) y
+**Conectar**. Resolución por defecto SVGA (800×600, ~3 cuadros/s). Su ángulo de
+visión es ~65°, el mismo `fov` que usa el escáner. El lente es de enfoque
+manual: gíralo hasta ver nítido el objeto a la distancia de trabajo.
+
 ### Calibrar la cámara (una vez por cámara y resolución)
 
 Imprime el tablero (`http://localhost:8000/api/tablero.svg`) **al 100 %** y
