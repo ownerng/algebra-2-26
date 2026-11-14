@@ -11,6 +11,16 @@
 \usepackage{csquotes}
 \usepackage{url}
 \usepackage{tikz}
+
+% Las figuras y los cuadros quedan exactamente donde se escriben (sin que se
+% corran páginas más abajo): se ignora la posición pedida y se usa [H].
+\usepackage{float}
+\let\figuraoriginal\figure
+\let\endfiguraoriginal\endfigure
+\renewenvironment{figure}[1][]{\figuraoriginal[H]}{\endfiguraoriginal}
+\let\tablaoriginal\table
+\let\endtablaoriginal\endtable
+\renewenvironment{table}[1][]{\tablaoriginal[H]}{\endtablaoriginal}
 \usetikzlibrary{arrows.meta,positioning}
 
 % apacite (BibTeX) en lugar de biblatex-apa (biber): el resultado sigue APA y

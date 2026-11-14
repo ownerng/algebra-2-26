@@ -79,7 +79,7 @@ Por eso el valor de $65^\circ$ es una suposición del programa y no una medida d
 afinar calibrándola), y es una de las razones por las que el tamaño en milímetros del modelo es aproximado
 (limitaciones, sección de discusión): con un ángulo menor, la misma foto corresponde a una focal mayor y a puntos 3D más grandes.
 
-\paragraph{2. De bytes a matriz: el JPEG.} Los bytes que llegan por el cable son
+\paragraph{2. De bytes a matriz: el JPEG} Los bytes que llegan por el cable son
 una imagen comprimida. Para volver a la matriz $I$ hay que deshacer tres
 transformaciones, y las tres son productos de matrices cuya inversa se conoce:
 \begin{enumerate}
@@ -94,7 +94,7 @@ transformaciones, y las tres son productos de matrices cuya inversa se conoce:
         donde $C$ es de $8\times8$. Esa matriz es \emph{ortogonal}: $CC^T=I$, así que
         su inversa es su transpuesta, y el decodificador recupera el bloque con
         $X=C^{T}\,Y\,C$. Con un bloque real del casco (la unión entre la visera oscura y la mentonera clara,
-        columnas $480$--$487$ y filas $694$--$701$ de la foto):
+        columnas $480$--$487$ y filas $694$--$701$ de la foto, figura~\ref{fig:dct}):
         \begin{equation*}
         X=\begin{pmatrix} 3 & 3 & 3 & 4 & 4 & 4 & 3 & 2 \\ 10 & 8 & 6 & 6 & 5 & 4 & 5 & 5 \\ 58 & 51 & 44 & 39 & 34 & 30 & 24 & 20 \\ 93 & 84 & 72 & 63 & 58 & 55 & 55 & 54 \\ 204 & 193 & 178 & 162 & 148 & 141 & 133 & 123 \\ 248 & 249 & 249 & 246 & 242 & 238 & 237 & 233 \\ 229 & 230 & 233 & 236 & 238 & 239 & 237 & 236 \\ 238 & 237 & 237 & 238 & 237 & 237 & 235 & 235 \end{pmatrix} ,
         \end{equation*}

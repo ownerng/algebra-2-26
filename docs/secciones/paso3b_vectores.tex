@@ -1,10 +1,4 @@
-\paragraph{Del punto de la cámara al objeto.} Para pasar de los ejes de la cámara a los del objeto se resta el vector $\vect{c}$ (el centro
-del sólido) y se gira con $R_o$. Con $\vect{c}=\begin{pmatrix} -3{,}4 \\ -36{,}1 \\ 379{,}5 \end{pmatrix}$ mm,
-\begin{equation}
-\vect{p}_{\text{obj}}=R_o(\vect{P}-\vect{c}),\qquad R_o=\operatorname{diag}(1,-1,-1),
-\end{equation}
-que cambia el signo de las componentes $y$ y $z$ (un giro de $180^\circ$ alrededor de $x$) sin cambiar la norma. En el cuadro~\ref{tab:objeto-vec}
-se ve para los tres puntos de ejemplo.
+\paragraph{Los tres puntos en los dos sistemas.} El cuadro~\ref{tab:objeto-vec} aplica $\vect{p}=R_o(\vect{P}-\vect{c})$ a los puntos A, B y C: restar $\vect{c}$ lleva el origen al centro del casco y $R_o$ cambia el signo de $y$ y de $z$, sin cambiar la norma.
 
 \begin{table}[htbp]
 \caption{Los tres puntos del casco en los ejes de la cámara $\vect{P}$, restados del centro $\vect{c}$ y girados $R_o(\vect{P}-\vect{c})$ (mm)}

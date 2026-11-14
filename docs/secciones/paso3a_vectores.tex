@@ -1,12 +1,6 @@
 \paragraph{Los vectores y sus tres operaciones.} Las matrices del proceso se aplican siempre sobre \emph{vectores}, y es con los vectores con los que se hacen las tres operaciones del curso: la norma $\lVert\vect{a}\rVert$, el producto punto $\vect{a}\cdot\vect{b}$ y el producto cruz $\vect{a}\times\vect{b}$. Los párrafos siguientes siguen, con los números del casco, cada vector que aparece en este paso y dicen qué significa cada operación.
 
-\paragraph{Del píxel al rayo.} Un píxel es el vector $\vect{p}=(u,v,1)^{T}$ (coordenadas homogéneas). Al multiplicarlo por $K^{-1}$ se obtiene
-el vector $\vect{r}=K^{-1}\vect{p}=((u-c_x)/f,\ (v-c_y)/f,\ 1)^{T}$, que apunta desde la cámara hacia el punto del mundo que vio ese píxel. Para
-el píxel A, $(u,v)=(488,576)$, por ejemplo,
-\begin{equation}
-\vect{r}_A=\begin{pmatrix}\dfrac{488-480}{753{,}449}\\[2mm]\dfrac{576-640}{753{,}449}\\[1mm]1\end{pmatrix}=\begin{pmatrix} 0{,}0106 \\ -0{,}0849 \\ 1 \end{pmatrix} .
-\end{equation}
-La \emph{norma} de $\vect{r}$ es la longitud de ese vector, $\lVert\vect{r}_A\rVert=\sqrt{(0{,}0106)^2+(-0{,}0849)^2+1^2}=1{,}0037$, y el ángulo
+\paragraph{Norma y ángulo de un rayo.} La \emph{norma} de $\vect{r}$ es la longitud de ese vector, $\lVert\vect{r}_A\rVert=\sqrt{(0{,}0106)^2+(-0{,}0849)^2+1^2}=1{,}0037$, y el ángulo
 que forma con el eje óptico $\vect{e}_z=(0,0,1)^{T}$ sale del producto punto:
 \begin{equation}
 \cos\theta_A=\frac{\vect{r}_A\cdot\vect{e}_z}{\lVert\vect{r}_A\rVert\,\lVert\vect{e}_z\rVert}=\frac{1}{1{,}0037}=0{,}9964,\qquad \theta_A=4{,}89^\circ .
@@ -28,13 +22,7 @@ C & $(221,\,576,\,1)$ & $(-0{,}3438,\,-0{,}0849,\,1)$ & $1{,}0608$ & $19{,}50^\c
 \end{tabular}
 \end{table}
 
-\paragraph{Del rayo al punto.} Multiplicar el rayo por la profundidad lo estira hasta el punto del casco: $\vect{P}=Z\,\vect{r}$. Es una
-multiplicación de un vector por un escalar, y el resultado conserva la dirección. Para A, con $Z=300{,}87$ mm,
-\begin{equation}
-\vect{P}_A=300{,}87\cdot\begin{pmatrix} 0{,}0106 \\ -0{,}0849 \\ 1 \end{pmatrix}=\begin{pmatrix} 3{,}19 \\ -25{,}56 \\ 300{,}87 \end{pmatrix}\ \text{mm},
-\end{equation}
-y su norma, $\lVert\vect{P}_A\rVert=301{,}97$ mm, es la distancia real de la cámara a ese punto (mayor que $Z$ porque el rayo está inclinado:
-$\lVert\vect{P}\rVert=Z\lVert\vect{r}\rVert$).
+\paragraph{Longitud del punto.} El punto $\vect{P}_A$ se calculó arriba. Su norma, $\lVert\vect{P}_A\rVert=301{,}97$ mm, es la distancia real de la cámara a ese punto, mayor que $Z$ porque el rayo está inclinado ($\lVert\vect{P}\rVert=Z\lVert\vect{r}\rVert$).
 
 \paragraph{Producto punto entre dos rayos.} El ángulo entre los rayos de dos píxeles se calcula igual. Para A y C,
 \begin{equation}

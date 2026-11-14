@@ -387,7 +387,7 @@ Las columnas de $P$ son los puntos del piso, de la pared, del techo y del sofá 
 \end{tabular}
 \end{table}
 
-\paragraph{Paso 2: ajustar planos a los puntos con RANSAC.} El piso, el techo y las paredes son planos, es decir, conjuntos de puntos $\vect{P}$ que cumplen
+\paragraph{Paso 2: ajustar planos a los puntos con RANSAC} El piso, el techo y las paredes son planos, es decir, conjuntos de puntos $\vect{P}$ que cumplen
 $\vect{n}\cdot\vect{P}=d$ con $\vect{n}$ de norma $1$. Como la red tiene ruido, los puntos no caen exactamente en un plano, y se busca el
 plano que más puntos explica con el método RANSAC, que repite tres pasos:
 (1) tomar tres puntos al azar de la misma clase, (2) calcular el plano que pasa por ellos con el producto cruz y (3) contar cuántos de los demás puntos

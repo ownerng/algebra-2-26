@@ -57,13 +57,6 @@ Su matriz tiene rango $2$ y hay $3$ incógnitas, así que queda una variable lib
 $X=\tfrac{u-c_x}{f}Z=0{,}010618\,Z$ y $Y=\tfrac{v-c_y}{f}Z=-0{,}084943\,Z$, es decir, toda la solución es la recta
 $\vect{P}=Z\,(0{,}010618,\,-0{,}084943,\,1)^T=Z\,\vect{r}_A$: el rayo. El espacio nulo de la matriz es justamente el vector $\vect{r}_A$ que dio $K^{-1}\vect{p}_A$.
 
-\paragraph{Vectores de los rayos.} La longitud del rayo A es $\lVert\vect{r}_A\rVert=1{,}00366$ y su ángulo con el eje óptico es
-$\arctan\sqrt{(0{,}010618)^2+(-0{,}084943)^2}=4{,}893^\circ$. El ángulo entre los rayos de A y C sale del producto punto:
-\begin{equation}
-\cos\theta=\frac{\vect{r}_A\cdot\vect{r}_C}{\lVert\vect{r}_A\rVert\,\lVert\vect{r}_C\rVert}=
-\frac{1{,}00357}{1{,}00366\cdot1{,}06084}=0{,}94256\ \Rightarrow\ \theta=19{,}51^\circ .
-\end{equation}
-
 \paragraph{Muchos píxeles a la vez.} En el programa no se calcula píxel por píxel. Para cinco píxeles del casco, repartidos
 a lo largo de la máscara, se apilan como columnas de una matriz $H$ de $3\times5$ y se multiplica una sola vez:
 \begin{equation}

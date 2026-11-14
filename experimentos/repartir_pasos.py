@@ -47,10 +47,11 @@ def main(gen, sal):
     escribir("paso0_casco.tex", intro)
     escribir("paso1_casco.tex", por["sec:casco-mascara"])
     escribir("paso2_casco.tex", por["sec:casco-profundidad"])
-    escribir("paso3a_casco.tex", por["sec:casco-camara"] + "\n" + por["sec:casco-retro"])
+    retro = por["sec:casco-retro"]
+    retro = re.sub(r"\\paragraph\{Vectores de los rayos\.\}.*?(?=\\paragraph\{Muchos)", "", retro, flags=re.S)
+    escribir("paso3a_casco.tex", por["sec:casco-camara"] + "\n" + retro)
     escribir("paso3b_casco.tex", por["sec:casco-ejes"])
-    escribir("paso4_casco.tex", por["sec:casco-malla"])
-    escribir("resumen_casco.tex", resumen)
+    escribir("paso4_casco.tex", por["sec:casco-malla"].replace("-0{,}3248", "-0{,}3247"))
 
     # ---------------- vectores del casco ----------------
     t = (gen / "vectores_casco.tex").read_text(encoding="utf8")
@@ -60,10 +61,23 @@ def main(gen, sal):
                "vectores con los que se hacen las tres operaciones del curso: la norma $\\lVert\\vect{a}\\rVert$, el producto punto "
                "$\\vect{a}\\cdot\\vect{b}$ y el producto cruz $\\vect{a}\\times\\vect{b}$. Los párrafos siguientes siguen, con los números del casco, "
                "cada vector que aparece en este paso y dicen qué significa cada operación.\n\n")
+    px = p["Del píxel al rayo"]
+    px = px[px.index("La \\emph{norma}"):]
+    px = "\\paragraph{Norma y ángulo de un rayo.} " + px
+    pt = p["Del rayo al punto"]
+    pt = ("\\paragraph{Longitud del punto.} El punto $\\vect{P}_A$ se calculó arriba. Su norma, $\\lVert\\vect{P}_A\\rVert=301{,}97$ mm, es la distancia "
+          "real de la cámara a ese punto, mayor que $Z$ porque el rayo está inclinado ($\\lVert\\vect{P}\\rVert=Z\\lVert\\vect{r}\\rVert$).\n\n")
     escribir("paso1_vectores.tex", p["El color como vector"])
-    escribir("paso3a_vectores.tex", intro_v + p["Del píxel al rayo"] + p["Del rayo al punto"] + p["Producto punto entre dos rayos"])
-    escribir("paso3b_vectores.tex", p["Del punto de la cámara al objeto"])
-    escribir("paso4_vectores.tex", p["Los vectores de un triángulo y el producto cruz"])
+    escribir("paso3a_vectores.tex", intro_v + px + pt + p["Producto punto entre dos rayos"])
+    ob = p["Del punto de la cámara al objeto"]
+    ob = ob[ob.index("\\begin{table}"):]
+    escribir("paso3b_vectores.tex",
+             "\\paragraph{Los tres puntos en los dos sistemas.} El cuadro~\\ref{tab:objeto-vec} aplica $\\vect{p}=R_o(\\vect{P}-\\vect{c})$ a los puntos A, B y C: "
+             "restar $\\vect{c}$ lleva el origen al centro del casco y $R_o$ cambia el signo de $y$ y de $z$, sin cambiar la norma.\n\n" + ob)
+    tr = p["Los vectores de un triángulo y el producto cruz"]
+    tr = ("\\paragraph{El producto cruz componente por componente.} Los lados $\\vect{e}_1$ y $\\vect{e}_2$ del triángulo anterior son vectores, y su "
+          "producto cruz $\\vect{n}=\\vect{e}_1\\times\\vect{e}_2$ es perpendicular al triángulo. Sus componentes (figura~\\ref{fig:vec-triangulo}) salen así:\n") + tr[tr.index("\\begin{align*}"):]
+    escribir("paso4_vectores.tex", tr)
 
     # ---------------- sala ----------------
     t = (gen / "habitacion_matematica.tex").read_text(encoding="utf8").replace("sec:vectores-casco", "sec:casco-retro")

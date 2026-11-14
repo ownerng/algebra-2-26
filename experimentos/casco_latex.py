@@ -194,7 +194,7 @@ Por eso el valor de $65^\circ$ es una suposición del programa y no una medida d
 afinar calibrándola), y es una de las razones por las que el tamaño en milímetros del modelo es aproximado
 (limitaciones, sección de discusión): con un ángulo menor, la misma foto corresponde a una focal mayor y a puntos 3D más grandes.
 
-\paragraph{2. De bytes a matriz: el JPEG.} Los bytes que llegan por el cable son
+\paragraph{2. De bytes a matriz: el JPEG} Los bytes que llegan por el cable son
 una imagen comprimida. Para volver a la matriz $I$ hay que deshacer tres
 transformaciones, y las tres son productos de matrices cuya inversa se conoce:
 \begin{enumerate}
@@ -209,7 +209,7 @@ transformaciones, y las tres son productos de matrices cuya inversa se conoce:
         donde $C$ es de $8\times8$. Esa matriz es \emph{ortogonal}: $CC^T=I$, así que
         su inversa es su transpuesta, y el decodificador recupera el bloque con
         $X=C^{T}\,Y\,C$. Con un bloque real del casco (la unión entre la visera oscura y la mentonera clara,
-        columnas $@bu@$--$@bu7@$ y filas $@bv@$--$@bv7@$ de la foto):
+        columnas $@bu@$--$@bu7@$ y filas $@bv@$--$@bv7@$ de la foto, figura~\ref{fig:dct}):
         \begin{equation*}
         X=@Xb@ ,
         \end{equation*}
@@ -792,7 +792,7 @@ def casco_resultados(v, alto):
 La foto del casco que se usó en la sección «\nameref{sec:casco}» se subió a la página con el botón \textbf{Subir foto} (figura~\ref{fig:visor-bajo}).
 Con procesamiento bajo el resultado se obtuvo en @total@ s con el computador de pruebas; el modelo tiene $N=@Nv@$ vértices, $M=@Mf@$ triángulos,
 mide @tam@ mm y encierra un volumen de @vol@ litros. La figura~\ref{fig:casco-tiempos} muestra cuánto tarda cada etapa: la segmentación y la profundidad
-(donde pesa la red neuronal) ocupan casi todo el tiempo, y los pasos de álgebra lineal ($K^{-1}$, la matriz $3\times N$ y la malla) suman @alg@ ms.
+(donde pesa la red neuronal) ocupan casi todo el tiempo, y los pasos de álgebra lineal ($K^{-1}$, la matriz $3\times N$ y la malla) suman @alg@ ms. La nube de puntos de la figura~\ref{fig:visor-puntos} es la misma malla sin la matriz $F$, y la figura~\ref{fig:casco-flujo} resume el tamaño de cada objeto matemático a lo largo del proceso.
 
 \begin{figure}[htbp]
 \centering

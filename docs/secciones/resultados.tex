@@ -60,7 +60,7 @@ máscara $M$ y objeto sin fondo.}
 \end{figure}
 
 Se compararon tres redes de \texttt{rembg} con cuatro fotos de prueba
-(tabla~\ref{tab:redes}). La red U\textsuperscript{2}-Net completa ofrece casi
+(cuadro~\ref{tab:redes}). La red U\textsuperscript{2}-Net completa ofrece casi
 la misma calidad que la más precisa en una fracción del tiempo, por lo que se
 eligió como opción por defecto.
 
@@ -85,7 +85,7 @@ La figura~\ref{fig:una-foto} muestra el resultado para la foto de la manzana en
 la aplicación: la malla con la foto como textura y, vista de lado, la nube de
 puntos, donde se distinguen la cara frontal y la trasera del sólido. En esta
 prueba la malla tuvo $N=122\,976$ vértices y $M=245\,948$ caras y el cálculo
-tardó 1,8 s. La tabla~\ref{tab:tiempos} resume los tiempos de cada paso con las
+tardó 1,8 s. El cuadro~\ref{tab:tiempos} resume los tiempos de cada paso con las
 fotos de prueba originales; la mayor parte del tiempo se va en la
 segmentación, mientras que la retroproyección y la malla, que son los pasos de
 álgebra lineal, toman milisegundos gracias a que se calculan con productos de
@@ -143,7 +143,7 @@ Para medir la exactitud se generó una habitación sintética de $5\times6$ m y
 2,6 m de alto, con la cámara a 1,4 m del piso, inclinada $15^\circ$ hacia abajo
 y $5^\circ$ de lado, y una caja delante de la pared del fondo. Como en esta
 escena se conoce la profundidad real de cada píxel, el resultado de cada paso
-se puede comparar con el valor exacto (tabla~\ref{tab:habitacion}). Para
+se puede comparar con el valor exacto (cuadro~\ref{tab:habitacion}). Para
 simular el error de la red de profundidad, a cada píxel se le sumó un ruido
 del 2\,\%.
 

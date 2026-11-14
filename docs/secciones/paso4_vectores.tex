@@ -1,9 +1,4 @@
-\paragraph{Los vectores de un triángulo y el producto cruz.} Cada triángulo de la malla se describe con tres vértices, y dos de sus lados son
-vectores, $\vect{e}_1=\vect{p}_1-\vect{p}_0$ y $\vect{e}_2=\vect{p}_2-\vect{p}_0$. Con los vértices del triángulo de ejemplo,
-\begin{equation}
-\vect{e}_1=\begin{pmatrix} -0{,}0033 \\ -1{,}1582 \\ -0{,}2729 \end{pmatrix}\ \text{mm},\qquad \vect{e}_2=\begin{pmatrix} 1{,}1917 \\ -0{,}0189 \\ 0{,}1548 \end{pmatrix}\ \text{mm}.
-\end{equation}
-El producto cruz $\vect{n}=\vect{e}_1\times\vect{e}_2$ da un vector perpendicular al triángulo; sus componentes son
+\paragraph{El producto cruz componente por componente.} Los lados $\vect{e}_1$ y $\vect{e}_2$ del triángulo anterior son vectores, y su producto cruz $\vect{n}=\vect{e}_1\times\vect{e}_2$ es perpendicular al triángulo. Sus componentes (figura~\ref{fig:vec-triangulo}) salen así:
 \begin{align*}
 n_x&=e_{1y}e_{2z}-e_{1z}e_{2y}=\left(-1{,}1582\right)\cdot0{,}1548-\left(-0{,}2729\right)\cdot\left(-0{,}0189\right)=-0{,}18445,\\
 n_y&=e_{1z}e_{2x}-e_{1x}e_{2z}=\left(-0{,}2729\right)\cdot1{,}1917-\left(-0{,}0033\right)\cdot0{,}1548=-0{,}32470,\\
