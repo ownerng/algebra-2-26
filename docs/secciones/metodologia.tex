@@ -28,6 +28,8 @@ girar y acercar con el mouse.
 \label{fig:arquitectura}
 \end{figure}
 
+\input{secciones/construccion}
+
 \subsection{Captura}
 
 La cámara es la de un celular con la aplicación DroidCam, que transmite video
@@ -68,7 +70,7 @@ cámara se puede conectar de cuatro formas:
 La página dibuja sobre la imagen una cuadrícula de $3\times3$ y un recuadro
 central (figura~\ref{fig:encuadre}). El objeto se debe poner dentro del
 recuadro; el servidor usa ese mismo recuadro para saber cuál de las regiones
-de la foto es el objeto. Antes de procesarla, la foto se reduce a 640 píxeles
+de la foto es el objeto. Antes de procesarla, la foto se reduce a 960 píxeles
 de ancho.
 
 \begin{figure}[htbp]
@@ -170,6 +172,8 @@ Con esto cada arista queda compartida por exactamente dos triángulos, y la
 malla es un sólido cerrado cuyo volumen se calcula con la
 ecuación~\eqref{eq:volumen}. La foto se usa como textura del frente.
 
+\input{secciones/casco_matematica}
+
 \subsection{Procesamiento alto}
 
 La página permite elegir entre procesamiento \textbf{bajo} y \textbf{alto}. El
@@ -181,6 +185,8 @@ procesamiento alto, con apoyo en un modelo generativo de reconstrucción 3D
 para obtener una reconstrucción más completa y exacta del objeto. El resultado
 es un modelo con textura en formato \texttt{.glb} y tarda entre uno y cuatro
 minutos. Este modo se usa solo con objetos.
+
+\input{secciones/casco_alto}
 
 \subsection{Reconstrucción de habitaciones}
 

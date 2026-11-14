@@ -1,0 +1,41 @@
+
+\subsection{Procesamiento alto con el mismo casco}\label{sec:alto-matematica}
+
+Con el selector de procesamiento en \textbf{Alto}, la misma foto se manda a un modelo generativo de imagen a 3D (Hunyuan3D, en la nube de fal.ai).
+Antes de enviarla, el programa recorta el casco con la máscara $M$ de la sección «\nameref{sec:casco-mascara}», lo centra en un cuadrado blanco
+con un margen del 15\,\% (así se parece a las fotos de producto con que se entrenan estos modelos) y lo escala a lo sumo a $1\,536\times1\,536$ píxeles.
+El modelo devuelve un archivo glTF binario (GLB) con la malla y su textura; el programa lo recibió en 204{,}1 s y lo lee con los mismos objetos del
+informe: una matriz de vértices $V$ y una de caras $F$ (cuadro~\ref{tab:alto}).
+
+\begin{table}[htbp]
+\caption{Casco con procesamiento bajo y con procesamiento alto}
+\label{tab:alto}
+\centering\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+ & Bajo & Alto \\
+\midrule
+Vértices $N$ & 65\,314 & 270\,142 \\
+Triángulos $M$ & 130\,624 & 500\,000 \\
+Tamaño (ancho $\times$ alto $\times$ fondo) & $287 \times 405 \times 191$ mm & $0{,}78 \times 0{,}75 \times 0{,}83$ u.m. \\
+Parte de atrás & supuesta (extrusión) & generada por el modelo \\
+Tiempo & 3{,}8 s & 204{,}1 s \\
+\bottomrule
+\end{tabular}
+\par\smallskip\footnotesize u.m.: unidades del modelo (el modelo generativo no entrega escala real, por eso la ficha de la página no muestra medidas).
+\end{table}
+
+\paragraph{Álgebra lineal del resultado.} El archivo GLB trae cada malla con su propia transformación de nodo. En este caso no es una matriz
+sino una rotación escrita como cuaternión unitario $\vect{q}=(x,y,z,w)=(0{,}7071,\,0,\,0,\,0{,}7071)$, que el programa convierte en matriz con la fórmula
+\begin{equation}
+R=\begin{pmatrix}1-2(y^2+z^2)&2(xy-zw)&2(xz+yw)\\2(xy+zw)&1-2(x^2+z^2)&2(yz-xw)\\2(xz-yw)&2(yz+xw)&1-2(x^2+y^2)\end{pmatrix}
+=\begin{pmatrix}1&0&0\\0&0&-1\\0&1&0\end{pmatrix}=R_x(90^\circ),
+\end{equation}
+pues $x=w=0{,}7071=\sqrt{2}/2$ da $1-2x^2=0$ y $2xw=1$. Es la rotación de $90^\circ$ alrededor del eje $x$ del marco teórico,
+que Hunyuan3D usa para que el eje $y$ quede hacia arriba. Escrita como matriz homogénea de $4\times4$ (con $s=1$ y $\vect{t}=\vect{0}$):
+\begin{equation}
+\mathcal{M}=\begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 0 & -1 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix},\qquad \mathcal{M}^{-1}=\mathcal{M}^{T}=\begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & -1 & 0 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix} .
+\end{equation}
+Para saber dónde cae cada vértice en la escena, el programa multiplica las $8$ esquinas de la caja que contiene a cada malla (los valores mínimo y máximo de sus
+coordenadas) por $\mathcal{M}$; así la caja del modelo queda de $0{,}78 \times 0{,}75 \times 0{,}83$ unidades del modelo. La inversa $\mathcal{M}^{-1}=\mathcal{M}^{T}$ (aquí es solo
+una rotación, sin traslación ni escala) devuelve las coordenadas al sistema original del modelo, que es el de la textura.

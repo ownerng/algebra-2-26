@@ -1,0 +1,59 @@
+
+\subsection{La matriz inversa y cómo se calcula}\label{sec:inversa}
+
+Sea $A$ una matriz cuadrada de $m\times m$. Su \emph{inversa} $A^{-1}$ es la matriz que cumple
+$AA^{-1}=A^{-1}A=I$, donde $I$ es la identidad. Si $A$ transforma un vector, $\vect{y}=A\vect{x}$,
+la inversa deshace la transformación, $\vect{x}=A^{-1}\vect{y}$; por eso resolver un sistema $A\vect{x}=\vect{b}$
+con $A$ invertible es calcular $\vect{x}=A^{-1}\vect{b}$. Una matriz tiene inversa si y solo si su
+determinante es distinto de cero (sus filas son linealmente independientes). Tres propiedades
+se usan en el proyecto:
+\begin{itemize}
+  \item $(AB)^{-1}=B^{-1}A^{-1}$: la inversa de un producto es el producto de las inversas en
+        orden contrario (para deshacer ``primero $B$ y luego $A$'' hay que deshacer primero $A$).
+  \item Una matriz triangular con diagonal distinta de cero es invertible y su inversa también es triangular.
+  \item Una matriz ortogonal ($Q^{T}Q=I$) tiene $Q^{-1}=Q^{T}$.
+\end{itemize}
+
+\paragraph{Método de Gauss--Jordan.} Se escribe la matriz aumentada $[A\mid I]$ y se aplican operaciones
+entre filas (intercambiar dos filas, multiplicar una fila por un número distinto de cero y sumarle a una fila
+un múltiplo de otra) hasta convertir la parte izquierda en $I$; lo que queda a la derecha es $A^{-1}$,
+porque cada operación equivale a multiplicar por una matriz elemental $E_i$ y al terminar
+$E_k\cdots E_1A=I$, es decir $E_k\cdots E_1=A^{-1}$. Ejemplo con
+$A=\begin{pmatrix} 2 & 0 & 1 \\ 1 & 1 & 0 \\ 0 & 1 & 1 \end{pmatrix}$, cuyo determinante es $\det A=3$:
+\begin{align*}
+\text{Matriz aumentada $[A\mid I]$}\quad& \left(\begin{array}{ccc|ccc} 2 & 0 & 1 & 1 & 0 & 0 \\ 1 & 1 & 0 & 0 & 1 & 0 \\ 0 & 1 & 1 & 0 & 0 & 1 \end{array}\right) \\[4pt]
+\text{$F_1\leftarrow F_1/2$}\quad& \left(\begin{array}{ccc|ccc} 1 & 0 & \tfrac{1}{2} & \tfrac{1}{2} & 0 & 0 \\ 1 & 1 & 0 & 0 & 1 & 0 \\ 0 & 1 & 1 & 0 & 0 & 1 \end{array}\right) \\[4pt]
+\text{$F_2\leftarrow F_2-F_1$}\quad& \left(\begin{array}{ccc|ccc} 1 & 0 & \tfrac{1}{2} & \tfrac{1}{2} & 0 & 0 \\ 0 & 1 & -\tfrac{1}{2} & -\tfrac{1}{2} & 1 & 0 \\ 0 & 1 & 1 & 0 & 0 & 1 \end{array}\right) \\[4pt]
+\text{$F_3\leftarrow F_3-F_2$}\quad& \left(\begin{array}{ccc|ccc} 1 & 0 & \tfrac{1}{2} & \tfrac{1}{2} & 0 & 0 \\ 0 & 1 & -\tfrac{1}{2} & -\tfrac{1}{2} & 1 & 0 \\ 0 & 0 & \tfrac{3}{2} & \tfrac{1}{2} & -1 & 1 \end{array}\right) \\[4pt]
+\text{$F_3\leftarrow F_3/\tfrac{3}{2}$}\quad& \left(\begin{array}{ccc|ccc} 1 & 0 & \tfrac{1}{2} & \tfrac{1}{2} & 0 & 0 \\ 0 & 1 & -\tfrac{1}{2} & -\tfrac{1}{2} & 1 & 0 \\ 0 & 0 & 1 & \tfrac{1}{3} & -\tfrac{2}{3} & \tfrac{2}{3} \end{array}\right) \\[4pt]
+\text{$F_1\leftarrow F_1-\tfrac{1}{2}\,F_3$}\quad& \left(\begin{array}{ccc|ccc} 1 & 0 & 0 & \tfrac{1}{3} & \tfrac{1}{3} & -\tfrac{1}{3} \\ 0 & 1 & -\tfrac{1}{2} & -\tfrac{1}{2} & 1 & 0 \\ 0 & 0 & 1 & \tfrac{1}{3} & -\tfrac{2}{3} & \tfrac{2}{3} \end{array}\right) \\[4pt]
+\text{$F_2\leftarrow F_2+\tfrac{1}{2}\,F_3$}\quad& \left(\begin{array}{ccc|ccc} 1 & 0 & 0 & \tfrac{1}{3} & \tfrac{1}{3} & -\tfrac{1}{3} \\ 0 & 1 & 0 & -\tfrac{1}{3} & \tfrac{2}{3} & \tfrac{1}{3} \\ 0 & 0 & 1 & \tfrac{1}{3} & -\tfrac{2}{3} & \tfrac{2}{3} \end{array}\right)
+\end{align*}
+Por lo tanto
+\begin{equation}
+A^{-1}=\frac{1}{3}\begin{pmatrix} 1 & 1 & -1 \\ -1 & 2 & 1 \\ 1 & -2 & 2 \end{pmatrix} ,\qquad\text{y se comprueba que } AA^{-1}=I.
+\end{equation}
+
+\paragraph{Inversa de una matriz de rotación.} Una rotación $R$ de $3\times3$ tiene filas de norma 1 y
+perpendiculares entre sí, así que $R^{T}R=I$ y $R^{-1}=R^{T}$: invertirla no cuesta ninguna
+cuenta, solo intercambiar filas por columnas. Por ejemplo, la rotación de $90^\circ$ alrededor del eje $x$ es
+\begin{equation}
+R_x(90^\circ)=\begin{pmatrix}1&0&0\\0&0&-1\\0&1&0\end{pmatrix},\qquad
+R_x(90^\circ)^{-1}=R_x(90^\circ)^{T}=\begin{pmatrix}1&0&0\\0&0&1\\0&-1&0\end{pmatrix}=R_x(-90^\circ).
+\end{equation}
+
+\paragraph{Coordenadas homogéneas y la inversa de una matriz de $4\times4$.} Una rotación $R$ seguida de una
+traslación $\vect{t}$ y de un cambio de escala $s$ se escribe como una sola matriz de $4\times4$
+que actúa sobre el punto $(x,y,z,1)$:
+\begin{equation}
+\mathcal{M}=\begin{pmatrix}sR&\vect{t}\\\vect{0}^{T}&1\end{pmatrix},\qquad
+\mathcal{M}^{-1}=\begin{pmatrix}s^{-1}R^{T}&-s^{-1}R^{T}\vect{t}\\\vect{0}^{T}&1\end{pmatrix}.
+\end{equation}
+La inversa se obtiene resolviendo $\mathcal{M}\vect{p}'=\vect{p}$ por bloques: $\vect{p}=s^{-1}R^{T}(\vect{p}'-\vect{t})$.
+Esta forma se usa en el procesamiento alto, donde el modelo generativo entrega cada pieza con su
+propia matriz de $4\times4$ (sección «\nameref{sec:alto-matematica}»).
+
+\paragraph{Cálculo con la matriz de la cámara.} La inversa que más se usa es la de la matriz de la cámara
+$K$, que es triangular. Como $K$ tiene la forma $\left(\begin{smallmatrix}f&0&c_x\\0&f&c_y\\0&0&1\end{smallmatrix}\right)$,
+basta una operación por fila (restar $c_x$ y $c_y$ veces la tercera fila, y dividir entre $f$) para
+llegar a $K^{-1}$; el cálculo se hace con los valores del casco en la sección «\nameref{sec:casco-camara}».
