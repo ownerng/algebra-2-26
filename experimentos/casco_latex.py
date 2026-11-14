@@ -211,7 +211,9 @@ transformaciones, y las tres son productos de matrices cuya inversa se conoce:
         $X=C^{T}\,Y\,C$. Con un bloque real del casco (la unión entre la visera oscura y la mentonera clara,
         columnas $@bu@$--$@bu7@$ y filas $@bv@$--$@bv7@$ de la foto):
         \begin{equation*}
-        X=@Xb@ ,\qquad
+        X=@Xb@ ,
+        \end{equation*}
+        \begin{equation*}
         Y=@Yb@ .
         \end{equation*}
         El coeficiente $Y_{10}=@Y10@$ es el más grande: el bloque pasa de oscuro
@@ -222,7 +224,10 @@ transformaciones, y las tres son productos de matrices cuya inversa se conoce:
         color $C_b,C_r$ (cada una en $[0,255]$, con $128$ como cero) mediante una matriz de $3\times3$:
         \begin{equation}
         \begin{pmatrix}Y'\\C_b-128\\C_r-128\end{pmatrix}=
-        \underbrace{@Mycc@}_{T}\begin{pmatrix}R\\G\\B\end{pmatrix},\qquad
+        \underbrace{@Mycc@}_{T}\begin{pmatrix}R\\G\\B\end{pmatrix},
+        \end{equation}
+        y su inversa es
+        \begin{equation}
         T^{-1}=@Myccinv@ .
         \end{equation}
         La inversa $T^{-1}$ se calcula con el mismo método de Gauss--Jordan de la
@@ -344,7 +349,10 @@ propia matriz de $4\times4$ (secciones «\nameref{sec:casco-ejes}» y «\nameref
 Ejemplo numérico: con $s=1$, $R=R_x(90^\circ)$ y $\vect{t}=(1,2,3)^{T}$,
 \begin{equation}
 \mathcal{M}=@M4@,\qquad
-\mathcal{M}^{-1}=\begin{pmatrix}R^{T}&-R^{T}\vect{t}\\\vect{0}^{T}&1\end{pmatrix}=@M4i@,\qquad
+\mathcal{M}^{-1}=\begin{pmatrix}R^{T}&-R^{T}\vect{t}\\\vect{0}^{T}&1\end{pmatrix}=@M4i@,
+\end{equation}
+y su producto es la identidad:
+\begin{equation}
 \mathcal{M}\mathcal{M}^{-1}=@M4p@=I_4 ,
 \end{equation}
 pues $-R^{T}\vect{t}=@mRt@$. Con el punto $\vect{p}=(1,1,1)$: $\mathcal{M}(\vect{p},1)=@Mp@$, y $\mathcal{M}^{-1}$ de ese resultado devuelve el punto original, $(@pb@)$.
@@ -448,13 +456,18 @@ K=@K@,\qquad \det K=f\cdot f\cdot1=f^2=@detK@\neq0,
 \end{equation}
 así que $K$ es invertible. Su inversa se calcula con Gauss--Jordan (sección «\nameref{sec:inversa}»), con solo tres
 operaciones entre filas, porque $K$ ya es triangular:
-\begin{align*}
-\left(\begin{array}{ccc|ccc} @f@ & 0 & @cx@ & 1 & 0 & 0\\ 0 & @f@ & @cy@ & 0 & 1 & 0\\ 0&0&1&0&0&1\end{array}\right)
-&\xrightarrow{\;F_1\leftarrow F_1-c_xF_3,\ F_2\leftarrow F_2-c_yF_3\;}
-\left(\begin{array}{ccc|ccc} @f@ & 0 & 0 & 1 & 0 & -@cx@\\ 0 & @f@ & 0 & 0 & 1 & -@cy@\\ 0&0&1&0&0&1\end{array}\right)\\[4pt]
-&\xrightarrow{\;F_1\leftarrow F_1/f,\ F_2\leftarrow F_2/f\;}
+Se parte de la matriz aumentada $[K\mid I]$:
+\begin{equation*}
+\left(\begin{array}{ccc|ccc} @f@ & 0 & @cx@ & 1 & 0 & 0\\ 0 & @f@ & @cy@ & 0 & 1 & 0\\ 0&0&1&0&0&1\end{array}\right).
+\end{equation*}
+Se resta $c_x$ veces la fila 3 a la fila 1 y $c_y$ veces la fila 3 a la fila 2 ($F_1\leftarrow F_1-c_xF_3$, $F_2\leftarrow F_2-c_yF_3$):
+\begin{equation*}
+\left(\begin{array}{ccc|ccc} @f@ & 0 & 0 & 1 & 0 & -@cx@\\ 0 & @f@ & 0 & 0 & 1 & -@cy@\\ 0&0&1&0&0&1\end{array}\right).
+\end{equation*}
+Y se dividen las filas 1 y 2 entre $f$ ($F_1\leftarrow F_1/f$, $F_2\leftarrow F_2/f$):
+\begin{equation*}
 \left(\begin{array}{ccc|ccc} 1&0&0& @if@ & 0 & -@cxf@\\ 0&1&0& 0 & @if@ & -@cyf@\\ 0&0&1&0&0&1\end{array}\right).
-\end{align*}
+\end{equation*}
 Entonces
 \begin{equation}
 K^{-1}=@Ki@ .
@@ -484,9 +497,9 @@ $\text{mm/px}=Z_0/f=400/@f@=@mmpx@$ y $R=d_{\max}\cdot\text{mm/px}=@R@$ mm, y co
 $D_{\text{borde}}=@Dborde@$ y $D_{\text{alto}}=@Dalto@$ (mediana de la disparidad en el borde y percentil 99 dentro del casco),
 el píxel A se calcula así:
 \begin{align*}
-s&=\frac{d}{d_{\max}}=\frac{@dA@}{@dmax@}=@sA@, &
+s&=\frac{d}{d_{\max}}=\frac{@dA@}{@dmax@}=@sA@,\\
 p(s)&=\sqrt{1-(1-s)^2}=\sqrt{1-(@unms@)^2}=@pA@,\\
-r&=\frac{D-D_{\text{borde}}}{D_{\text{alto}}-D_{\text{borde}}}=\frac{@DA@-@Dborde@}{@Dalto@-@Dborde@}=@rA@, &
+r&=\frac{D-D_{\text{borde}}}{D_{\text{alto}}-D_{\text{borde}}}=\frac{@DA@-@Dborde@}{@Dalto@-@Dborde@}=@rA@,\\
 h&=0{,}75\,R\,(0{,}7\,r+0{,}3\,p)=0{,}75\cdot@R@\cdot@mezcla@=@hform@\ \text{mm}.
 \end{align*}
 El valor guardado, $h=@hA@$ mm, es el de la fórmula después de un suavizado gaussiano que quita escalones. Con
@@ -560,7 +573,10 @@ $\arctan\sqrt{(@ax@)^2+(@ay@)^2}=@angA@^\circ$. El ángulo entre los rayos de A 
 \paragraph{Muchos píxeles a la vez.} En el programa no se calcula píxel por píxel. Para cinco píxeles del casco, repartidos
 a lo largo de la máscara, se apilan como columnas de una matriz $H$ de $3\times5$ y se multiplica una sola vez:
 \begin{equation}
-H=@Hm@,\qquad K^{-1}H=@KiH@ .
+H=@Hm@,
+\end{equation}
+\begin{equation}
+K^{-1}H=@KiH@ .
 \end{equation}
 Multiplicar a la derecha por la matriz diagonal $\operatorname{diag}(Z_1,\dots,Z_5)$, con
 $(Z_1,\dots,Z_5)=@Zs@$ mm, escala cada columna por su profundidad:
@@ -627,12 +643,17 @@ $\chi=@Nv@-@E@+@Mf@=@euler@$.
 \paragraph{Un triángulo en detalle.} Se toma el triángulo $@trii@$ del frente (el más cercano al centro del casco), de la fila $F_{@trii@}=@Ftri@$ de $F$
 (figura~\ref{fig:casco-malla-zoom}). Sus vértices, como filas de una matriz de $3\times3$, y los dos lados que salen de $\vect{p}_0$ son
 \begin{equation}
-\begin{pmatrix}\vect{p}_0\\\vect{p}_1\\\vect{p}_2\end{pmatrix}=@Vt@,\qquad
+\begin{pmatrix}\vect{p}_0\\\vect{p}_1\\\vect{p}_2\end{pmatrix}=@Vt@,
+\end{equation}
+\begin{equation}
 \vect{e}_1=\vect{p}_1-\vect{p}_0=@e1@,\qquad \vect{e}_2=\vect{p}_2-\vect{p}_0=@e2@ .
 \end{equation}
 Su normal es el producto cruz, que se calcula con el determinante simbólico de la regla de Sarrus:
 \begin{equation}
-\vect{n}=\vect{e}_1\times\vect{e}_2=@ncruz@=@nn@,\qquad
+\vect{n}=\vect{e}_1\times\vect{e}_2=@ncruz@=@nn@,
+\end{equation}
+y se normaliza dividiendo entre su longitud $\lVert\vect{n}\rVert=@nnorm@$:
+\begin{equation}
 \hat{\vect{n}}=\frac{\vect{n}}{\lVert\vect{n}\rVert}=\frac{1}{@nnorm@}@nn@=@nu@ .
 \end{equation}
 Como $\hat n_z>0$, la cara mira hacia el observador (hacia $+z$), que es lo correcto para el frente. El volumen del tetraedro que forma este
@@ -657,7 +678,7 @@ matemáticos que aparecieron, su tamaño con el casco y cómo se usa o se invier
 \caption{Matrices, vectores e inversas del proceso, con los valores del casco}
 \label{tab:resumen-algebra}
 \centering\small
-\begin{tabular}{@{}p{2.5cm}p{3.1cm}p{3.7cm}p{4.8cm}@{}}
+\begin{tabular}{@{}p{2.3cm}p{3.0cm}p{4.2cm}p{4.0cm}@{}}
 \toprule
 Objeto & Tamaño & Valor en el casco & Inversa o uso \\
 \midrule
@@ -871,7 +892,7 @@ con $\vect{1}$ un vector de unos de longitud $N$ (resta el centro $\vect{c}$ a t
 \caption{Matrices del proceso (tamaños con la foto del casco)}
 \label{tab:matrices-proceso}
 \centering\small
-\begin{tabular}{@{}p{2.3cm}p{3.1cm}p{5.2cm}p{3.2cm}@{}}
+\begin{tabular}{@{}p{2.3cm}p{3.1cm}p{4.9cm}p{3.2cm}@{}}
 \toprule
 Matriz & Tamaño & Qué guarda & Paso \\
 \midrule
@@ -925,7 +946,7 @@ homogéneas tienen determinante $1$, que es la señal de que no deforman ni camb
 \caption{Matrices cuadradas del proceso, con su determinante y su inversa}
 \label{tab:cuadradas}
 \centering\small
-\begin{tabular}{@{}p{2.2cm}p{1.3cm}p{3.5cm}p{3.5cm}p{3.1cm}@{}}
+\begin{tabular}{@{}p{2.2cm}p{1.6cm}p{3.4cm}p{3.5cm}p{2.7cm}@{}}
 \toprule
 Matriz & Tamaño & Determinante & Inversa & Para qué sirve \\
 \midrule
@@ -966,7 +987,9 @@ $\operatorname{diag}(1/Z)$), pero son matrices grandes que se invierten sin hace
 las inversas en orden contrario, $(AB)^{-1}=B^{-1}A^{-1}$. Para el píxel A, ir del píxel al vértice es $\vect{p}\ \to\ \vect{P}=Z\,K^{-1}\vect{p}\ \to\
 \vect{p}_{\text{obj}}=R_o(\vect{P}-\vect{c})$, y volver es
 \begin{equation}
-\vect{P}=R_o^{T}\,\vect{p}_{\text{obj}}+\vect{c}=R_o^{T}@pAobj@+@cc@=@Pvuelta@,\qquad
+\vect{P}=R_o^{T}\,\vect{p}_{\text{obj}}+\vect{c}=R_o^{T}@pAobj@+@cc@=@Pvuelta@,
+\end{equation}
+\begin{equation}
 K\vect{P}=@KPv@=Z\,\vect{p},
 \end{equation}
 y al dividir entre $Z=@Zf@$ se recupera el píxel $(@pixu@,@pixv@,1)$ de partida (con la matriz de $4\times4$ $\mathcal{M}_o$, el mismo viaje de vuelta es un solo

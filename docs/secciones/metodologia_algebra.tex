@@ -22,7 +22,7 @@ con $\vect{1}$ un vector de unos de longitud $N$ (resta el centro $\vect{c}$ a t
 \caption{Matrices del proceso (tamaños con la foto del casco)}
 \label{tab:matrices-proceso}
 \centering\small
-\begin{tabular}{@{}p{2.3cm}p{3.1cm}p{5.2cm}p{3.2cm}@{}}
+\begin{tabular}{@{}p{2.3cm}p{3.1cm}p{4.9cm}p{3.2cm}@{}}
 \toprule
 Matriz & Tamaño & Qué guarda & Paso \\
 \midrule
@@ -76,7 +76,7 @@ homogéneas tienen determinante $1$, que es la señal de que no deforman ni camb
 \caption{Matrices cuadradas del proceso, con su determinante y su inversa}
 \label{tab:cuadradas}
 \centering\small
-\begin{tabular}{@{}p{2.2cm}p{1.3cm}p{3.5cm}p{3.5cm}p{3.1cm}@{}}
+\begin{tabular}{@{}p{2.2cm}p{1.6cm}p{3.4cm}p{3.5cm}p{2.7cm}@{}}
 \toprule
 Matriz & Tamaño & Determinante & Inversa & Para qué sirve \\
 \midrule
@@ -117,7 +117,9 @@ $\operatorname{diag}(1/Z)$), pero son matrices grandes que se invierten sin hace
 las inversas en orden contrario, $(AB)^{-1}=B^{-1}A^{-1}$. Para el píxel A, ir del píxel al vértice es $\vect{p}\ \to\ \vect{P}=Z\,K^{-1}\vect{p}\ \to\
 \vect{p}_{\text{obj}}=R_o(\vect{P}-\vect{c})$, y volver es
 \begin{equation}
-\vect{P}=R_o^{T}\,\vect{p}_{\text{obj}}+\vect{c}=R_o^{T}\begin{pmatrix} 6{,}549 \\ -10{,}544 \\ 78{,}664 \end{pmatrix}+\begin{pmatrix} -3{,}354 \\ -36{,}101 \\ 379{,}535 \end{pmatrix}=\begin{pmatrix} 3{,}195 \\ -25{,}557 \\ 300{,}871 \end{pmatrix},\qquad
+\vect{P}=R_o^{T}\,\vect{p}_{\text{obj}}+\vect{c}=R_o^{T}\begin{pmatrix} 6{,}549 \\ -10{,}544 \\ 78{,}664 \end{pmatrix}+\begin{pmatrix} -3{,}354 \\ -36{,}101 \\ 379{,}535 \end{pmatrix}=\begin{pmatrix} 3{,}195 \\ -25{,}557 \\ 300{,}871 \end{pmatrix},
+\end{equation}
+\begin{equation}
 K\vect{P}=\begin{pmatrix} 146\,825{,}0 \\ 173\,301{,}6 \\ 300{,}9 \end{pmatrix}=Z\,\vect{p},
 \end{equation}
 y al dividir entre $Z=300{,}87$ se recupera el píxel $(488,576,1)$ de partida (con la matriz de $4\times4$ $\mathcal{M}_o$, el mismo viaje de vuelta es un solo

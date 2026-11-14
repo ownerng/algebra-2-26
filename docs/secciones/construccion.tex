@@ -96,7 +96,9 @@ transformaciones, y las tres son productos de matrices cuya inversa se conoce:
         $X=C^{T}\,Y\,C$. Con un bloque real del casco (la unión entre la visera oscura y la mentonera clara,
         columnas $480$--$487$ y filas $694$--$701$ de la foto):
         \begin{equation*}
-        X=\begin{pmatrix} 3 & 3 & 3 & 4 & 4 & 4 & 3 & 2 \\ 10 & 8 & 6 & 6 & 5 & 4 & 5 & 5 \\ 58 & 51 & 44 & 39 & 34 & 30 & 24 & 20 \\ 93 & 84 & 72 & 63 & 58 & 55 & 55 & 54 \\ 204 & 193 & 178 & 162 & 148 & 141 & 133 & 123 \\ 248 & 249 & 249 & 246 & 242 & 238 & 237 & 233 \\ 229 & 230 & 233 & 236 & 238 & 239 & 237 & 236 \\ 238 & 237 & 237 & 238 & 237 & 237 & 235 & 235 \end{pmatrix} ,\qquad
+        X=\begin{pmatrix} 3 & 3 & 3 & 4 & 4 & 4 & 3 & 2 \\ 10 & 8 & 6 & 6 & 5 & 4 & 5 & 5 \\ 58 & 51 & 44 & 39 & 34 & 30 & 24 & 20 \\ 93 & 84 & 72 & 63 & 58 & 55 & 55 & 54 \\ 204 & 193 & 178 & 162 & 148 & 141 & 133 & 123 \\ 248 & 249 & 249 & 246 & 242 & 238 & 237 & 233 \\ 229 & 230 & 233 & 236 & 238 & 239 & 237 & 236 \\ 238 & 237 & 237 & 238 & 237 & 237 & 235 & 235 \end{pmatrix} ,
+        \end{equation*}
+        \begin{equation*}
         Y=\begin{pmatrix} -36 & 57 & 6 & 6 & 0 & 2 & 0 & 0 \\ -780 & 5 & 5 & 1 & 1 & 0 & 0 & 0 \\ -4 & -61 & -13 & -4 & 2 & -1 & 1 & -1 \\ 147 & 0 & -5 & -2 & -2 & 1 & -1 & 1 \\ -54 & 24 & 9 & 2 & -1 & 0 & 0 & 0 \\ -33 & -22 & -1 & 0 & 1 & -1 & 0 & 0 \\ 58 & 4 & -4 & -1 & 0 & 0 & 0 & 0 \\ 4 & 24 & -2 & 4 & -1 & 1 & 1 & -1 \end{pmatrix} .
         \end{equation*}
         El coeficiente $Y_{10}=-780$ es el más grande: el bloque pasa de oscuro
@@ -107,7 +109,10 @@ transformaciones, y las tres son productos de matrices cuya inversa se conoce:
         color $C_b,C_r$ (cada una en $[0,255]$, con $128$ como cero) mediante una matriz de $3\times3$:
         \begin{equation}
         \begin{pmatrix}Y'\\C_b-128\\C_r-128\end{pmatrix}=
-        \underbrace{\begin{pmatrix} 0{,}299000 & 0{,}587000 & 0{,}114000 \\ -0{,}168736 & -0{,}331264 & 0{,}500000 \\ 0{,}500000 & -0{,}418688 & -0{,}081312 \end{pmatrix}}_{T}\begin{pmatrix}R\\G\\B\end{pmatrix},\qquad
+        \underbrace{\begin{pmatrix} 0{,}299000 & 0{,}587000 & 0{,}114000 \\ -0{,}168736 & -0{,}331264 & 0{,}500000 \\ 0{,}500000 & -0{,}418688 & -0{,}081312 \end{pmatrix}}_{T}\begin{pmatrix}R\\G\\B\end{pmatrix},
+        \end{equation}
+        y su inversa es
+        \begin{equation}
         T^{-1}=\begin{pmatrix} 1 & 0 & 1{,}402 \\ 1 & -0{,}344 & -0{,}714 \\ 1 & 1{,}772 & 0 \end{pmatrix} .
         \end{equation}
         La inversa $T^{-1}$ se calcula con el mismo método de Gauss--Jordan de la
