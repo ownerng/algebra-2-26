@@ -33,6 +33,7 @@ $H$ & $3\times32\,657$ & los píxeles del casco como columnas $(u,v,1)^{T}$ & pa
 $\operatorname{diag}(Z)$ & $32\,657\times32\,657$ & la profundidad de cada píxel, entre $284$ y $381$ mm & paso 3 \\
 $P$ & $3\times32\,657$ & los puntos 3D en los ejes de la cámara & paso 3 \\
 $R_o$ & $3\times3$ & giro de $180^\circ$ alrededor de $x$ & paso 3 \\
+$\mathcal{M}_o$ & $4\times4$ & $R_o$ y la traslación $-R_o\vect{c}$ juntas (coordenadas homogéneas) & paso 3 \\
 $V$ & $65\,314\times3$ & los vértices de la malla (frente y atrás) & paso 4 \\
 $F$ & $130\,624\times3$ & los índices de los tres vértices de cada triángulo & paso 4 \\
 \bottomrule
@@ -67,26 +68,50 @@ $\vect{n}=\vect{e}_1\times\vect{e}_2$ & normal del triángulo & $(-0{,}1844,-0{,
 El producto punto aparece en el ángulo entre rayos, $\cos\theta=\vect{r}_A\cdot\vect{r}_C/(\lVert\vect{r}_A\rVert\lVert\vect{r}_C\rVert)$, y, en las
 habitaciones, en la ecuación del plano $\vect{n}\cdot\vect{P}=d$ y en la intersección rayo--plano $Z=d/(\vect{n}\cdot\vect{r})$.
 
-\paragraph{Inversas del proceso.} Cada vez que se pasa de un lado a otro hay una matriz y su inversa. El cuadro~\ref{tab:inversas-proceso} las reúne y
-dice cómo se obtiene cada una; ninguna se calcula con un método general porque todas tienen una estructura que la simplifica.
+\paragraph{Matrices de $3\times3$ y de $4\times4$.} Solo las matrices cuadradas se pueden invertir (cuando su determinante no es cero). En el proceso hay
+cuatro de $3\times3$ y dos de $4\times4$ (cuadro~\ref{tab:cuadradas}). Se cumple $\det K\cdot\det K^{-1}=f^2\cdot f^{-2}=1$, y $R_o$ y las dos matrices
+homogéneas tienen determinante $1$, que es la señal de que no deforman ni cambian volúmenes.
 
 \begin{table}[htbp]
-\caption{Inversas del proceso y cómo se calculan}
-\label{tab:inversas-proceso}
+\caption{Matrices cuadradas del proceso, con su determinante y su inversa}
+\label{tab:cuadradas}
 \centering\small
-\begin{tabular}{@{}p{2.1cm}p{2.6cm}p{4.3cm}p{4.2cm}@{}}
+\begin{tabular}{@{}p{2.2cm}p{1.3cm}p{3.5cm}p{3.5cm}p{3.1cm}@{}}
 \toprule
-Matriz & Inversa & Cómo se calcula & Para qué sirve \\
+Matriz & Tamaño & Determinante & Inversa & Para qué sirve \\
 \midrule
-$K$ (triangular) & $K^{-1}$ & restar $c_x$, $c_y$ veces la fila 3 y dividir entre $f$ (Gauss--Jordan con 3 operaciones) & del píxel al rayo: $\vect{r}=K^{-1}\vect{p}$ \\
-$R_o$ (ortogonal) & $R_o^{-1}=R_o^{T}$ & trasponer, sin cuentas & volver de los ejes del objeto a los de la cámara \\
-$C$ (DCT $8\times8$, ortogonal) & $C^{-1}=C^{T}$ & trasponer & recuperar los píxeles de cada bloque del JPEG \\
-$T$ (color $3\times3$) & $T^{-1}$ & Gauss--Jordan & pasar de YCbCr a RGB \\
-$\operatorname{diag}(Z)$ & $\operatorname{diag}(1/Z)$ & invertir cada entrada de la diagonal & deshacer la escala por profundidad \\
-$\mathcal{M}$ ($4\times4$) & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ (rotación pura) & por bloques, $s^{-1}R^{T}$ y $-s^{-1}R^{T}\vect{t}$ & transformación de nodo del modelo generativo \\
+$K$ & $3\times3$ & $f^2=567\,685{,}5$ & $K^{-1}$, $\det K^{-1}=1{,}762\times10^{-6}$ & del píxel al rayo \\
+$R_o$ & $3\times3$ & $1$ & $R_o^{-1}=R_o^{T}=R_o$ & girar los ejes \\
+$T$ (color) & $3\times3$ & $0{,}2363$ & $T^{-1}$ & de YCbCr a RGB \\
+$[\vect{p}_0;\vect{p}_1;\vect{p}_2]$ & $3\times3$ & $111{,}093$ (de un triángulo) & no se invierte & su determinante da el volumen \\
+$\mathcal{M}_o$ & $4\times4$ & $1$ & $\mathcal{M}_o^{-1}=\begin{pmatrix}R_o^{T}&\vect{c}\\\vect{0}^{T}&1\end{pmatrix}$ & cambio de ejes completo \\
+$\mathcal{M}$ (alto) & $4\times4$ & $1$ & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ & nodo del modelo generativo \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Inversas del proceso.} Cada vez que se pasa de un lado a otro hay una matriz y su inversa. El cuadro~\ref{tab:inversas-proceso} reúne las de $3\times3$
+y $4\times4$ y dice cómo se obtiene cada una; ninguna necesita un método general porque todas tienen una estructura que la simplifica.
+
+\begin{table}[htbp]
+\caption{Inversas de las matrices de $3\times3$ y $4\times4$ y cómo se calculan}
+\label{tab:inversas-proceso}
+\centering\small
+\begin{tabular}{@{}p{2.1cm}p{2.9cm}p{4.2cm}p{4.2cm}@{}}
+\toprule
+Matriz & Inversa & Cómo se calcula & Para qué sirve \\
+\midrule
+$K$ ($3\times3$, triangular) & $K^{-1}$ & restar $c_x$, $c_y$ veces la fila 3 y dividir entre $f$ (Gauss--Jordan con 3 operaciones) & del píxel al rayo: $\vect{r}=K^{-1}\vect{p}$ \\
+$R_o$ ($3\times3$, ortogonal) & $R_o^{-1}=R_o^{T}$ & trasponer, sin cuentas & volver de los ejes del objeto a los de la cámara \\
+$T$ ($3\times3$) & $T^{-1}$ & Gauss--Jordan & pasar de YCbCr a RGB \\
+$\mathcal{M}_o$ ($4\times4$) & $\mathcal{M}_o^{-1}$ & por bloques: $R_o^{T}$ y $\vect{c}$ & volver del objeto a la cámara con una sola matriz \\
+$\mathcal{M}$ ($4\times4$, alto) & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ (rotación pura) & por bloques, $s^{-1}R^{T}$ y $-s^{-1}R^{T}\vect{t}$ & transformación de nodo del modelo generativo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+También son cuadradas e invertibles la matriz de la DCT del JPEG ($C$, de $8\times8$, con $C^{-1}=C^{T}$) y $\operatorname{diag}(Z)$ (de $N\times N$, con inversa
+$\operatorname{diag}(1/Z)$), pero son matrices grandes que se invierten sin hacer cuentas, por eso no están en el cuadro.
 
 \paragraph{La inversa de la cadena completa.} El paso del píxel al vértice es una cadena de transformaciones, y la inversa de una cadena es la cadena de
 las inversas en orden contrario, $(AB)^{-1}=B^{-1}A^{-1}$. Para el píxel A, ir del píxel al vértice es $\vect{p}\ \to\ \vect{P}=Z\,K^{-1}\vect{p}\ \to\
@@ -95,7 +120,8 @@ las inversas en orden contrario, $(AB)^{-1}=B^{-1}A^{-1}$. Para el píxel A, ir 
 \vect{P}=R_o^{T}\,\vect{p}_{\text{obj}}+\vect{c}=R_o^{T}\begin{pmatrix} 6{,}549 \\ -10{,}544 \\ 78{,}664 \end{pmatrix}+\begin{pmatrix} -3{,}354 \\ -36{,}101 \\ 379{,}535 \end{pmatrix}=\begin{pmatrix} 3{,}195 \\ -25{,}557 \\ 300{,}871 \end{pmatrix},\qquad
 K\vect{P}=\begin{pmatrix} 146\,825{,}0 \\ 173\,301{,}6 \\ 300{,}9 \end{pmatrix}=Z\,\vect{p},
 \end{equation}
-y al dividir entre $Z=300{,}87$ se recupera el píxel $(488,576,1)$ de partida: la cadena y su inversa se cancelan, que es lo que
+y al dividir entre $Z=300{,}87$ se recupera el píxel $(488,576,1)$ de partida (con la matriz de $4\times4$ $\mathcal{M}_o$, el mismo viaje de vuelta es un solo
+producto, $\mathcal{M}_o^{-1}(\vect{p}_{\text{obj}},1)$): la cadena y su inversa se cancelan, que es lo que
 comprueban las pruebas automáticas del servidor ($KK^{-1}=I$ y proyectar un punto retroproyectado devuelve el mismo píxel).
 
 \paragraph{La matriz que no se puede invertir.} La única matriz del proceso sin inversa es la de la proyección, $A=\begin{pmatrix}f&0&c_x-u\\0&f&c_y-v\end{pmatrix}$,

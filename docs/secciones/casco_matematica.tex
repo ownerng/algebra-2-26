@@ -167,6 +167,22 @@ $R_o$ es una rotación ($R_o^TR_o=I$ y $\det R_o=1$), su inversa es su transpues
 \begin{equation}
 \vect{p}_A=R_o\left(\begin{pmatrix} 3{,}195 \\ -25{,}557 \\ 300{,}871 \end{pmatrix}-\begin{pmatrix} -3{,}354 \\ -36{,}101 \\ 379{,}535 \end{pmatrix}\right)=R_o\begin{pmatrix} 6{,}549 \\ 10{,}544 \\ -78{,}664 \end{pmatrix}=\begin{pmatrix} 6{,}549 \\ -10{,}544 \\ 78{,}664 \end{pmatrix}\ \text{mm}.
 \end{equation}
+
+\paragraph{Con una sola matriz de $4\times4$.} La traslación y la rotación se pueden juntar en una matriz homogénea de $4\times4$ que actúa sobre
+el punto con un $1$ agregado, $(\vect{P},1)$ (coordenadas homogéneas, igual que el píxel $(u,v,1)$):
+\begin{equation}
+\begin{pmatrix}\vect{p}\\1\end{pmatrix}=\mathcal{M}_o\begin{pmatrix}\vect{P}\\1\end{pmatrix},\qquad
+\mathcal{M}_o=\begin{pmatrix}R_o&-R_o\vect{c}\\\vect{0}^{T}&1\end{pmatrix}=\begin{pmatrix} 1 & 0 & 0 & 3{,}354 \\ 0 & -1 & 0 & -36{,}101 \\ 0 & 0 & -1 & 379{,}535 \\ 0 & 0 & 0 & 1 \end{pmatrix} .
+\end{equation}
+Su determinante es $\det\mathcal{M}_o=\det R_o=1$ (una matriz de rotación y traslación no cambia volúmenes), y su inversa se obtiene por bloques,
+porque $-R_o^{T}(-R_o\vect{c})=\vect{c}$:
+\begin{equation}
+\mathcal{M}_o^{-1}=\begin{pmatrix}R_o^{T}&\vect{c}\\\vect{0}^{T}&1\end{pmatrix}=\begin{pmatrix} 1 & 0 & 0 & -3{,}354 \\ 0 & -1 & 0 & -36{,}101 \\ 0 & 0 & -1 & 379{,}535 \\ 0 & 0 & 0 & 1 \end{pmatrix},\qquad
+\mathcal{M}_o\,\mathcal{M}_o^{-1}=\begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}=I_4 .
+\end{equation}
+Con el píxel A, $\mathcal{M}_o(\vect{P}_A,1)=\begin{pmatrix} 6{,}549 \\ -10{,}544 \\ 78{,}664 \\ 1 \end{pmatrix}=(\vect{p}_A,1)$, y al revés, $\mathcal{M}_o^{-1}(\vect{p}_A,1)=\begin{pmatrix} 3{,}195 \\ -25{,}557 \\ 300{,}871 \\ 1 \end{pmatrix}=(\vect{P}_A,1)$: la inversa
+devuelve el punto a los ejes de la cámara.
+
 La figura~\ref{fig:casco-corte} muestra un corte lateral de los puntos del frente y de la parte de atrás y los rayos que los generan.
 
 \begin{figure}[htbp]

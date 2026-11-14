@@ -35,6 +35,12 @@ def nm(x, d=2):
     return ("-" if x < 0 else "") + ent + ("{,}" + dec if d else "")
 
 
+def sci(x, d=3):
+    """Notación científica para modo matemático: 1{,}762\\times10^{-6}."""
+    m, e = f"{x:.{d}e}".split("e")
+    return m.replace(".", "{,}") + r"\times10^{" + str(int(e)) + "}"
+
+
 def pm(filas, d=4, tipo="pmatrix"):
     def c(x):
         if isinstance(x, str):
@@ -333,15 +339,34 @@ que actúa sobre el punto $(x,y,z,1)$:
 \mathcal{M}^{-1}=\begin{pmatrix}s^{-1}R^{T}&-s^{-1}R^{T}\vect{t}\\\vect{0}^{T}&1\end{pmatrix}.
 \end{equation}
 La inversa se obtiene resolviendo $\mathcal{M}\vect{p}'=\vect{p}$ por bloques: $\vect{p}=s^{-1}R^{T}(\vect{p}'-\vect{t})$.
-Esta forma se usa en el procesamiento alto, donde el modelo generativo entrega cada pieza con su
-propia matriz de $4\times4$ (sección «\nameref{sec:alto-matematica}»).
+Esta forma se usa en el cambio de ejes de los objetos y en el procesamiento alto, donde el modelo generativo entrega cada pieza con su
+propia matriz de $4\times4$ (secciones «\nameref{sec:casco-ejes}» y «\nameref{sec:alto-matematica}»).
+Ejemplo numérico: con $s=1$, $R=R_x(90^\circ)$ y $\vect{t}=(1,2,3)^{T}$,
+\begin{equation}
+\mathcal{M}=@M4@,\qquad
+\mathcal{M}^{-1}=\begin{pmatrix}R^{T}&-R^{T}\vect{t}\\\vect{0}^{T}&1\end{pmatrix}=@M4i@,\qquad
+\mathcal{M}\mathcal{M}^{-1}=@M4p@=I_4 ,
+\end{equation}
+pues $-R^{T}\vect{t}=@mRt@$. Con el punto $\vect{p}=(1,1,1)$: $\mathcal{M}(\vect{p},1)=@Mp@$, y $\mathcal{M}^{-1}$ de ese resultado devuelve el punto original, $(@pb@)$.
 
 \paragraph{Cálculo con la matriz de la cámara.} La inversa que más se usa es la de la matriz de la cámara
 $K$, que es triangular. Como $K$ tiene la forma $\left(\begin{smallmatrix}f&0&c_x\\0&f&c_y\\0&0&1\end{smallmatrix}\right)$,
 basta una operación por fila (restar $c_x$ y $c_y$ veces la tercera fila, y dividir entre $f$) para
 llegar a $K^{-1}$; el cálculo se hace con los valores del casco en la sección «\nameref{sec:casco-camara}».
 """
-    d = dict(A=pmi(A), det=det, pasos=pasos_tex, inv=invtex)
+    Rx = np.array([[1, 0, 0], [0, 0, -1], [0, 1, 0]], float)
+    t = np.array([1.0, 2.0, 3.0])
+    M4 = np.eye(4)
+    M4[:3, :3], M4[:3, 3] = Rx, t
+    M4i = np.linalg.inv(M4)
+    assert np.allclose(M4 @ M4i, np.eye(4))
+    pp = np.array([1.0, 1.0, 1.0])
+    pmov = M4 @ np.append(pp, 1)
+    pback = M4i @ pmov
+    assert np.allclose(pback[:3], pp)
+    d = dict(A=pmi(A), det=det, pasos=pasos_tex, inv=invtex,
+             M4=pm(M4.tolist(), 0), M4i=pm(M4i.tolist(), 0), M4p=pm((M4 @ M4i).tolist(), 0),
+             mRt=pm([[x] for x in (-Rx.T @ t)], 0), Mp=pm([[x] for x in pmov], 0), pb=r",\," .join(str(int(round(x))) for x in pback[:3]))
     return fill(plantilla, d)
 
 
@@ -357,6 +382,9 @@ def casco_matematica(v, extra, alto):
     c = np.array(mal["centro_camara"])
     PA = np.array(A_["P"])
     pA = Ro @ (PA - c)
+    Mo = np.eye(4)
+    Mo[:3, :3], Mo[:3, 3] = Ro, -Ro @ c
+    Moi = np.linalg.inv(Mo)
     rA, rC = np.array(A_["rayo"]), np.array(C_["rayo"])
     cos_ac = float(rA @ rC / (np.linalg.norm(rA) * np.linalg.norm(rC)))
     ang_ac = float(np.degrees(np.arccos(cos_ac)))
@@ -553,6 +581,22 @@ $R_o$ es una rotación ($R_o^TR_o=I$ y $\det R_o=1$), su inversa es su transpues
 \begin{equation}
 \vect{p}_A=R_o\left(@PA@-@cc@\right)=R_o@dPc@=@pAfinal@\ \text{mm}.
 \end{equation}
+
+\paragraph{Con una sola matriz de $4\times4$.} La traslación y la rotación se pueden juntar en una matriz homogénea de $4\times4$ que actúa sobre
+el punto con un $1$ agregado, $(\vect{P},1)$ (coordenadas homogéneas, igual que el píxel $(u,v,1)$):
+\begin{equation}
+\begin{pmatrix}\vect{p}\\1\end{pmatrix}=\mathcal{M}_o\begin{pmatrix}\vect{P}\\1\end{pmatrix},\qquad
+\mathcal{M}_o=\begin{pmatrix}R_o&-R_o\vect{c}\\\vect{0}^{T}&1\end{pmatrix}=@Mo@ .
+\end{equation}
+Su determinante es $\det\mathcal{M}_o=\det R_o=1$ (una matriz de rotación y traslación no cambia volúmenes), y su inversa se obtiene por bloques,
+porque $-R_o^{T}(-R_o\vect{c})=\vect{c}$:
+\begin{equation}
+\mathcal{M}_o^{-1}=\begin{pmatrix}R_o^{T}&\vect{c}\\\vect{0}^{T}&1\end{pmatrix}=@Moi@,\qquad
+\mathcal{M}_o\,\mathcal{M}_o^{-1}=@MMi@=I_4 .
+\end{equation}
+Con el píxel A, $\mathcal{M}_o(\vect{P}_A,1)=@pA4@=(\vect{p}_A,1)$, y al revés, $\mathcal{M}_o^{-1}(\vect{p}_A,1)=@PA4@=(\vect{P}_A,1)$: la inversa
+devuelve el punto a los ejes de la cámara.
+
 La figura~\ref{fig:casco-corte} muestra un corte lateral de los puntos del frente y de la parte de atrás y los rayos que los generan.
 
 \begin{figure}[htbp]
@@ -646,6 +690,8 @@ $\mathcal{M}$ (alto) & $4\times4$ & rotación $R_x(90^\circ)$ & $\mathcal{M}^{-1
         nrA=n(np.linalg.norm(rA), 5), nrC=n(np.linalg.norm(rC), 5), angA=n(ang_A, 3), dot=n(float(rA @ rC), 5), cosac=n(cos_ac, 5), angac=n(ang_ac, 2),
         Hm=pm(Hm.tolist(), 0), KiH=pm(Ki_H.tolist(), 4), Zs=pm([Zs], 2), Pm=pm(Pm.tolist(), 2),
         Ro=pm(Ro.tolist(), 0).replace("{,}0", ""), cc=vec(c, 3), dPc=vec((PA - c), 3), pAfinal=vec(pA, 3),
+        Mo=pm(Mo.tolist(), 3), Moi=pm(Moi.tolist(), 3), MMi=pm((Mo @ Moi).tolist(), 1),
+        pA4=vec(list(Mo @ np.append(PA, 1)), 3), PA4=vec(list(Moi @ np.append(pA, 1)), 3),
         paso=paso, paso2=paso * paso, Nn=N(mal["n_frente"]),
         Vej=pm(mal["ejemplo_V"], 3), Fej=pmi(mal["ejemplo_F"]),
         cfrente=N(caras["frente"]), catras=N(caras["atras"]), cpared=N(caras["paredes"]), E=N(E), euler=euler,
@@ -836,6 +882,7 @@ $H$ & $3\times@Nn@$ & los píxeles del casco como columnas $(u,v,1)^{T}$ & paso 
 $\operatorname{diag}(Z)$ & $@Nn@\times@Nn@$ & la profundidad de cada píxel, entre $@zmin@$ y $@zmax@$ mm & paso 3 \\
 $P$ & $3\times@Nn@$ & los puntos 3D en los ejes de la cámara & paso 3 \\
 $R_o$ & $3\times3$ & giro de $180^\circ$ alrededor de $x$ & paso 3 \\
+$\mathcal{M}_o$ & $4\times4$ & $R_o$ y la traslación $-R_o\vect{c}$ juntas (coordenadas homogéneas) & paso 3 \\
 $V$ & $@Nv@\times3$ & los vértices de la malla (frente y atrás) & paso 4 \\
 $F$ & $@Mf@\times3$ & los índices de los tres vértices de cada triángulo & paso 4 \\
 \bottomrule
@@ -870,26 +917,50 @@ $\vect{n}=\vect{e}_1\times\vect{e}_2$ & normal del triángulo & $(@n0@,@n1@,@n2@
 El producto punto aparece en el ángulo entre rayos, $\cos\theta=\vect{r}_A\cdot\vect{r}_C/(\lVert\vect{r}_A\rVert\lVert\vect{r}_C\rVert)$, y, en las
 habitaciones, en la ecuación del plano $\vect{n}\cdot\vect{P}=d$ y en la intersección rayo--plano $Z=d/(\vect{n}\cdot\vect{r})$.
 
-\paragraph{Inversas del proceso.} Cada vez que se pasa de un lado a otro hay una matriz y su inversa. El cuadro~\ref{tab:inversas-proceso} las reúne y
-dice cómo se obtiene cada una; ninguna se calcula con un método general porque todas tienen una estructura que la simplifica.
+\paragraph{Matrices de $3\times3$ y de $4\times4$.} Solo las matrices cuadradas se pueden invertir (cuando su determinante no es cero). En el proceso hay
+cuatro de $3\times3$ y dos de $4\times4$ (cuadro~\ref{tab:cuadradas}). Se cumple $\det K\cdot\det K^{-1}=f^2\cdot f^{-2}=1$, y $R_o$ y las dos matrices
+homogéneas tienen determinante $1$, que es la señal de que no deforman ni cambian volúmenes.
 
 \begin{table}[htbp]
-\caption{Inversas del proceso y cómo se calculan}
-\label{tab:inversas-proceso}
+\caption{Matrices cuadradas del proceso, con su determinante y su inversa}
+\label{tab:cuadradas}
 \centering\small
-\begin{tabular}{@{}p{2.1cm}p{2.6cm}p{4.3cm}p{4.2cm}@{}}
+\begin{tabular}{@{}p{2.2cm}p{1.3cm}p{3.5cm}p{3.5cm}p{3.1cm}@{}}
 \toprule
-Matriz & Inversa & Cómo se calcula & Para qué sirve \\
+Matriz & Tamaño & Determinante & Inversa & Para qué sirve \\
 \midrule
-$K$ (triangular) & $K^{-1}$ & restar $c_x$, $c_y$ veces la fila 3 y dividir entre $f$ (Gauss--Jordan con 3 operaciones) & del píxel al rayo: $\vect{r}=K^{-1}\vect{p}$ \\
-$R_o$ (ortogonal) & $R_o^{-1}=R_o^{T}$ & trasponer, sin cuentas & volver de los ejes del objeto a los de la cámara \\
-$C$ (DCT $8\times8$, ortogonal) & $C^{-1}=C^{T}$ & trasponer & recuperar los píxeles de cada bloque del JPEG \\
-$T$ (color $3\times3$) & $T^{-1}$ & Gauss--Jordan & pasar de YCbCr a RGB \\
-$\operatorname{diag}(Z)$ & $\operatorname{diag}(1/Z)$ & invertir cada entrada de la diagonal & deshacer la escala por profundidad \\
-$\mathcal{M}$ ($4\times4$) & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ (rotación pura) & por bloques, $s^{-1}R^{T}$ y $-s^{-1}R^{T}\vect{t}$ & transformación de nodo del modelo generativo \\
+$K$ & $3\times3$ & $f^2=@detK@$ & $K^{-1}$, $\det K^{-1}=@detKi@$ & del píxel al rayo \\
+$R_o$ & $3\times3$ & $1$ & $R_o^{-1}=R_o^{T}=R_o$ & girar los ejes \\
+$T$ (color) & $3\times3$ & $@detT@$ & $T^{-1}$ & de YCbCr a RGB \\
+$[\vect{p}_0;\vect{p}_1;\vect{p}_2]$ & $3\times3$ & $@detTri@$ (de un triángulo) & no se invierte & su determinante da el volumen \\
+$\mathcal{M}_o$ & $4\times4$ & $1$ & $\mathcal{M}_o^{-1}=\begin{pmatrix}R_o^{T}&\vect{c}\\\vect{0}^{T}&1\end{pmatrix}$ & cambio de ejes completo \\
+$\mathcal{M}$ (alto) & $4\times4$ & $1$ & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ & nodo del modelo generativo \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Inversas del proceso.} Cada vez que se pasa de un lado a otro hay una matriz y su inversa. El cuadro~\ref{tab:inversas-proceso} reúne las de $3\times3$
+y $4\times4$ y dice cómo se obtiene cada una; ninguna necesita un método general porque todas tienen una estructura que la simplifica.
+
+\begin{table}[htbp]
+\caption{Inversas de las matrices de $3\times3$ y $4\times4$ y cómo se calculan}
+\label{tab:inversas-proceso}
+\centering\small
+\begin{tabular}{@{}p{2.1cm}p{2.9cm}p{4.2cm}p{4.2cm}@{}}
+\toprule
+Matriz & Inversa & Cómo se calcula & Para qué sirve \\
+\midrule
+$K$ ($3\times3$, triangular) & $K^{-1}$ & restar $c_x$, $c_y$ veces la fila 3 y dividir entre $f$ (Gauss--Jordan con 3 operaciones) & del píxel al rayo: $\vect{r}=K^{-1}\vect{p}$ \\
+$R_o$ ($3\times3$, ortogonal) & $R_o^{-1}=R_o^{T}$ & trasponer, sin cuentas & volver de los ejes del objeto a los de la cámara \\
+$T$ ($3\times3$) & $T^{-1}$ & Gauss--Jordan & pasar de YCbCr a RGB \\
+$\mathcal{M}_o$ ($4\times4$) & $\mathcal{M}_o^{-1}$ & por bloques: $R_o^{T}$ y $\vect{c}$ & volver del objeto a la cámara con una sola matriz \\
+$\mathcal{M}$ ($4\times4$, alto) & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ (rotación pura) & por bloques, $s^{-1}R^{T}$ y $-s^{-1}R^{T}\vect{t}$ & transformación de nodo del modelo generativo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+También son cuadradas e invertibles la matriz de la DCT del JPEG ($C$, de $8\times8$, con $C^{-1}=C^{T}$) y $\operatorname{diag}(Z)$ (de $N\times N$, con inversa
+$\operatorname{diag}(1/Z)$), pero son matrices grandes que se invierten sin hacer cuentas, por eso no están en el cuadro.
 
 \paragraph{La inversa de la cadena completa.} El paso del píxel al vértice es una cadena de transformaciones, y la inversa de una cadena es la cadena de
 las inversas en orden contrario, $(AB)^{-1}=B^{-1}A^{-1}$. Para el píxel A, ir del píxel al vértice es $\vect{p}\ \to\ \vect{P}=Z\,K^{-1}\vect{p}\ \to\
@@ -898,7 +969,8 @@ las inversas en orden contrario, $(AB)^{-1}=B^{-1}A^{-1}$. Para el píxel A, ir 
 \vect{P}=R_o^{T}\,\vect{p}_{\text{obj}}+\vect{c}=R_o^{T}@pAobj@+@cc@=@Pvuelta@,\qquad
 K\vect{P}=@KPv@=Z\,\vect{p},
 \end{equation}
-y al dividir entre $Z=@Zf@$ se recupera el píxel $(@pixu@,@pixv@,1)$ de partida: la cadena y su inversa se cancelan, que es lo que
+y al dividir entre $Z=@Zf@$ se recupera el píxel $(@pixu@,@pixv@,1)$ de partida (con la matriz de $4\times4$ $\mathcal{M}_o$, el mismo viaje de vuelta es un solo
+producto, $\mathcal{M}_o^{-1}(\vect{p}_{\text{obj}},1)$): la cadena y su inversa se cancelan, que es lo que
 comprueban las pruebas automáticas del servidor ($KK^{-1}=I$ y proyectar un punto retroproyectado devuelve el mismo píxel).
 
 \paragraph{La matriz que no se puede invertir.} La única matriz del proceso sin inversa es la de la proyección, $A=\begin{pmatrix}f&0&c_x-u\\0&f&c_y-v\end{pmatrix}$,
@@ -910,6 +982,7 @@ habitaciones, donde $Z=d/(\vect{n}\cdot\vect{r})$ convierte el sistema en una ec
         h=H, w=W, f=n(cam["f"], 3), cx=n(cam["cx"], 0), cy=n(cam["cy"], 0), Nn=N(mal["n_frente"]), Nv=N(mal["N"]), Mf=N(mal["M"]),
         zmin=n(v["profundidad"]["Zfrente_min"], 0), zmax=n(v["profundidad"]["Zfrente_max"], 0),
         detK=N(int(cam["det_K"])) + "{,}" + f"{cam['det_K'] % 1:.1f}"[2:],
+        detKi=sci(1 / cam["det_K"], 3), detT=n(float(np.linalg.det(np.array(extra["T"]))), 4), detTri=n(tri["det"], 3),
         cA="(" + r",\," .join(str(x) for x in rgbA) + ")", nAB=n(extra["normAB"], 1),
         uA=A_["u"], vA=A_["v"], r0=n(rA[0], 4), r1=n(rA[1], 4), nr=n(float(np.linalg.norm(rA)), 5),
         ang=n(float(np.degrees(np.arctan(np.hypot(rA[0], rA[1])))), 2),

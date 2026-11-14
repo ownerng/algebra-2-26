@@ -50,8 +50,15 @@ que actúa sobre el punto $(x,y,z,1)$:
 \mathcal{M}^{-1}=\begin{pmatrix}s^{-1}R^{T}&-s^{-1}R^{T}\vect{t}\\\vect{0}^{T}&1\end{pmatrix}.
 \end{equation}
 La inversa se obtiene resolviendo $\mathcal{M}\vect{p}'=\vect{p}$ por bloques: $\vect{p}=s^{-1}R^{T}(\vect{p}'-\vect{t})$.
-Esta forma se usa en el procesamiento alto, donde el modelo generativo entrega cada pieza con su
-propia matriz de $4\times4$ (sección «\nameref{sec:alto-matematica}»).
+Esta forma se usa en el cambio de ejes de los objetos y en el procesamiento alto, donde el modelo generativo entrega cada pieza con su
+propia matriz de $4\times4$ (secciones «\nameref{sec:casco-ejes}» y «\nameref{sec:alto-matematica}»).
+Ejemplo numérico: con $s=1$, $R=R_x(90^\circ)$ y $\vect{t}=(1,2,3)^{T}$,
+\begin{equation}
+\mathcal{M}=\begin{pmatrix} 1 & 0 & 0 & 1 \\ 0 & 0 & -1 & 2 \\ 0 & 1 & 0 & 3 \\ 0 & 0 & 0 & 1 \end{pmatrix},\qquad
+\mathcal{M}^{-1}=\begin{pmatrix}R^{T}&-R^{T}\vect{t}\\\vect{0}^{T}&1\end{pmatrix}=\begin{pmatrix} 1 & 0 & 0 & -1 \\ 0 & 0 & 1 & -3 \\ 0 & -1 & 0 & 2 \\ 0 & 0 & 0 & 1 \end{pmatrix},\qquad
+\mathcal{M}\mathcal{M}^{-1}=\begin{pmatrix} 1 & 0 & 0 & 0 \\ 0 & 1 & 0 & 0 \\ 0 & 0 & 1 & 0 \\ 0 & 0 & 0 & 1 \end{pmatrix}=I_4 ,
+\end{equation}
+pues $-R^{T}\vect{t}=\begin{pmatrix} -1 \\ -3 \\ 2 \end{pmatrix}$. Con el punto $\vect{p}=(1,1,1)$: $\mathcal{M}(\vect{p},1)=\begin{pmatrix} 2 \\ 1 \\ 4 \\ 1 \end{pmatrix}$, y $\mathcal{M}^{-1}$ de ese resultado devuelve el punto original, $(1,\,1,\,1)$.
 
 \paragraph{Cálculo con la matriz de la cámara.} La inversa que más se usa es la de la matriz de la cámara
 $K$, que es triangular. Como $K$ tiene la forma $\left(\begin{smallmatrix}f&0&c_x\\0&f&c_y\\0&0&1\end{smallmatrix}\right)$,
