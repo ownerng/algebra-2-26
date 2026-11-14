@@ -1,4 +1,6 @@
-\documentclass[stu,12pt,floatsintext]{apa7}
+% donotrepeattitle: el título no se repite arriba de la primera página de texto
+% (antes quedaba solo en una página, porque el resumen empieza en página nueva)
+\documentclass[stu,12pt,floatsintext,donotrepeattitle]{apa7}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -23,6 +25,13 @@
 % Notacion
 \newcommand{\vect}[1]{\mathbf{#1}}
 
+% Tabla de contenido: secciones y subsecciones
+\addto\captionsspanish{\renewcommand{\contentsname}{Tabla de contenido}}
+\setcounter{tocdepth}{2}
+
+% Los enlaces (índice, figuras, citas) funcionan pero sin recuadros de color
+\AtBeginDocument{\hypersetup{hidelinks}}
+
 % --- Metadatos de portada (clase apa7, opcion stu) ---
 \title{Mapeador 3D de bajo costo: de una fotografía a un modelo
        tridimensional con vectores, matrices y sistemas de ecuaciones}
@@ -39,6 +48,8 @@
 
 \maketitle                              % portada APA 7 (estudiante)
 
+\tableofcontents
+
 \input{secciones/resumen}
 \input{secciones/abstract}
 \input{secciones/introduccion}
@@ -48,7 +59,6 @@
 \input{secciones/resultados}
 \input{secciones/discusion}
 \input{secciones/conclusiones}
-\input{secciones/trabajo_futuro}
 
 \bibliography{referencias}
 

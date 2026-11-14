@@ -1,21 +1,23 @@
 \newpage
 \section*{Abstract}
+\addcontentsline{toc}{section}{Abstract}
 
 Building a three-dimensional model of a real object usually requires expensive
 scanners or dozens of photographs and long processing times. This work
-presents a low-cost 3D mapper that turns a single photograph taken with a
-phone camera into a closed solid in about one second on a laptop. The object
-is separated from the background without a neutral backdrop; the depth of
-each pixel is estimated from its silhouette, and the inverse of the camera
-matrix, $K^{-1}$, maps each pixel $(u,v)$ to a point $(X,Y,Z)$ in space. These
-points form a triangle mesh, stored as a vertex matrix
-$V\in\mathbb{R}^{N\times3}$ and a face matrix $F\in\mathbb{Z}^{M\times3}$, closed
-with a back face and side walls. With five photographs (front, sides, back and
-top), each view is described by a rotation matrix and the object is carved as
-the intersection of the cones defined by its silhouettes. The whole process
+presents a low-cost 3D mapper that, with a phone camera and a laptop, turns a
+single photograph into a three-dimensional model of an object or of a room.
+For objects, a neural network separates the object from the background; the
+depth of each pixel is estimated from its silhouette and a depth network, and the inverse of the
+camera matrix, $K^{-1}$, maps each pixel $(u,v)$ to a point $(X,Y,Z)$ in space.
+These points form a triangle mesh, stored as a vertex matrix $V$ and a face
+matrix $F$. For rooms, a neural network estimates the distance of each pixel in
+meters; the floor, walls and ceiling are described as planes
+$\vect{n}\cdot\vect{P}=d$, and the depth of each pixel is corrected by
+intersecting its ray with the corresponding plane. A rotation matrix
+straightens the scene so that the floor is horizontal. The whole process
 relies on vectors, matrices and systems of linear equations. In our tests a
-photograph is processed in 0.7 to 1.2 seconds and, with five views, the
-proportions of a test box are recovered with less than 3\,\% error.
+photograph of an object is processed in 0.7 to 1.2 seconds and, in a test
+room, the camera height is recovered with less than 1\,\% error.
 
 \textit{Keywords:} linear algebra, camera model, matrix inverse, 3D
-reconstruction, triangle mesh, visual hull.
+reconstruction, triangle mesh, planes, rotation matrix.

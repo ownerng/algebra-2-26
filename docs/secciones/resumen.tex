@@ -1,22 +1,24 @@
 \newpage
 \section*{Resumen}
+\addcontentsline{toc}{section}{Resumen}
 
 Obtener un modelo tridimensional de un objeto real suele exigir escáneres
 costosos o decenas de fotografías y mucho tiempo de cómputo. Este trabajo
 presenta un mapeador 3D de bajo costo que, con la cámara de un celular y un
-computador portátil, convierte una fotografía en un sólido tridimensional en
-alrededor de un segundo. El objeto se separa del fondo sin necesidad de una
-cartulina neutra; a partir de su silueta se estima la profundidad de cada
-píxel, y la inversa de la matriz de la cámara, $K^{-1}$, lleva cada píxel
-$(u,v)$ a un punto $(X,Y,Z)$ del espacio. Con esos puntos se arma una malla:
-una matriz de vértices $V\in\mathbb{R}^{N\times3}$ y una de caras
-$F\in\mathbb{Z}^{M\times3}$, cerrada con una cara trasera y paredes laterales.
-Con cinco fotografías (frontal, laterales, trasera y superior) cada vista se
-describe con una matriz de rotación y el objeto se talla como la intersección
-de los conos que forman sus siluetas. Todo el proceso se reduce a vectores,
-matrices y sistemas de ecuaciones lineales. En las pruebas, una foto se
-procesa en 0,7 a 1,2 segundos y, con cinco vistas, las proporciones de una caja
-de prueba se recuperan con un error menor al 3\,\%.
+computador portátil, convierte una fotografía en un modelo tridimensional de un
+objeto o de una habitación. Los objetos se separan del fondo con una red
+neuronal; a partir de su silueta y de una red de profundidad se estima la
+profundidad de cada píxel, y la inversa de la matriz de la cámara, $K^{-1}$, lleva cada píxel
+$(u,v)$ a un punto $(X,Y,Z)$ del espacio. Con esos puntos se arma una malla de
+triángulos, guardada como una matriz de vértices $V$ y una matriz de caras $F$.
+En las habitaciones, una red neuronal estima la distancia de cada píxel en
+metros; el piso, las paredes y el techo se describen como planos
+$\vect{n}\cdot\vect{P}=d$, y la profundidad de cada píxel se corrige al
+intersecar su rayo con el plano correspondiente. Una matriz de rotación
+endereza la escena para que el piso quede horizontal. Todo el proceso se
+reduce a vectores, matrices y sistemas de ecuaciones lineales. En las pruebas,
+una foto de un objeto se procesa en 0,7 a 1,2 segundos y, en una habitación de
+prueba, la altura de la cámara se recupera con un error menor al 1\,\%.
 
 \textit{Palabras clave:} álgebra lineal, modelo de cámara, matriz inversa,
-reconstrucción 3D, malla de triángulos, envolvente visual.
+reconstrucción 3D, malla de triángulos, planos, matriz de rotación.

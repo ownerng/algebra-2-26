@@ -1,8 +1,9 @@
 \section{Discusión}
 
 Los resultados muestran que el proceso cumple la meta de tiempo: una foto se
-convierte en un sólido en alrededor de un segundo, y cinco vistas en unos
-pocos segundos contando la segmentación de cada foto. La mayor parte del
+convierte en un sólido en alrededor de un segundo, y en las habitaciones la
+intersección con los planos corrige casi todo el error de la red de
+profundidad (tabla~\ref{tab:habitacion}). La mayor parte del
 tiempo la consume la red neuronal; los pasos de álgebra lineal son casi
 instantáneos porque cada uno es un producto de matrices sobre miles de
 puntos a la vez.
@@ -14,27 +15,17 @@ puntos a la vez.
         objeto se supone (400 mm). Si el objeto estaba al doble de distancia,
         sus medidas reales son el doble. La forma y las proporciones no
         cambian, porque todas las coordenadas se escalan por el mismo factor.
-  \item \textbf{Una foto no ve la parte de atrás.} Con una sola imagen la
-        profundidad es una suposición (una forma redondeada a partir de la
-        silueta), no una medición. Sirve para objetos convexos y lisos, pero
+  \item \textbf{Una foto no ve la parte de atrás.} Con procesamiento bajo y una sola imagen, la
+        profundidad es una estimación (una forma redondeada a partir de la
+        silueta, ajustada con una red de profundidad), no una medición. Sirve para objetos convexos y lisos, pero
         no para formas con salientes o huecos.
-  \item \textbf{Concavidades.} La envolvente visual nunca recupera las partes
-        cóncavas, como el interior de una taza, porque no cambian ninguna
-        silueta.
-  \item \textbf{Fotos a pulso.} Las rotaciones de la
-        tabla~\ref{tab:rotaciones} suponen giros exactos de $90^\circ$. Si el
-        celular se inclina, las siluetas no coinciden y la talla quita de más.
-        Por eso las siluetas se ensanchan un píxel antes de tallar.
-  \item \textbf{Perspectiva.} Con pocas vistas, la envolvente queda con
-        esquinas biseladas, como se ve en la figura~\ref{fig:vistas}, porque
-        los conos de las cámaras no son prismas rectos.
+  \item \textbf{Zonas ocultas en habitaciones.} Lo que está detrás de los
+        muebles no aparece en la foto: su forma sale de los planos del cuarto
+        y su textura la inventa una red neuronal. Es una estimación, no una
+        medición.
+  \item \textbf{Forma del cuarto.} El cuarto vacío se calcula con el plano más
+        cercano que corta cada rayo, lo que supone una habitación sin rincones
+        hacia adentro. En cuartos en forma de L o con columnas, lo oculto
+        puede quedar mal estimado.
 \end{itemize}
 
-\subsection{Comparación con la versión anterior}
-
-El escáner anterior, con un sensor láser sobre una cuadrícula, medía la
-distancia real en cada punto, pero tomaba varios minutos por objeto y daba
-pocas decenas de puntos. El mapeador con cámara mide la escala de forma menos
-exacta, pero en un segundo produce decenas de miles de puntos con color.
-Ambos usan la misma idea de fondo: llevar una medición (la casilla y la
-distancia antes; el píxel y la profundidad ahora) al espacio con una matriz.

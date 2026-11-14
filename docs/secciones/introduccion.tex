@@ -3,8 +3,9 @@
 \subsection{Planteamiento del problema}
 
 Cada vez más actividades necesitan una versión digital en tres dimensiones de
-un objeto físico: mostrar un producto en una tienda en línea, conservar piezas
-de un museo, preparar una impresión 3D o explicar una pieza en clase. Las
+un objeto o de un espacio físico: mostrar un producto en una tienda en línea,
+conservar piezas de un museo, preparar una impresión 3D, planear la
+distribución de una habitación o explicar una pieza en clase. Las
 herramientas que hacen esto bien tienen un costo alto. Un escáner de luz
 estructurada o láser cuesta miles de dólares, y la fotogrametría, que no
 necesita equipo especial, pide decenas de fotografías tomadas con cuidado y
@@ -26,7 +27,7 @@ este trabajo:
 
 \begin{quote}
 ¿Es posible obtener, en pocos segundos y solo con la cámara de un celular, un
-modelo tridimensional aproximado de un objeto, usando como herramienta
+modelo tridimensional aproximado de un objeto o de una habitación, usando como herramienta
 principal los vectores, las matrices y los sistemas de ecuaciones vistos en el
 curso?
 \end{quote}
@@ -35,17 +36,20 @@ curso?
 
 El proyecto muestra que los temas básicos del álgebra lineal no son abstractos:
 la cámara de un celular se describe con una matriz de $3\times3$, ir del píxel
-al espacio es multiplicar por su inversa, girar una vista es multiplicar por
-una matriz de rotación y medir un volumen es sumar determinantes. Además, el
+al espacio es multiplicar por su inversa, una pared se describe con la
+ecuación de un plano, enderezar una escena es multiplicar por una matriz de
+rotación y medir un volumen es sumar determinantes. Además, el
 resultado es útil: un modelo 3D que se puede girar en el navegador y exportar
 a un archivo \texttt{.obj}, obtenido con equipo que casi cualquier estudiante
 tiene.
 
 \subsection{Alcance}
 
-El sistema reconstruye la forma aproximada de objetos medianos (una taza, una
-fruta, una caja) que se puedan rodear con el celular. Las medidas en
-milímetros son aproximadas, porque la distancia entre la cámara y el objeto se
-supone en lugar de medirse. No se busca la precisión de un escáner
+El sistema reconstruye, a partir de una fotografía, la forma aproximada de
+objetos medianos (una taza, una fruta, una caja) y de habitaciones (piso,
+paredes, techo y muebles). En los objetos, las medidas en milímetros son
+aproximadas, porque la distancia entre la cámara y el objeto se supone en
+lugar de medirse; en las habitaciones, lo que queda oculto detrás de los
+muebles se estima y no se mide. No se busca la precisión de un escáner
 profesional, sino un resultado rápido y explicable con la matemática del
 curso.

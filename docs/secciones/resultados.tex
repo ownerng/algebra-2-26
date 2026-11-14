@@ -1,9 +1,48 @@
 \section{Resultados}
 
 Las pruebas se hicieron en un portátil con procesador de 8 núcleos y sin
-tarjeta gráfica dedicada para el cálculo. Se usaron fotografías de prueba de
-la biblioteca OpenCV (frutas sobre fondos con textura) y, para medir el error,
-fotografías sintéticas de una caja de dimensiones conocidas.
+tarjeta gráfica dedicada para el cálculo. Para probar la aplicación completa,
+la imagen del celular se reemplazó por una transmisión de prueba en el mismo
+formato de DroidCam, con la foto de una manzana (de las imágenes de prueba de
+OpenCV) y la foto de una oficina; así, todo el recorrido (conexión, encuadre,
+cálculo y visor 3D) se ejecutó igual que con el celular. Para medir la
+exactitud se usó además una habitación sintética de medidas conocidas.
+
+\subsection{Funcionamiento de la aplicación web}
+
+El recorrido de prueba fue el siguiente:
+\begin{enumerate}
+  \item \textbf{Conexión.} En el panel de la cámara (figura~\ref{fig:ui-camara})
+        se escribió la IP de la transmisión y se pulsó \textbf{Conectar}: el
+        punto del botón \textbf{Cámara} pasó a verde, el panel se cerró solo y
+        apareció la vista de encuadre con la manzana
+        (figura~\ref{fig:encuadre}).
+  \item \textbf{Objeto.} Con procesamiento bajo, \textbf{Tomar foto} produjo el
+        modelo de la manzana en 1,8 s (figura~\ref{fig:una-foto}). Los botones
+        \textbf{Malla} y \textbf{Puntos} cambiaron la vista, y el modelo se
+        pudo girar y acercar con el mouse.
+  \item \textbf{Habitación.} Con \textbf{Nueva foto} y el selector en
+        \textbf{Habitaciones}, la transmisión pasó a la foto de la oficina
+        (figura~\ref{fig:ui-habitacion}). Al pulsar \textbf{Tomar foto}, la
+        imagen se oscureció con el mensaje del paso en curso
+        (figura~\ref{fig:ui-procesando}) y a los 35,5 s apareció el modelo
+        (figura~\ref{fig:habitacion-real}).
+\end{enumerate}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{ui_procesando.jpg}
+\caption{Aplicación mientras calcula una habitación: la imagen se oscurece y un
+mensaje indica el paso en curso.}
+\label{fig:ui-procesando}
+\end{figure}
+
+Además, las catorce pruebas automáticas del servidor pasan. Comprueban, entre
+otras cosas, que $KK^{-1}=I$, que proyectar un punto retroproyectado devuelve
+el mismo píxel, que la segmentación separa un objeto de un fondo con ruido de
+colores y que el volumen de la malla de un disco, calculado con la
+ecuación~\eqref{eq:volumen}, coincide con $\pi r^2$ por el grosor con un error
+menor al 8\,\% (la rejilla aproxima el borde circular con segmentos rectos).
 
 \subsection{Segmentación}
 
@@ -40,22 +79,25 @@ IS-Net (isnet-general-use) & 5,5--7,5 s & correcta en las cuatro \\
 \note{Tiempos medidos en el mismo portátil, incluyendo profundidad y malla.}
 \end{table}
 
-\subsection{Reconstrucción con una fotografía}
+\subsection{Reconstrucción de objetos}
 
-La figura~\ref{fig:una-foto} muestra el resultado para la foto de la manzana:
-la malla con la foto como textura y la nube de puntos. La malla tiene
-$N=34\,834$ vértices y $M=69\,664$ caras. La tabla~\ref{tab:tiempos} resume
-los tiempos de cada paso; la mayor parte del tiempo se va en la segmentación,
-mientras que la retroproyección y la malla, que son los pasos de álgebra
-lineal, toman milisegundos gracias a que se calculan con productos de
+La figura~\ref{fig:una-foto} muestra el resultado para la foto de la manzana en
+la aplicación: la malla con la foto como textura y, vista de lado, la nube de
+puntos, donde se distinguen la cara frontal y la trasera del sólido. En esta
+prueba la malla tuvo $N=122\,976$ vértices y $M=245\,948$ caras y el cálculo
+tardó 1,8 s. La tabla~\ref{tab:tiempos} resume los tiempos de cada paso con las
+fotos de prueba originales; la mayor parte del tiempo se va en la
+segmentación, mientras que la retroproyección y la malla, que son los pasos de
+álgebra lineal, toman milisegundos gracias a que se calculan con productos de
 matrices.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.49\linewidth]{app_malla.jpg}\hfill
-\includegraphics[width=0.49\linewidth]{app_puntos.jpg}
-\caption{Resultado con una fotografía: malla con textura (izquierda) y nube de
-puntos (derecha), vistas en la página web.}
+\includegraphics[width=0.49\linewidth]{res_objeto_malla.jpg}\hfill
+\includegraphics[width=0.49\linewidth]{res_objeto_puntos.jpg}
+\caption{Manzana reconstruida con una fotografía: malla con textura y ficha del
+modelo (izquierda) y nube de puntos vista de lado, con la cara frontal y la
+trasera (derecha).}
 \label{fig:una-foto}
 \end{figure}
 
@@ -74,53 +116,57 @@ Frutas & 992 & 223 & 24 & 1\,239 & 73\,684 \\
 \note{Mediana de cinco ejecuciones de cada foto.}
 \end{table}
 
-\subsection{Reconstrucción con varias vistas}
+\subsection{Reconstrucción de habitaciones}
 
-Para medir el error se generaron fotos de una caja de $100\times60\times40$ mm
-con una cara de cada color, sobre un fondo de ruido de colores, desde las
-cinco posiciones de la tabla~\ref{tab:rotaciones}. Las fotos pasaron por todo
-el proceso, incluida la segmentación. Como la escala absoluta depende de la
-distancia supuesta $Z_0$, se compararon las proporciones: ancho y fondo
-divididos entre el alto (tabla~\ref{tab:vistas}).
-
-\begin{table}[htbp]
-\caption{Error en las proporciones de la caja según el número de vistas}
-\label{tab:vistas}
-\begin{tabular}{lccc}
-\toprule
-Vistas & Ancho / alto & Fondo / alto & Tiempo \\
-\midrule
-Real & 1,667 & 0,667 & -- \\
-2 (frontal, izquierda) & 1,628 (2,3\,\%) & 0,760 (14,0\,\%) & 0,29 s \\
-3 (+ derecha) & 1,750 (5,0\,\%) & 0,696 (4,5\,\%) & 0,34 s \\
-4 (+ superior) & 1,741 (4,5\,\%) & 0,684 (2,5\,\%) & 0,42 s \\
-5 (+ trasera) & 1,646 (1,2\,\%) & 0,684 (2,6\,\%) & 0,50 s \\
-\bottomrule
-\end{tabular}
-\note{Entre paréntesis, el error relativo. El tiempo es el de la talla y la
-malla; cada foto se segmenta al tomarla (alrededor de 1 s).}
-\end{table}
-
-Con cinco vistas los dos errores quedan por debajo del 3\,\%. La vista
-trasera mejora sobre todo el ancho, porque ve el objeto desde el lado opuesto
-y corrige el efecto de la perspectiva de la foto frontal. La
-figura~\ref{fig:vistas} muestra la captura de las cinco vistas en la página y
-el sólido reconstruido, con el color de cada cara tomado de la foto que mejor
-la ve.
+La figura~\ref{fig:habitacion-real} muestra el modelo obtenido con la foto de
+la oficina. Tuvo 221\,710 vértices y 426\,273 triángulos, abarcó
+$5{,}9\times3{,}5\times6{,}1$ m y el cálculo tardó 35,5 s; la aplicación estimó
+la cámara a 1,18 m del piso. En la vista girada se ve que el piso y las paredes
+quedan planos y que la silla y la mesa se separan de la pared, pero también un
+límite del método: los muebles delgados se estiran hacia atrás, porque la foto
+no muestra su parte posterior.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.49\linewidth]{app_vistas.jpg}\hfill
-\includegraphics[width=0.49\linewidth]{app_envolvente.jpg}
-\caption{Modo de cinco vistas: cada foto aparece recortada en su casilla
-(izquierda) y el sólido reconstruido visto desde atrás (derecha).}
-\label{fig:vistas}
+\includegraphics[width=0.49\linewidth]{res_habitacion_frente.jpg}\hfill
+\includegraphics[width=0.49\linewidth]{res_habitacion_lado.jpg}
+\caption{Habitación reconstruida a partir de una foto: vista desde el punto de
+la foto, con la ficha del modelo (izquierda), y vista girada, donde se aprecian
+la profundidad del piso y la separación entre los muebles y la pared
+(derecha).}
+\label{fig:habitacion-real}
 \end{figure}
 
-\subsection{Pruebas automáticas}
+Para medir la exactitud se generó una habitación sintética de $5\times6$ m y
+2,6 m de alto, con la cámara a 1,4 m del piso, inclinada $15^\circ$ hacia abajo
+y $5^\circ$ de lado, y una caja delante de la pared del fondo. Como en esta
+escena se conoce la profundidad real de cada píxel, el resultado de cada paso
+se puede comparar con el valor exacto (tabla~\ref{tab:habitacion}). Para
+simular el error de la red de profundidad, a cada píxel se le sumó un ruido
+del 2\,\%.
 
-Las cinco pruebas del servidor y las dieciséis de la versión anterior pasan.
-En particular, el volumen de la malla de un disco calculado con la
-ecuación~\eqref{eq:volumen} coincide con $\pi r^2$ por el grosor con un error
-menor al 8\,\%, que se debe a que la rejilla aproxima el borde circular con
-segmentos rectos.
+\begin{table}[htbp]
+\caption{Exactitud de la reconstrucción en la habitación sintética}
+\label{tab:habitacion}
+\begin{tabular}{lcc}
+\toprule
+Medida & Valor real & Obtenido \\
+\midrule
+Altura de la cámara sobre el piso & 1\,400 mm & 1\,406 mm (0,4\,\%) \\
+Dispersión de la altura de los puntos del piso & 0 mm & 2,5 mm \\
+Error medio de profundidad en el piso, con ruido & -- & 1,6\,\% $\rightarrow$ 0,14\,\% \\
+Error del cuarto vacío detrás de la caja (mediana) & -- & 0,16\,\% \\
+\bottomrule
+\end{tabular}
+\note{En la tercera fila, el error antes y después de reemplazar la
+profundidad por la del plano (paso 3). La malla resultante tiene 172\,800
+vértices y 343\,249 triángulos.}
+\end{table}
+
+La altura de la cámara y la dispersión del piso muestran que la rotación
+endereza la escena: después de girarla, los puntos del piso quedan a la misma
+altura con una diferencia de pocos milímetros. La tercera fila muestra el
+efecto de la intersección rayo--plano: aunque la profundidad de entrada tenga
+un error del 1,6\,\%, al reemplazarla por la del plano ajustado el error baja
+a menos del 0,2\,\%.
+

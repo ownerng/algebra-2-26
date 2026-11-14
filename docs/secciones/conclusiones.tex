@@ -1,21 +1,23 @@
 \section{Conclusiones}
 
 \begin{itemize}
-  \item Con la cámara de un celular y un portátil se obtuvo un modelo 3D
-        cerrado de un objeto en alrededor de un segundo, sin fondo especial y
-        sin equipo adicional.
+  \item Con la cámara de un celular y un portátil se obtuvo un modelo 3D de un
+        objeto en alrededor de un segundo y de una habitación a partir de una
+        sola fotografía, sin fondo especial y sin equipo adicional.
   \item El paso clave, ir de la imagen plana al espacio, se resolvió con la
         matriz de la cámara $K$ y su inversa: $\vect{P}=Z\,K^{-1}[u,v,1]^{T}$.
         Como la proyección deja un sistema de dos ecuaciones con tres
         incógnitas, la profundidad $Z$ tuvo que salir de información adicional:
-        la silueta en el modo de una foto y las otras vistas en el modo de
-        cinco fotos.
+        la silueta y una red de profundidad en los objetos y, en las
+        habitaciones, esa red corregida con los planos del cuarto.
   \item Guardar la malla como dos matrices, $V$ ($N\times3$) y $F$
-        ($M\times3$), permitió construirla, cerrarla, medir su volumen con
-        determinantes y exportarla, todo con operaciones de matrices.
-  \item Las matrices de rotación permitieron combinar cinco fotos tomadas
-        desde lados distintos. Con las cinco vistas, las proporciones de una
-        caja de prueba se recuperaron con menos del 3\,\% de error.
+        ($M\times3$), permitió construirla, medir su volumen con determinantes
+        y exportarla, todo con operaciones de matrices.
+  \item En las habitaciones, la ecuación del plano y la intersección
+        rayo--plano convirtieron el problema en una ecuación con una sola
+        incógnita, y una matriz de rotación enderezó la escena. En una
+        habitación de prueba, la altura de la cámara se recuperó con un error
+        del 0,4\,\%.
   \item Los temas básicos del curso (vectores, matrices y sistemas de
         ecuaciones) alcanzan para explicar y programar todo el proceso
         matemático de un problema real de visión por computador.

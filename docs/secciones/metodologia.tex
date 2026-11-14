@@ -5,7 +5,7 @@
 El sistema tiene dos partes (figura~\ref{fig:arquitectura}). Un servidor en
 Python recibe la imagen de la cámara y hace todo el cálculo con NumPy y
 OpenCV; una página web, hecha con React y three.js, muestra la cámara con una
-cuadrícula de encuadre y, después de la foto, el objeto en 3D, que se puede
+cuadrícula de encuadre y, después de la foto, el objeto o la habitación en 3D, que se puede
 girar y acercar con el mouse.
 
 \begin{figure}[htbp]
@@ -24,19 +24,46 @@ girar y acercar con el mouse.
   \draw[->] (retro) -- (malla);
   \draw[->] (malla) -- (web);
 \end{tikzpicture}
-\caption{Flujo del mapeador con una fotografía. Con cinco vistas, los pasos 2 y
-3 se reemplazan por la talla de voxeles.}
+\caption{Flujo del mapeador para un objeto a partir de una fotografía.}
 \label{fig:arquitectura}
 \end{figure}
 
 \subsection{Captura}
 
 La cámara es la de un celular con la aplicación DroidCam, que transmite video
-en formato MJPEG (una secuencia de imágenes JPEG). Se puede conectar de tres
-formas: por WiFi, escribiendo la IP del celular; por cable USB en el caso del
-iPhone, a través del servicio \texttt{usbmuxd} de Linux; o con cualquier
-cámara del computador. El servidor guarda siempre el último cuadro y lo
-reparte a la vista previa y al escáner.
+en formato MJPEG: una secuencia de imágenes JPEG, cada una delimitada por los
+bytes \texttt{FFD8} (inicio) y \texttt{FFD9} (fin). DroidCam acepta un solo
+cliente a la vez, así que el servidor abre una única conexión, guarda siempre
+el último cuadro y lo reparte a la vista previa de la página y al escáner. La
+cámara se puede conectar de cuatro formas:
+\begin{enumerate}
+  \item \textbf{WiFi.} Se escribe la IP que muestra DroidCam y el servidor pide
+        el video a \texttt{http://IP:4747/video}. El celular y el computador
+        deben estar en la misma red.
+  \item \textbf{iPhone por cable.} Durante las pruebas se cayó la red WiFi y
+        se compartieron los datos del celular con el computador. En ese caso
+        el celular no está conectado a una red sino que \emph{es} la red, y
+        DroidCam deja de enviar video por WiFi. Para no depender de la red se
+        agregó la conexión por cable: Linux habla con el iPhone a través del
+        servicio \texttt{usbmuxd}, que permite abrir una conexión a un puerto
+        del celular por el cable USB. El servidor la usa para pedir el mismo
+        video al puerto 4747, sin instalar controladores ni programas
+        adicionales, y además recibe imágenes de $1280\times720$ en lugar de
+        $640\times480$.
+  \item \textbf{ESP32-CAM por cable.} Una placa ESP32-CAM (sensor OV2640)
+        conectada al computador por un adaptador USB-serial envía el video por
+        el mismo cable, sin WiFi. Su firmware manda cada cuadro como un JPEG
+        (de nuevo entre \texttt{FFD8} y \texttt{FFD9}) por el puerto serial a
+        un millón de baudios, y el servidor los separa con los mismos
+        marcadores que usa con DroidCam. Entrega imágenes de $800\times600$ a
+        unos tres cuadros por segundo y tiene un ángulo de visión de unos
+        $65^\circ$, el mismo que se usa para armar $K$ (paso 3). Si la imagen
+        sale volteada o en espejo, se corrige en el propio sensor desde la
+        página (botones \textbf{Espejo} y \textbf{Voltear}).
+  \item \textbf{Cámara del computador.} Cualquier cámara conectada al
+        computador (por ejemplo, la webcam) se lee con OpenCV; sirve para
+        hacer pruebas.
+\end{enumerate}
 
 La página dibuja sobre la imagen una cuadrícula de $3\times3$ y un recuadro
 central (figura~\ref{fig:encuadre}). El objeto se debe poner dentro del
@@ -46,7 +73,7 @@ de ancho.
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.8\linewidth]{app_encuadre.jpg}
+\includegraphics[width=0.8\linewidth]{ui_encuadre_objeto.jpg}
 \caption{Pantalla de captura: imagen de la cámara con la cuadrícula y el
 recuadro de encuadre.}
 \label{fig:encuadre}
@@ -61,23 +88,43 @@ se conserva la región conectada que más se superpone con el recuadro de
 encuadre. Si la red no está disponible, GrabCut hace la segmentación a partir
 del recuadro. Ninguno de los dos necesita un fondo neutro.
 
-\subsection{Paso 2: profundidad a partir de la silueta}
+\subsection{Paso 2: profundidad}
 
-Con una sola foto no se conoce la profundidad, así que se supone una forma
-redondeada. Para cada píxel del objeto se calcula su distancia $d$ al borde
-de la silueta y se normaliza, $s=d/d_{\max}$. La altura sobre el plano del
-borde sigue un cuarto de círculo:
+Con una sola foto no se conoce la profundidad, así que hay que estimarla.
+Se combinan dos fuentes.
+
+La primera es la silueta. Para cada píxel del objeto se calcula su distancia
+$d$ al borde y se normaliza, $s=d/d_{\max}$. Un cuarto de círculo da una forma
+redondeada que se cierra justo en el contorno:
 \begin{equation}
-h(u,v) = R\left(0{,}75\,\sqrt{1-(1-s)^2} + 0{,}06\,\delta(u,v)\right),
+p(s) = \sqrt{1-(1-s)^2}.
 \end{equation}
-donde $R$ es $d_{\max}$ convertido a milímetros y $\delta$ es un pequeño
-detalle que sale de las variaciones de brillo de la foto (las zonas más
-claras que su entorno suelen estar más cerca). El objeto se supone a una
-distancia $Z_0=400$ mm, de modo que un píxel mide $Z_0/f$ milímetros. La cara
-frontal queda en $Z_{\text{frente}}=Z_0-g-h$ y la trasera en
-$Z_{\text{atrás}}=Z_0+g+0{,}6\,h$, donde $g$ es medio grosor.
+La segunda es la red Depth Anything V2, que entrega para cada píxel una
+disparidad $D(u,v)$: es relativa, y un valor mayor significa más cerca. Como no
+trae unidades, se mide respecto al borde de la silueta,
+\begin{equation}
+r(u,v) = \operatorname{clip}_{[0,1]}\!\left(
+  \frac{D(u,v)-D_{\text{borde}}}{D_{\text{alto}}-D_{\text{borde}}}\right),
+\end{equation}
+donde $D_{\text{borde}}$ es la mediana de $D$ en el borde del objeto y
+$D_{\text{alto}}$ el percentil 99 de $D$ dentro de él; así $r=0$ en el borde y
+$r=1$ en la parte más cercana. La altura sobre el plano del borde mezcla ambas
+fuentes:
+\begin{equation}
+h(u,v) = 0{,}75\,R\left(0{,}7\,r(u,v) + 0{,}3\,p(s)\right),
+\end{equation}
+donde $R$ es $d_{\max}$ convertido a milímetros. La red aporta la forma real
+del objeto y el cuarto de círculo garantiza que el sólido cierre en el
+contorno. Si la red no está disponible, se usa solo la silueta, con un pequeño
+detalle $\delta$ que sale de las variaciones de brillo de la foto (las zonas más
+claras que su entorno suelen estar más cerca):
+$h=R\left(0{,}75\,p(s)+0{,}06\,\delta\right)$.
 
-\subsection{Paso 3: retroproyección con $K^{-1}$}
+El objeto se supone a una distancia $Z_0=400$ mm, de modo que un píxel mide
+$Z_0/f$ milímetros. La cara frontal queda en $Z_{\text{frente}}=Z_0-g-h$ y la
+trasera en $Z_{\text{atrás}}=Z_0+g+0{,}6\,h$, donde $g$ es medio grosor.
+
+\subsection{Paso 3: retroproyección con \texorpdfstring{$K^{-1}$}{K inversa}}
 
 La matriz $K$ se arma con el tamaño de la foto y un ángulo de visión de
 $65^\circ$, típico de los celulares. Todos los píxeles del objeto se apilan
@@ -100,7 +147,7 @@ hacia arriba, $z$ hacia la cámara) con $\vect{p}=R_o(\vect{P}-\vect{c})$, donde
 $\vect{c}$ es el centro del objeto y $R_o=\operatorname{diag}(1,-1,-1)$, que
 es una rotación de $180^\circ$ alrededor del eje $x$ ($\det R_o=1$).
 
-\subsection{Paso 4: la malla $V$, $F$}
+\subsection{Paso 4: la malla \texorpdfstring{$V$, $F$}{V, F}}
 
 Los vértices se guardan en una matriz $V\in\mathbb{R}^{N\times3}$ (una fila por
 punto) y los triángulos en una matriz $F\in\mathbb{Z}^{M\times3}$ cuyas filas
@@ -123,68 +170,114 @@ Con esto cada arista queda compartida por exactamente dos triángulos, y la
 malla es un sólido cerrado cuyo volumen se calcula con la
 ecuación~\eqref{eq:volumen}. La foto se usa como textura del frente.
 
-\subsection{Reconstrucción con cinco vistas}
+\subsection{Procesamiento alto}
 
-Para obtener la forma completa, el usuario toma cinco fotos dando una vuelta
-al objeto (figura~\ref{fig:vistas}). Se usan como ejes del mundo los de la
-cámara frontal, con el origen en el centro del objeto, y cada vista tiene una
-matriz de rotación cuyas filas son los ejes de esa cámara escritos en el
-mundo (tabla~\ref{tab:rotaciones}).
+La página permite elegir entre procesamiento \textbf{bajo} y \textbf{alto}. El
+bajo es el descrito hasta aquí y se calcula por completo en el computador. Con
+una sola fotografía, sin embargo, las partes del objeto que la cámara no ve (la
+parte de atrás y los costados ocultos) solo se pueden suponer. En el
+procesamiento alto, con apoyo en un modelo generativo de reconstrucción 3D
+(Hunyuan3D), se hace un reprocesamiento de las partes no visibles de la foto
+para obtener una reconstrucción más completa y exacta del objeto. El resultado
+es un modelo con textura en formato \texttt{.glb} y tarda entre uno y cuatro
+minutos. Este modo se usa solo con objetos.
 
-\begin{table}[htbp]
-\caption{Matrices de rotación de las cinco vistas}
-\label{tab:rotaciones}
-\begin{tabular}{lll}
-\toprule
-Vista & Posición de la cámara & $R$ \\
-\midrule
-Frontal & delante, mira hacia $+Z$ & $I$ \\[2pt]
-Lateral izquierda & en $-X$, mira hacia $+X$ &
-  $\begin{bmatrix}0&0&-1\\0&1&0\\1&0&0\end{bmatrix}$ \\[12pt]
-Trasera & en $+Z$, mira hacia $-Z$ &
-  $\begin{bmatrix}-1&0&0\\0&1&0\\0&0&-1\end{bmatrix}$ \\[12pt]
-Lateral derecha & en $+X$, mira hacia $-X$ &
-  $\begin{bmatrix}0&0&1\\0&1&0\\-1&0&0\end{bmatrix}$ \\[12pt]
-Superior & arriba ($-Y$), mira hacia abajo &
-  $\begin{bmatrix}1&0&0\\0&0&-1\\0&1&0\end{bmatrix}$ \\
-\bottomrule
-\end{tabular}
-\note{Las cinco cumplen $R^{T}R=I$ y $\det R=1$.}
-\end{table}
+\subsection{Reconstrucción de habitaciones}
 
-\paragraph{Escala de cada vista.} Como las fotos se toman a pulso, no se sabe a
-qué distancia se tomó cada una. La foto frontal fija la escala: con $Z_0$ se
-obtienen el ancho $a$ y el alto $b$ del objeto en milímetros. Las demás vistas
-comparten alguna medida con la frontal, lo que da una ecuación lineal por
-vista para su distancia $d$:
-\begin{equation}
-d_{\text{lateral}} = \frac{f\,b}{b_{\text{px}}}, \qquad
-d_{\text{superior}} = \frac{f\,a}{a_{\text{px}}}, \qquad
-d_{\text{trasera}} = \frac{f}{2}\left(\frac{a}{a_{\text{px}}}+\frac{b}{b_{\text{px}}}\right),
-\end{equation}
-donde $a_{\text{px}}$ y $b_{\text{px}}$ son el ancho y el alto de la silueta en
-esa foto. El centro del objeto está sobre el rayo que pasa por el centro
-$(u_c,v_c)$ de la silueta, así que la traslación de cada vista es
-$\vect{t}=d\,K^{-1}[u_c,v_c,1]^{T}$: otra vez la retroproyección.
+Para una habitación se usa la misma idea que para un objeto, llevar cada píxel
+al espacio con $K^{-1}$, pero la profundidad se obtiene de otra forma: se
+aprovecha que el piso, las paredes y el techo son planos. El proceso tiene seis
+pasos.
 
-\paragraph{Talla de voxeles.} Alrededor del objeto se arma una rejilla de cubos
-pequeños (voxeles), unos 120 a lo largo del lado mayor. Cada centro de voxel
-$\vect{X}$ se proyecta en cada foto con la ecuación~\eqref{eq:camara-general};
-el voxel se conserva solo si cae dentro de la silueta en todas las vistas. En
-la práctica se usan siluetas suavizadas, de modo que la ocupación es un número
-entre 0 y 1 (el mínimo entre las vistas). Marching cubes extrae la superficie
-donde la ocupación vale 0,5.
+\paragraph{Paso 1: profundidad en metros y clases.} La red Depth Anything V2
+entrega la distancia $Z(u,v)$ de cada píxel en metros, y cada píxel se lleva al
+espacio con la ecuación~\eqref{eq:retro}: $\vect{P}=Z\,K^{-1}[u,v,1]^{T}$. Al
+mismo tiempo, SegFormer indica la clase de cada píxel: piso, pared, techo o un
+mueble.
 
-\paragraph{Color.} Cada vértice de la superficie toma el color de la foto cuya
-cámara lo ve más de frente: la que tiene mayor producto punto
-$\hat{\vect{n}}\cdot\hat{\vect{c}}$ entre la normal del vértice y el vector
-unitario que va del vértice hacia la cámara.
+\paragraph{Paso 2: planos del cuarto.} La red tiene ruido, así que los puntos
+del piso no quedan exactamente sobre un plano. Para cada superficie (piso,
+techo y hasta cuatro paredes) se buscan $\vect{n}$ y $d$ en la
+ecuación~\eqref{eq:plano}: se toman tres puntos al azar de esa clase, se
+calcula la normal con el producto cruz y se cuenta cuántos puntos quedan cerca
+del plano. Esto se repite muchas veces y se conserva el plano que más puntos
+explica \citep{fischler1981}; después se ajusta con todos esos puntos.
 
-\subsection{Pruebas}
+\paragraph{Paso 3: intersección rayo--plano.} Cada píxel del piso, del techo o
+de una pared cambia su profundidad por la del plano, con la
+ecuación~\eqref{eq:rayo-plano}: $Z=d/(\vect{n}\cdot\vect{r})$. Así las
+superficies del cuarto quedan perfectamente planas. Con los mismos planos se
+calcula también el \emph{cuarto vacío}: para un píxel tapado por un mueble, lo
+que hay detrás es el plano más cercano que corta su rayo, es decir, el menor de
+los valores $d_k/(\vect{n}_k\cdot\vect{r})$ que sean positivos.
 
-El código incluye pruebas automáticas de la matemática: que $KK^{-1}=I$; que
-proyectar un punto retroproyectado devuelve el mismo píxel; que la malla de un
-disco es cerrada (cada arista aparece dos veces, en sentidos opuestos) y que su
-volumen coincide con $\pi r^2$ por el grosor; que la segmentación separa un
-objeto de un fondo con ruido de colores; y que la envolvente visual de una
-caja de $100\times60\times40$ mm recupera sus proporciones.
+\paragraph{Paso 4: malla.} Sobre toda la foto se coloca una rejilla de hasta
+480 nodos por lado y cada celda se divide en dos triángulos, con las mismas
+matrices $V$ y $F$ de los objetos y la foto como textura. Donde un mueble tapa
+la pared, la profundidad cambia de golpe y los triángulos que unen ambos lados
+quedan muy estirados. Esos triángulos se reconocen porque la cámara los ve
+casi de canto (el producto punto entre su normal y el rayo es casi cero) y
+porque $Z$ salta más de un 12\,\%; se eliminan.
+
+\paragraph{Paso 5: zonas ocultas.} Al girar el modelo se vería lo que la foto
+no tiene, detrás de los muebles. Ahí se agrega una segunda capa de triángulos
+con la profundidad del cuarto vacío, y su textura la rellena la red LaMa
+\citep{suvorov2022}.
+
+\paragraph{Paso 6: enderezar la escena.} El celular casi nunca está derecho,
+así que el piso sale inclinado. Con la normal del piso $\vect{n}$ se construye
+la rotación $R$ de la ecuación~\eqref{eq:enderezar} (fórmula de rotación de
+Rodrigues) y todos los vértices se giran con un solo producto de matrices. Como
+$R^{T}R=I$, el giro no deforma la habitación. Si $\vect{n}$ tiene norma 1, la
+altura de la cámara sobre el piso es $|d|$, la distancia del origen (la
+cámara) al plano del piso.
+
+\subsection{Interfaz de usuario}
+
+La aplicación es una página web con un encabezado fijo y una escena
+tridimensional que ocupa el resto de la pantalla. El encabezado tiene tres
+componentes: el botón \textbf{Cámara}, con un punto que se pone verde cuando
+llega imagen; el selector \textbf{Objetos} / \textbf{Habitaciones}; y el
+selector de \textbf{Procesamiento} (bajo o alto).
+
+El botón \textbf{Cámara} abre un panel a la izquierda con dos pestañas:
+\textbf{WiFi}, con el campo para la IP que muestra DroidCam, y \textbf{USB},
+con el iPhone por cable, la ESP32-CAM y las cámaras del computador
+(figura~\ref{fig:ui-camara}). Al llegar la primera imagen, el panel se cierra
+solo y aparece la vista de encuadre.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{ui_camara.jpg}
+\caption{Panel de conexión de la cámara: pestañas WiFi y USB, campo para la IP
+de DroidCam y estado de la conexión.}
+\label{fig:ui-camara}
+\end{figure}
+
+En \textbf{Objetos}, la vista de encuadre muestra la imagen de la cámara con la
+cuadrícula y el recuadro central (figura~\ref{fig:encuadre}); encima, los
+botones \textbf{Espejo} y \textbf{Voltear} corrigen la orientación de la imagen,
+y abajo el botón \textbf{Tomar foto} envía el cuadro al servidor. En
+\textbf{Habitaciones}, la vista indica cómo tomar la foto (desde una esquina o
+la puerta, con el celular horizontal y el piso a la vista) y ofrece dos
+botones: \textbf{Subir foto}, para usar una imagen del equipo, y
+\textbf{Tomar foto} (figura~\ref{fig:ui-habitacion}).
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\linewidth]{ui_encuadre_habitacion.jpg}
+\caption{Vista de encuadre para habitaciones, con las indicaciones para tomar
+la foto y los botones Subir foto y Tomar foto.}
+\label{fig:ui-habitacion}
+\end{figure}
+
+Mientras el servidor calcula, la imagen se oscurece y un mensaje indica el paso
+en curso. Al terminar, la escena muestra el modelo 3D
+(figuras~\ref{fig:una-foto} y~\ref{fig:habitacion-real}). Abajo aparece una
+barra con los botones \textbf{Malla}, \textbf{Puntos} y \textbf{Ambos}, que
+cambian la forma de ver el modelo; \textbf{.obj}, que lo descarga (con
+procesamiento alto, el archivo es \texttt{.glb}); \textbf{Girar}, solo en
+habitaciones, que mueve la vista de un lado a otro; y \textbf{Nueva foto}.
+Arriba a la derecha, una ficha muestra el recorte, el tamaño de $V$ y $F$, las
+medidas y el tiempo de cálculo. El modelo se gira arrastrando con el mouse y se
+acerca con la rueda.

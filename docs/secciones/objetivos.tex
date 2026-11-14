@@ -2,23 +2,17 @@
 
 \subsection{Objetivo general}
 
-Desarrollar un mapeador 3D que convierta fotografías tomadas con la cámara de
-un celular en un modelo tridimensional cerrado, usando vectores, matrices y
-sistemas de ecuaciones lineales como base matemática.
+Desarrollar un mapeador 3D de bajo costo que, a partir de una fotografía tomada
+con la cámara de un celular, obtenga un modelo tridimensional de un objeto o de
+una habitación, usando vectores, matrices y sistemas de ecuaciones lineales
+como base matemática.
 
 \subsection{Objetivos específicos}
 
 \begin{enumerate}
-  \item Separar el objeto del fondo de la fotografía sin necesidad de un fondo
-        neutro y representarlo como una matriz binaria (máscara).
-  \item Modelar la cámara con su matriz intrínseca $K$ y usar su inversa
-        $K^{-1}$ para llevar cada píxel a un punto del espacio $\mathbb{R}^3$.
-  \item Construir una malla de triángulos cerrada, descrita por la matriz de
-        vértices $V$ y la matriz de caras $F$, con cara frontal, cara trasera y
-        paredes.
-  \item Combinar cinco vistas del objeto (frontal, laterales, trasera y
-        superior) mediante matrices de rotación para reconstruir su forma
-        completa.
-  \item Mostrar el resultado en una página web interactiva y medir el tiempo de
-        procesamiento y el error de las proporciones reconstruidas.
+  \item Separar, mediante software, el objeto del fondo de la fotografía.
+  \item Implementar la reconstrucción en 3D de objetos y de habitaciones a
+        partir de una fotografía.
+  \item Mostrar el resultado en una página web interactiva, donde el modelo se
+        pueda girar, acercar y descargar.
 \end{enumerate}

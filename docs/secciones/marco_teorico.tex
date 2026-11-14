@@ -87,7 +87,7 @@ profundidad.}
 \label{fig:camara}
 \end{figure}
 
-\subsubsection{La matriz intrínseca $K$}
+\subsubsection{La matriz intrínseca \texorpdfstring{$K$}{K}}
 
 Las ecuaciones \eqref{eq:proyeccion} no son lineales por la división entre
 $Z$, pero se vuelven lineales con \emph{coordenadas homogéneas}: se agrega un
@@ -104,7 +104,7 @@ primera ecuación de \eqref{eq:proyeccion} multiplicada por $Z$; la tercera
 fila da la identidad $Z=Z$. La distancia focal sale del ángulo de visión
 horizontal $\alpha$ de la cámara: $f=(W/2)/\tan(\alpha/2)$.
 
-\subsubsection{La inversa $K^{-1}$ y la retroproyección}
+\subsubsection{La inversa \texorpdfstring{$K^{-1}$}{K inversa} y la retroproyección}
 
 Para ir en sentido contrario, del píxel al espacio, se despeja $\vect{P}$ en
 \eqref{eq:K}. Como $K$ es triangular superior con diagonal $(f,f,1)$, su
@@ -134,23 +134,46 @@ mismo píxel: $KK^{-1}=I$.
 son dos y las incógnitas $X,Y,Z$ son tres. El sistema tiene infinitas
 soluciones, una por cada punto del rayo (figura~\ref{fig:camara}). La
 retroproyección solo es posible cuando se conoce o se estima $Z$; en este
-proyecto esa información sale de la silueta del objeto o de otras
-fotografías.
+proyecto esa información sale de la silueta del objeto y de una red de
+profundidad o, en las habitaciones, de esa red y de los planos del cuarto.
 
-\subsection{Matrices de rotación y varias cámaras}
+\subsection{Matrices de rotación}
 
 Una matriz de rotación $R$ de $3\times3$ cambia la orientación de los ejes sin
 deformar: sus filas son vectores de norma 1 y perpendiculares entre sí, por lo
-que $R^{T}R=I$ (su inversa es su transpuesta) y $\det R=1$. Una cámara colocada
-en otro lugar se describe con su rotación $R$ y un vector de traslación
-$\vect{t}$: un punto $\vect{X}$ del mundo pasa a los ejes de esa cámara con
-$R\vect{X}+\vect{t}$ y luego se proyecta con $K$:
+que $R^{T}R=I$ (su inversa es su transpuesta) y $\det R=1$. Como no cambia
+longitudes ni ángulos, girar todos los puntos de un modelo con $R$ no lo
+deforma. En el proyecto se usa para enderezar una habitación: si $\vect{n}$ es
+el vector normal del piso, se busca la rotación que cumple
 \begin{equation}
-\lambda\begin{bmatrix} u\\ v\\ 1 \end{bmatrix} = K\,(R\,\vect{X} + \vect{t}).
-\label{eq:camara-general}
+R\,\vect{n} = (0,1,0)^{T},
+\label{eq:enderezar}
 \end{equation}
-La posición de esa cámara en el mundo es $\vect{C}=-R^{T}\vect{t}$, que sale de
-despejar el punto que la cámara ve en su propio origen.
+es decir, la que lleva la normal del piso a la vertical.
+
+\subsection{Planos y la intersección de un rayo con un plano}
+
+Un plano del espacio se describe con un vector normal $\vect{n}$, perpendicular
+al plano, y un número $d$: los puntos $\vect{P}$ del plano son los que cumplen
+\begin{equation}
+\vect{n}\cdot\vect{P} = d.
+\label{eq:plano}
+\end{equation}
+Si se conocen tres puntos $\vect{a},\vect{b},\vect{c}$ del plano, la normal se
+obtiene con el producto cruz, $\vect{n}=(\vect{b}-\vect{a})\times(\vect{c}-\vect{a})$,
+y $d=\vect{n}\cdot\vect{a}$.
+
+El rayo que pasa por el píxel $(u,v)$ está formado por los puntos
+$\vect{P}=Z\,\vect{r}$, con $\vect{r}=K^{-1}[u,v,1]^{T}$
+(ecuación~\eqref{eq:retro}). Al reemplazarlo en \eqref{eq:plano} queda una sola
+ecuación con una sola incógnita:
+\begin{equation}
+\vect{n}\cdot(Z\,\vect{r}) = d \quad\Longrightarrow\quad Z = \frac{d}{\vect{n}\cdot\vect{r}}.
+\label{eq:rayo-plano}
+\end{equation}
+Así, cuando se sabe en qué plano está un píxel, el sistema que antes tenía
+infinitas soluciones pasa a tener una sola: la profundidad queda determinada.
+Si $\vect{n}\cdot\vect{r}=0$, el rayo es paralelo al plano y no lo corta.
 
 \subsection{Determinante y volumen}
 
@@ -169,7 +192,7 @@ orientado: si una cara está al revés, su aporte es negativo.
 
 \subsection{Herramientas de visión por computador}
 
-Dos pasos del proyecto usan herramientas ya existentes, que se describen solo
+Algunos pasos del proyecto usan herramientas ya existentes, que se describen solo
 en lo necesario:
 \begin{itemize}
   \item \textbf{Segmentación.} La biblioteca \texttt{rembg} usa la red neuronal
@@ -177,20 +200,14 @@ en lo necesario:
         objeto principal de una foto, y entrega una máscara alfa (de 0 a 255).
         Si no está disponible, se usa GrabCut \citep{rother2004}, que separa
         el objeto partiendo de un rectángulo que lo contiene.
-  \item \textbf{Superficie a partir de voxeles.} El algoritmo de
-        \emph{marching cubes} \citep{lorensen1987} recorre una rejilla de
-        cubos y, donde el valor de la rejilla cruza un umbral, coloca
-        triángulos. Así una nube de cubos ocupados se convierte en una malla
-        lisa.
+  \item \textbf{Profundidad y clases.} Depth Anything V2 \citep{yang2024}
+        estima la profundidad de cada píxel con una sola foto: en los objetos
+        entrega una disparidad relativa (un valor mayor significa más cerca) y,
+        en las habitaciones, con la versión entrenada con interiores, la
+        distancia en metros. Para las habitaciones se usa además SegFormer
+        \citep{xie2021}, que indica qué es cada píxel (piso, pared, techo,
+        sofá, mesa\ldots). Lo que la foto no ve detrás de los muebles se
+        rellena con la red de restauración de imágenes LaMa \citep{suvorov2022}.
 \end{itemize}
-
-\subsection{Envolvente visual}
-
-Cada silueta, vista desde su cámara, define un cono: el conjunto de puntos del
-espacio que se proyectan dentro de ella. El objeto está dentro de todos los
-conos a la vez, y la intersección de los conos se llama \emph{envolvente
-visual} \citep{laurentini1994}. Con más vistas desde ángulos distintos la
-envolvente se ajusta mejor al objeto, aunque nunca recupera las partes
-cóncavas (por ejemplo, el interior de una taza), porque no cambian la silueta.
 
 \input{tablas/mapeo_conceptos}
