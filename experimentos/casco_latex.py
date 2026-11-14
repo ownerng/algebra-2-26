@@ -27,6 +27,14 @@ def N(i):
     return f"{int(i):,}".replace(",", "\\,")
 
 
+def nm(x, d=2):
+    """Número con coma decimal y espacio fino entre miles (modo matemático)."""
+    r = round(abs(x), d)
+    ent, dec = f"{r:.{d}f}".split(".")
+    ent = f"{int(ent):,}".replace(",", "\\,")
+    return ("-" if x < 0 else "") + ent + ("{,}" + dec if d else "")
+
+
 def pm(filas, d=4, tipo="pmatrix"):
     def c(x):
         if isinstance(x, str):
@@ -776,6 +784,144 @@ los costados que la cámara no ve quedan estirados, porque la forma se supone re
     return texto
 
 
+# ---------- matrices, vectores e inversas en la metodología --------------------
+def metodologia_algebra(v, extra):
+    cam, mal = v["camara"], v["malla"]
+    K, Ki = np.array(cam["K"]), np.array(cam["K_inv"])
+    ej = {e["nombre"]: e for e in v["ejemplos"]}
+    A_, B_, C_ = ej["visera"], ej["casco_arriba"], ej["cerca_del_borde"]
+    W, H = v["foto"]["ancho"], v["foto"]["alto"]
+    Ro = np.diag([1.0, -1.0, -1.0])
+    c = np.array(mal["centro_camara"])
+    PA = np.array(A_["P"])
+    pA = Ro @ (PA - c)                 # a los ejes del objeto
+    de_vuelta = Ro.T @ pA + c          # inversa de la rotación y de la traslación
+    KP = K @ de_vuelta
+    pix = KP / KP[2]
+    rA = np.array(A_["rayo"])
+    tri = mal["triangulo"]
+    rgbA, rgbB = extra["rgbA"], extra["rgbB"]
+    plantilla = r"""
+\subsection{Matrices, vectores e inversas en el proceso}\label{sec:algebra-proceso}
+
+Todo el proceso del mapeador es álgebra lineal: cada paso es una operación entre matrices y vectores, y cada vez que hay que
+deshacer una transformación aparece una inversa. Esta subsección reúne en un solo lugar las matrices, los vectores y las inversas
+que se usan, con los valores de la foto del casco; la teoría está en el marco teórico (sección «\nameref{sec:inversa}») y el
+desarrollo paso a paso, en la sección «\nameref{sec:casco}».
+
+\paragraph{Matrices del proceso.} El cuadro~\ref{tab:matrices-proceso} muestra las matrices en el orden en que se crean. Los tamaños
+cuadran en cada producto: la retroproyección de los $N$ píxeles se hace de una vez con
+\begin{equation}
+\underbrace{P}_{3\times N}=\underbrace{K^{-1}}_{3\times3}\ \underbrace{H}_{3\times N}\ \underbrace{\operatorname{diag}(Z_1,\dots,Z_N)}_{N\times N},
+\end{equation}
+donde $(3\times3)(3\times N)$ da $3\times N$ y multiplicar por la diagonal a la derecha escala cada columna. Como en el programa cada punto es una
+fila, los vértices quedan en $V\in\mathbb{R}^{N\times3}$ al pasar a los ejes del objeto con la transpuesta de la rotación:
+\begin{equation}
+V=\bigl(P^{T}-\vect{1}\,\vect{c}^{T}\bigr)\,R_o^{T},\qquad R_o=\operatorname{diag}(1,-1,-1),
+\end{equation}
+con $\vect{1}$ un vector de unos de longitud $N$ (resta el centro $\vect{c}$ a todas las filas) y $R_o^{T}=R_o$.
+
+\begin{table}[htbp]
+\caption{Matrices del proceso (tamaños con la foto del casco)}
+\label{tab:matrices-proceso}
+\centering\small
+\begin{tabular}{@{}p{2.3cm}p{3.1cm}p{5.2cm}p{3.2cm}@{}}
+\toprule
+Matriz & Tamaño & Qué guarda & Paso \\
+\midrule
+$I$ & $@h@\times@w@\times3$ & el color de cada píxel & adquisición \\
+$M$ & $@h@\times@w@$ & 1 en el objeto, 0 en el fondo & paso 1 \\
+$K$ & $3\times3$ & el modelo de la cámara: $f=@f@$, $(c_x,c_y)=(@cx@,@cy@)$ & paso 3 \\
+$H$ & $3\times@Nn@$ & los píxeles del casco como columnas $(u,v,1)^{T}$ & paso 3 \\
+$\operatorname{diag}(Z)$ & $@Nn@\times@Nn@$ & la profundidad de cada píxel, entre $@zmin@$ y $@zmax@$ mm & paso 3 \\
+$P$ & $3\times@Nn@$ & los puntos 3D en los ejes de la cámara & paso 3 \\
+$R_o$ & $3\times3$ & giro de $180^\circ$ alrededor de $x$ & paso 3 \\
+$V$ & $@Nv@\times3$ & los vértices de la malla (frente y atrás) & paso 4 \\
+$F$ & $@Mf@\times3$ & los índices de los tres vértices de cada triángulo & paso 4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Además de los productos, se usan la \emph{transpuesta} (para pasar de columnas a filas y para invertir rotaciones) y el
+\emph{determinante}: el de $K$, $\det K=f^2=@detK@$, comprueba que se puede invertir, y el de la matriz $3\times3$ de los vértices de
+cada triángulo da el volumen del tetraedro que forma con el origen.
+
+\paragraph{Vectores del proceso.} Los datos que viajan por el proceso son vectores, y las tres operaciones del curso (norma, producto punto y
+producto cruz) aparecen en lugares concretos (cuadro~\ref{tab:vectores-proceso}).
+
+\begin{table}[htbp]
+\caption{Vectores del proceso y operaciones que se les aplican (valores del casco)}
+\label{tab:vectores-proceso}
+\centering\small
+\begin{tabular}{@{}p{2.3cm}p{3.0cm}p{4.9cm}p{4.0cm}@{}}
+\toprule
+Vector & Qué representa & Valor & Operación \\
+\midrule
+$\vect{c}_A=(r,g,b)$ & color del píxel A & $@cA@$ & norma de la diferencia: $\lVert\vect{c}_A-\vect{c}_B\rVert=@nAB@$ \\
+$\vect{p}=(u,v,1)^{T}$ & píxel en coordenadas homogéneas & $(@uA@,@vA@,1)^{T}$ & producto $K^{-1}\vect{p}$ \\
+$\vect{r}=K^{-1}\vect{p}$ & dirección del rayo del píxel & $(@r0@,@r1@,1)^{T}$ & norma $@nr@$; ángulo con el eje óptico $@ang@^\circ$ \\
+$\vect{P}=Z\,\vect{r}$ & punto 3D (ejes de la cámara) & $(@P0@,@P1@,@P2@)^{T}$ mm & se multiplica por $K$ para volver al píxel \\
+$\vect{e}_1,\vect{e}_2$ & dos lados de un triángulo & $\lVert\vect{e}_1\rVert=@ne1@$ & resta de vértices \\
+$\vect{n}=\vect{e}_1\times\vect{e}_2$ & normal del triángulo & $(@n0@,@n1@,@n2@)^{T}$ & producto cruz; $\hat n_z=@nu2@>0$ mira al observador \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El producto punto aparece en el ángulo entre rayos, $\cos\theta=\vect{r}_A\cdot\vect{r}_C/(\lVert\vect{r}_A\rVert\lVert\vect{r}_C\rVert)$, y, en las
+habitaciones, en la ecuación del plano $\vect{n}\cdot\vect{P}=d$ y en la intersección rayo--plano $Z=d/(\vect{n}\cdot\vect{r})$.
+
+\paragraph{Inversas del proceso.} Cada vez que se pasa de un lado a otro hay una matriz y su inversa. El cuadro~\ref{tab:inversas-proceso} las reúne y
+dice cómo se obtiene cada una; ninguna se calcula con un método general porque todas tienen una estructura que la simplifica.
+
+\begin{table}[htbp]
+\caption{Inversas del proceso y cómo se calculan}
+\label{tab:inversas-proceso}
+\centering\small
+\begin{tabular}{@{}p{2.1cm}p{2.6cm}p{4.3cm}p{4.2cm}@{}}
+\toprule
+Matriz & Inversa & Cómo se calcula & Para qué sirve \\
+\midrule
+$K$ (triangular) & $K^{-1}$ & restar $c_x$, $c_y$ veces la fila 3 y dividir entre $f$ (Gauss--Jordan con 3 operaciones) & del píxel al rayo: $\vect{r}=K^{-1}\vect{p}$ \\
+$R_o$ (ortogonal) & $R_o^{-1}=R_o^{T}$ & trasponer, sin cuentas & volver de los ejes del objeto a los de la cámara \\
+$C$ (DCT $8\times8$, ortogonal) & $C^{-1}=C^{T}$ & trasponer & recuperar los píxeles de cada bloque del JPEG \\
+$T$ (color $3\times3$) & $T^{-1}$ & Gauss--Jordan & pasar de YCbCr a RGB \\
+$\operatorname{diag}(Z)$ & $\operatorname{diag}(1/Z)$ & invertir cada entrada de la diagonal & deshacer la escala por profundidad \\
+$\mathcal{M}$ ($4\times4$) & $\mathcal{M}^{-1}=\mathcal{M}^{T}$ (rotación pura) & por bloques, $s^{-1}R^{T}$ y $-s^{-1}R^{T}\vect{t}$ & transformación de nodo del modelo generativo \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{La inversa de la cadena completa.} El paso del píxel al vértice es una cadena de transformaciones, y la inversa de una cadena es la cadena de
+las inversas en orden contrario, $(AB)^{-1}=B^{-1}A^{-1}$. Para el píxel A, ir del píxel al vértice es $\vect{p}\ \to\ \vect{P}=Z\,K^{-1}\vect{p}\ \to\
+\vect{p}_{\text{obj}}=R_o(\vect{P}-\vect{c})$, y volver es
+\begin{equation}
+\vect{P}=R_o^{T}\,\vect{p}_{\text{obj}}+\vect{c}=R_o^{T}@pAobj@+@cc@=@Pvuelta@,\qquad
+K\vect{P}=@KPv@=Z\,\vect{p},
+\end{equation}
+y al dividir entre $Z=@Zf@$ se recupera el píxel $(@pixu@,@pixv@,1)$ de partida: la cadena y su inversa se cancelan, que es lo que
+comprueban las pruebas automáticas del servidor ($KK^{-1}=I$ y proyectar un punto retroproyectado devuelve el mismo píxel).
+
+\paragraph{La matriz que no se puede invertir.} La única matriz del proceso sin inversa es la de la proyección, $A=\begin{pmatrix}f&0&c_x-u\\0&f&c_y-v\end{pmatrix}$,
+que es de $2\times3$: no es cuadrada, tiene rango $2$ y su espacio nulo es la recta del rayo (sección «\nameref{sec:casco-retro}»). Por eso una sola foto no
+alcanza para recuperar la profundidad y hay que agregar información: la silueta y la red de profundidad en los objetos, y los planos del cuarto en las
+habitaciones, donde $Z=d/(\vect{n}\cdot\vect{r})$ convierte el sistema en una ecuación con una sola incógnita.
+"""
+    d = dict(
+        h=H, w=W, f=n(cam["f"], 3), cx=n(cam["cx"], 0), cy=n(cam["cy"], 0), Nn=N(mal["n_frente"]), Nv=N(mal["N"]), Mf=N(mal["M"]),
+        zmin=n(v["profundidad"]["Zfrente_min"], 0), zmax=n(v["profundidad"]["Zfrente_max"], 0),
+        detK=N(int(cam["det_K"])) + "{,}" + f"{cam['det_K'] % 1:.1f}"[2:],
+        cA="(" + r",\," .join(str(x) for x in rgbA) + ")", nAB=n(extra["normAB"], 1),
+        uA=A_["u"], vA=A_["v"], r0=n(rA[0], 4), r1=n(rA[1], 4), nr=n(float(np.linalg.norm(rA)), 5),
+        ang=n(float(np.degrees(np.arctan(np.hypot(rA[0], rA[1])))), 2),
+        P0=n(PA[0], 2), P1=n(PA[1], 2), P2=n(PA[2], 2),
+        ne1=n(float(np.linalg.norm(tri["e1"])), 4), n0=n(tri["normal"][0], 4), n1=n(tri["normal"][1], 4), n2=n(tri["normal"][2], 4),
+        nu2=n(tri["normal_unitaria"][2], 4),
+        pAobj=vec(pA, 3), cc=vec(c, 3), Pvuelta=vec(de_vuelta, 3), KPv=pm([[nm(x, 1)] for x in KP]), Zf=n(A_["Z_frente"], 2),
+        pixu=int(round(pix[0])), pixv=int(round(pix[1])),
+    )
+    return fill(plantilla, d)
+
+
 # ---------- principal -----------------------------------------------------------
 def main(entrada: str, salida: str, alto_json: str | None) -> None:
     ent, sal = Path(entrada), Path(salida)
@@ -810,6 +956,7 @@ def main(entrada: str, salida: str, alto_json: str | None) -> None:
     alto = json.loads(Path(alto_json).read_text()) if alto_json and Path(alto_json).exists() else None
     (sal / "construccion.tex").write_text(construccion(v, extra), encoding="utf8")
     (sal / "marco_inversas.tex").write_text(marco_inversas(), encoding="utf8")
+    (sal / "metodologia_algebra.tex").write_text(metodologia_algebra(v, extra), encoding="utf8")
     (sal / "casco_matematica.tex").write_text(casco_matematica(v, extra, ""), encoding="utf8")
     (sal / "casco_alto.tex").write_text(alto_matematica(alto, v), encoding="utf8")
     (sal / "casco_resultados.tex").write_text(casco_resultados(v, alto), encoding="utf8")
